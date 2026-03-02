@@ -1,4 +1,4 @@
-package com.rentify.core.entity.enums;
+package com.rentify.core.enums;
 
 public enum RequestStatus
 {

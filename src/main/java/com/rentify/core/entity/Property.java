@@ -1,7 +1,7 @@
 package com.rentify.core.entity;
 
-import com.rentify.core.entity.enums.PropertyStatus;
-import com.rentify.core.entity.enums.RentalType;
+import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.RentalType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
