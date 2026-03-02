@@ -6,7 +6,6 @@ import java.time.LocalTime;
 import java.util.List;
 
 public record PropertyCreateRequestDto(
-        Long hostId,
         AddressDto address,
         String title,
         String description,

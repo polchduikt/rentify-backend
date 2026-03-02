@@ -7,6 +7,7 @@ public record ReviewDto(
         Long propertyId,
         Long authorId,
         Short rating,
+        String authorFirstName,
         String comment,
         ZonedDateTime createdAt
 ) {}

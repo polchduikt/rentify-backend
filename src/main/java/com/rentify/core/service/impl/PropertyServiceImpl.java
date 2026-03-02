@@ -8,6 +8,7 @@ import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.*;
+import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PropertyService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +24,11 @@ import java.util.List;
 public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
-    private final UserRepository userRepository;
     private final AmenityRepository amenityRepository;
     private final PropertyMapper propertyMapper;
     private final AddressRepository addressRepository;
     private final LocationRepository locationRepository;
+    private final AuthenticationService authenticationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -47,8 +48,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional
     public PropertyResponseDto create(PropertyCreateRequestDto request) {
-        User host = userRepository.findById(request.hostId())
-                .orElseThrow(() -> new EntityNotFoundException("Host with id " + request.hostId() + " not found"));
+        User host = authenticationService.getCurrentUser();
         Property property = propertyMapper.toEntity(request);
         property.setHost(host);
         property.setStatus(PropertyStatus.ACTIVE);

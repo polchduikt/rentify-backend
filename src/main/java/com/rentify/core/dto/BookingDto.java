@@ -1,7 +1,6 @@
 package com.rentify.core.dto;
 
 import com.rentify.core.enums.BookingStatus;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
