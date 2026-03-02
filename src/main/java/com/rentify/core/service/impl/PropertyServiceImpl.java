@@ -11,6 +11,8 @@ import com.rentify.core.repository.*;
 import com.rentify.core.service.PropertyService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
@@ -29,10 +31,9 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PropertyResponseDto> getAllProperties() {
-        return propertyRepository.findAll().stream()
-                .map(propertyMapper::toDto)
-                .toList();
+    public Page<PropertyResponseDto> getAllProperties(Pageable pageable) {
+        Page<Property> propertiesPage = propertyRepository.findAll(pageable);
+        return propertiesPage.map(propertyMapper::toDto);
     }
 
     @Override
