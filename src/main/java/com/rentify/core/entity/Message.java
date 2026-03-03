@@ -29,6 +29,10 @@ public class Message {
     @Column(columnDefinition = "TEXT")
     private String text;
 
+    @Column(name = "is_read", nullable = false)
+    @Builder.Default
+    private Boolean isRead = false;
+
     @Column(name = "media_url", length = 800)
     private String mediaUrl;
 
