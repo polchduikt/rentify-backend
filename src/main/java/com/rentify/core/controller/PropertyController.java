@@ -1,11 +1,10 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.PropertyCreateRequestDto;
-import com.rentify.core.dto.PropertyPhotoDto;
-import com.rentify.core.dto.PropertyResponseDto;
-import com.rentify.core.dto.PropertySearchCriteriaDto;
+import com.rentify.core.dto.*;
+import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -17,12 +16,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
 public class PropertyController {
 
     private final PropertyService propertyService;
+    private final AvailabilityService availabilityService;
 
     @GetMapping
     public ResponseEntity<Page<PropertyResponseDto>> getAllProperties(
@@ -53,5 +55,26 @@ public class PropertyController {
             @ParameterObject PropertySearchCriteriaDto criteria,
             @ParameterObject Pageable pageable) {
         return ResponseEntity.ok(propertyService.search(criteria, pageable));
+    }
+
+    @PostMapping
+    public ResponseEntity<AvailabilityBlockDto> createBlock(
+            @PathVariable Long propertyId,
+            @Valid @RequestBody AvailabilityBlockRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(availabilityService.createBlock(propertyId, request));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(@PathVariable Long propertyId) {
+        return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
+    }
+
+    @DeleteMapping("/{blockId}")
+    public ResponseEntity<Void> deleteBlock(
+            @PathVariable Long propertyId,
+            @PathVariable Long blockId) {
+        availabilityService.deleteBlock(propertyId, blockId);
+        return ResponseEntity.noContent().build();
     }
 }

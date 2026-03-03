@@ -19,6 +19,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -92,6 +93,10 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        User currentUser = authenticationService.getCurrentUser();
+        if (!property.getHost().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You are not the owner of this property. You cannot upload photos to it.");
+        }
         String imageUrl = cloudinaryService.uploadFile(file);
         PropertyPhoto photo = PropertyPhoto.builder()
                 .property(property)

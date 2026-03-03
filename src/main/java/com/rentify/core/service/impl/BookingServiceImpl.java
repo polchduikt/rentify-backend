@@ -2,11 +2,13 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.BookingDto;
 import com.rentify.core.dto.BookingRequestDto;
+import com.rentify.core.entity.AvailabilityBlock;
 import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.mapper.BookingMapper;
+import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
@@ -32,6 +34,7 @@ public class BookingServiceImpl implements BookingService {
     private final PropertyRepository propertyRepository;
     private final AuthenticationService authService;
     private final BookingMapper bookingMapper;
+    private final AvailabilityBlockRepository availabilityRepository;
 
     @Override
     @Transactional
@@ -46,6 +49,12 @@ public class BookingServiceImpl implements BookingService {
         if (request.guests() > property.getMaxGuests()) {
             throw new IllegalArgumentException("Guest count exceeds the maximum capacity of " + property.getMaxGuests() +
                     " for this property.");
+        }
+        List<AvailabilityBlock> overlappingBlocks = availabilityRepository
+                .findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
+                        property.getId(), request.dateTo(), request.dateFrom());
+        if (!overlappingBlocks.isEmpty()) {
+            throw new IllegalStateException("The property is blocked by the host for the selected dates.");
         }
         List<BookingStatus> ignoredStatuses = List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED);
         boolean isOccupied = bookingRepository.hasOverlappingBookings(
