@@ -51,6 +51,10 @@ public class Property {
     @Column(name = "max_guests")
     private Short maxGuests;
 
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private java.util.List<PropertyPhoto> photos = new java.util.ArrayList<>();
+
     @Column(name = "check_in_time")
     private LocalTime checkInTime;
 

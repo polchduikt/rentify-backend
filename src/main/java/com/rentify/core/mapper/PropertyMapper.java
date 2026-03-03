@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 public interface PropertyMapper {
     @Mapping(source = "host.id", target = "hostId")
     PropertyResponseDto toDto(Property property);
+    PropertyPhotoDto toPhotoDto(PropertyPhoto photo);
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
