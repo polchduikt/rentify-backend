@@ -5,6 +5,7 @@ import com.rentify.core.enums.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -34,4 +35,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             BookingStatus status,
             LocalDate dateTo
     );
+
+    @Modifying
+    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status = :oldStatus AND b.dateFrom <= :currentDate")
+    int updateStatusToInProgress(
+            @Param("oldStatus") BookingStatus oldStatus,
+            @Param("newStatus") BookingStatus newStatus,
+            @Param("currentDate") LocalDate currentDate);
+
+    @Modifying
+    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status IN :oldStatuses AND b.dateTo < :currentDate")
+    int updateStatusToCompleted(
+            @Param("oldStatuses") List<BookingStatus> oldStatuses,
+            @Param("newStatus") BookingStatus newStatus,
+            @Param("currentDate") LocalDate currentDate);
+
+    boolean existsByTenantIdAndPropertyIdAndStatus(Long tenantId, Long propertyId, BookingStatus status);
 }

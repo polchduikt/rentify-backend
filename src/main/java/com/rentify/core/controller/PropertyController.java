@@ -3,12 +3,12 @@ package com.rentify.core.controller;
 import com.rentify.core.dto.*;
 import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,7 +28,7 @@ public class PropertyController {
 
     @GetMapping
     public ResponseEntity<Page<PropertyResponseDto>> getAllProperties(
-            @PageableDefault(size = 10, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
         return ResponseEntity.ok(propertyService.getAllProperties(pageable));
     }
@@ -57,20 +57,27 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.search(criteria, pageable));
     }
 
-    @PostMapping
+    @PostMapping("/{id}/availability")
     public ResponseEntity<AvailabilityBlockDto> createBlock(
-            @PathVariable Long propertyId,
+            @PathVariable Long id,
             @Valid @RequestBody AvailabilityBlockRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(availabilityService.createBlock(propertyId, request));
+                .body(availabilityService.createBlock(id, request));
     }
 
-    @GetMapping
+    @GetMapping("/{propertyId}/availability")
     public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(@PathVariable Long propertyId) {
         return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
     }
 
-    @DeleteMapping("/{blockId}")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<PropertyResponseDto> changeStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody PropertyStatusUpdateRequestDto request) {
+        return ResponseEntity.ok(propertyService.changePropertyStatus(id, request.status()));
+    }
+
+    @DeleteMapping("/{propertyId}/availability/{blockId}")
     public ResponseEntity<Void> deleteBlock(
             @PathVariable Long propertyId,
             @PathVariable Long blockId) {

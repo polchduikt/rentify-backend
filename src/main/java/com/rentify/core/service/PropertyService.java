@@ -14,4 +14,5 @@ public interface PropertyService {
     PropertyResponseDto create(PropertyCreateRequestDto request);
     PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file);
     Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable);
+    PropertyResponseDto changePropertyStatus(Long id, com.rentify.core.enums.PropertyStatus newStatus);
 }

@@ -39,14 +39,13 @@ public class ReviewServiceImpl implements ReviewService {
         User author = authService.getCurrentUser();
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        boolean hasStayed = bookingRepository.existsByTenantIdAndPropertyIdAndStatusAndDateToBefore(
+        boolean hasStayed = bookingRepository.existsByTenantIdAndPropertyIdAndStatus(
                 author.getId(),
                 property.getId(),
-                BookingStatus.CONFIRMED,
-                LocalDate.now()
+                BookingStatus.COMPLETED
         );
         if (!hasStayed) {
-            throw new IllegalStateException("You can only review properties after you have completed a confirmed stay.");
+            throw new IllegalStateException("You can only review properties after your stay is COMPLETED.");
         }
         if (reviewRepository.existsByAuthorIdAndPropertyId(author.getId(), property.getId())) {
             throw new IllegalStateException("You have already reviewed this property.");

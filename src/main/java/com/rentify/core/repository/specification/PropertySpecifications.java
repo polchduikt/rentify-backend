@@ -13,6 +13,7 @@ public class PropertySpecifications {
     public static Specification<Property> withFilters(PropertySearchCriteriaDto criteria) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status"), com.rentify.core.enums.PropertyStatus.ACTIVE));
             if (criteria.city() != null && !criteria.city().isBlank()) {
                 predicates.add(cb.equal(root.get("address").get("location").get("city"), criteria.city()));
             }

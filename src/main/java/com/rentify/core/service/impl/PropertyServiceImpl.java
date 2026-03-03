@@ -112,6 +112,31 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @Transactional
+    public PropertyResponseDto changePropertyStatus(Long id, PropertyStatus newStatus) {
+        Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        User currentUser = authenticationService.getCurrentUser();
+        boolean isHost = property.getHost().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+        if (!isHost && !isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have permission to change the status of this property");
+        }
+        if (newStatus == PropertyStatus.BLOCKED && !isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only administrators can block properties");
+        }
+        if (property.getStatus() == PropertyStatus.BLOCKED && !isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "This property is blocked by an administrator and cannot be unblocked manually");
+        }
+        property.setStatus(newStatus);
+        return propertyMapper.toDto(propertyRepository.save(property));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
         return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), pageable)
