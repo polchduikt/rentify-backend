@@ -1,14 +1,17 @@
 package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.PropertyCreateRequestDto;
+import com.rentify.core.dto.PropertyPhotoDto;
 import com.rentify.core.dto.PropertyResponseDto;
 import com.rentify.core.entity.Amenity;
 import com.rentify.core.entity.Property;
+import com.rentify.core.entity.PropertyPhoto;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.*;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.PropertyService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.HashSet;
 import java.util.List;
 
@@ -29,6 +33,8 @@ public class PropertyServiceImpl implements PropertyService {
     private final AddressRepository addressRepository;
     private final LocationRepository locationRepository;
     private final AuthenticationService authenticationService;
+    private final CloudinaryService cloudinaryService;
+    private final PropertyPhotoRepository propertyPhotoRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -77,5 +83,24 @@ public class PropertyServiceImpl implements PropertyService {
         }
         Property savedProperty = propertyRepository.save(property);
         return propertyMapper.toDto(savedProperty);
+    }
+
+    @Override
+    @Transactional
+    public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        String imageUrl = cloudinaryService.uploadFile(file);
+        PropertyPhoto photo = PropertyPhoto.builder()
+                .property(property)
+                .url(imageUrl)
+                .sortOrder(0)
+                .build();
+        PropertyPhoto savedPhoto = propertyPhotoRepository.save(photo);
+        return new PropertyPhotoDto(
+                savedPhoto.getId(),
+                savedPhoto.getUrl(),
+                savedPhoto.getSortOrder()
+        );
     }
 }
