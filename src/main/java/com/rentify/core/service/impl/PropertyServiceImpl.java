@@ -3,6 +3,7 @@ package com.rentify.core.service.impl;
 import com.rentify.core.dto.PropertyCreateRequestDto;
 import com.rentify.core.dto.PropertyPhotoDto;
 import com.rentify.core.dto.PropertyResponseDto;
+import com.rentify.core.dto.PropertySearchCriteriaDto;
 import com.rentify.core.entity.Amenity;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.PropertyPhoto;
@@ -10,6 +11,7 @@ import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.*;
+import com.rentify.core.repository.specification.PropertySpecifications;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.PropertyService;
@@ -102,5 +104,12 @@ public class PropertyServiceImpl implements PropertyService {
                 savedPhoto.getUrl(),
                 savedPhoto.getSortOrder()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
+        return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), pageable)
+                .map(propertyMapper::toDto);
     }
 }

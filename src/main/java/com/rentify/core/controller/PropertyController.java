@@ -3,8 +3,11 @@ package com.rentify.core.controller;
 import com.rentify.core.dto.PropertyCreateRequestDto;
 import com.rentify.core.dto.PropertyPhotoDto;
 import com.rentify.core.dto.PropertyResponseDto;
+import com.rentify.core.dto.PropertySearchCriteriaDto;
 import com.rentify.core.service.PropertyService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -43,5 +46,12 @@ public class PropertyController {
     public ResponseEntity<PropertyPhotoDto> uploadPhoto(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
         PropertyPhotoDto uploadedPhoto = propertyService.uploadPhoto(id, file);
         return ResponseEntity.ok(uploadedPhoto);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<PropertyResponseDto>> searchProperties(
+            @ParameterObject PropertySearchCriteriaDto criteria,
+            @ParameterObject Pageable pageable) {
+        return ResponseEntity.ok(propertyService.search(criteria, pageable));
     }
 }
