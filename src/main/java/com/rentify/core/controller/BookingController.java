@@ -1,8 +1,9 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.BookingDto;
-import com.rentify.core.dto.BookingRequestDto;
+import com.rentify.core.dto.booking.BookingDto;
+import com.rentify.core.dto.booking.BookingRequestDto;
 import com.rentify.core.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,7 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<BookingDto> createBooking(@RequestBody BookingRequestDto request) {
+    public ResponseEntity<BookingDto> createBooking(@Valid @RequestBody BookingRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(request));
     }
 

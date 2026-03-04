@@ -1,6 +1,6 @@
 package com.rentify.core.mapper;
 
-import com.rentify.core.dto.UserResponseDto;
+import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.Role;
 import org.mapstruct.Mapper;

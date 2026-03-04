@@ -1,7 +1,7 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.UpdateUserRequestDto;
-import com.rentify.core.dto.UserResponseDto;
+import com.rentify.core.dto.user.UpdateUserRequestDto;
+import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.mapper.UserMapper;
 import com.rentify.core.repository.UserRepository;

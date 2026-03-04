@@ -1,6 +1,6 @@
 package com.rentify.core.mapper;
 
-import com.rentify.core.dto.ReviewDto;
+import com.rentify.core.dto.review.ReviewDto;
 import com.rentify.core.entity.Review;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

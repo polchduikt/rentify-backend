@@ -1,7 +1,7 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.ReviewDto;
-import com.rentify.core.dto.ReviewRequestDto;
+import com.rentify.core.dto.review.ReviewDto;
+import com.rentify.core.dto.review.ReviewRequestDto;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.Review;
 import com.rentify.core.entity.User;

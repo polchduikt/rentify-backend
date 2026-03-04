@@ -1,9 +1,10 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.AuthenticationRequestDto;
-import com.rentify.core.dto.AuthenticationResponseDto;
-import com.rentify.core.dto.RegisterRequestDto;
+import com.rentify.core.dto.auth.AuthenticationRequestDto;
+import com.rentify.core.dto.auth.AuthenticationResponseDto;
+import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.service.AuthenticationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,12 +20,12 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponseDto> register(@RequestBody RegisterRequestDto request) {
+    public ResponseEntity<AuthenticationResponseDto> register(@Valid @RequestBody RegisterRequestDto request) {
         return ResponseEntity.ok(authenticationService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponseDto> authenticate(@RequestBody AuthenticationRequestDto request) {
+    public ResponseEntity<AuthenticationResponseDto> authenticate(@Valid @RequestBody AuthenticationRequestDto request) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 }

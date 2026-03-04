@@ -1,7 +1,7 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.UpdateUserRequestDto;
-import com.rentify.core.dto.UserResponseDto;
+import com.rentify.core.dto.user.UpdateUserRequestDto;
+import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;

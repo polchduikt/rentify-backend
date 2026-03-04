@@ -1,7 +1,7 @@
 package com.rentify.core.service;
 
-import com.rentify.core.dto.AvailabilityBlockDto;
-import com.rentify.core.dto.AvailabilityBlockRequestDto;
+import com.rentify.core.dto.property.AvailabilityBlockDto;
+import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import java.util.List;
 
 public interface AvailabilityService {

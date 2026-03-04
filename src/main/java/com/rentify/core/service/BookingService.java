@@ -1,7 +1,7 @@
 package com.rentify.core.service;
 
-import com.rentify.core.dto.BookingDto;
-import com.rentify.core.dto.BookingRequestDto;
+import com.rentify.core.dto.booking.BookingDto;
+import com.rentify.core.dto.booking.BookingRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

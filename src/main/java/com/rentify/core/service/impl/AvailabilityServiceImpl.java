@@ -1,7 +1,7 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.AvailabilityBlockDto;
-import com.rentify.core.dto.AvailabilityBlockRequestDto;
+import com.rentify.core.dto.property.AvailabilityBlockDto;
+import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import com.rentify.core.entity.AvailabilityBlock;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;

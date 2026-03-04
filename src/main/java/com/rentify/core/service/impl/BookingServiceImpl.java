@@ -1,7 +1,7 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.BookingDto;
-import com.rentify.core.dto.BookingRequestDto;
+import com.rentify.core.dto.booking.BookingDto;
+import com.rentify.core.dto.booking.BookingRequestDto;
 import com.rentify.core.entity.AvailabilityBlock;
 import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;

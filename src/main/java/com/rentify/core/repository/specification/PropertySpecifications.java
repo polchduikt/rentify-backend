@@ -1,6 +1,6 @@
 package com.rentify.core.repository.specification;
 
-import com.rentify.core.dto.PropertySearchCriteriaDto;
+import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.entity.Property;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;

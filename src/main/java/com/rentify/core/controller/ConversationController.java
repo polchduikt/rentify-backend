@@ -1,8 +1,8 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.ConversationDto;
-import com.rentify.core.dto.MessageDto;
-import com.rentify.core.dto.SendMessageRequestDto;
+import com.rentify.core.dto.conversation.ConversationDto;
+import com.rentify.core.dto.conversation.MessageDto;
+import com.rentify.core.dto.conversation.SendMessageRequestDto;
 import com.rentify.core.service.ConversationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

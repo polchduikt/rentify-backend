@@ -1,7 +1,7 @@
 package com.rentify.core.service;
 
-import com.rentify.core.dto.UpdateUserRequestDto;
-import com.rentify.core.dto.UserResponseDto;
+import com.rentify.core.dto.user.UpdateUserRequestDto;
+import com.rentify.core.dto.user.UserResponseDto;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {

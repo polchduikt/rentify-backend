@@ -1,8 +1,9 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.ReviewDto;
-import com.rentify.core.dto.ReviewRequestDto;
+import com.rentify.core.dto.review.ReviewDto;
+import com.rentify.core.dto.review.ReviewRequestDto;
 import com.rentify.core.service.ReviewService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    public ResponseEntity<ReviewDto> create(@RequestBody ReviewRequestDto request) {
+    public ResponseEntity<ReviewDto> create(@Valid @RequestBody ReviewRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.createReview(request));
     }
 

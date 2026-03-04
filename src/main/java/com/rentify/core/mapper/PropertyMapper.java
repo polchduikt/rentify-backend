@@ -1,7 +1,16 @@
 package com.rentify.core.mapper;
 
-import com.rentify.core.dto.*;
-import com.rentify.core.entity.*;
+import com.rentify.core.dto.property.AddressDto;
+import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyPhotoDto;
+import com.rentify.core.dto.property.PropertyPricingDto;
+import com.rentify.core.dto.property.PropertyResponseDto;
+import com.rentify.core.dto.property.PropertyRuleDto;
+import com.rentify.core.entity.Address;
+import com.rentify.core.entity.Property;
+import com.rentify.core.entity.PropertyPhoto;
+import com.rentify.core.entity.PropertyPricing;
+import com.rentify.core.entity.PropertyRule;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

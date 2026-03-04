@@ -1,6 +1,12 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.*;
+import com.rentify.core.dto.property.AvailabilityBlockDto;
+import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
+import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyPhotoDto;
+import com.rentify.core.dto.property.PropertyResponseDto;
+import com.rentify.core.dto.property.PropertySearchCriteriaDto;
+import com.rentify.core.dto.property.PropertyStatusUpdateRequestDto;
 import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
 import jakarta.validation.Valid;
@@ -39,7 +45,7 @@ public class PropertyController {
     }
 
     @PostMapping
-    public ResponseEntity<PropertyResponseDto> createProperty(@RequestBody PropertyCreateRequestDto request) {
+    public ResponseEntity<PropertyResponseDto> createProperty(@Valid @RequestBody PropertyCreateRequestDto request) {
         PropertyResponseDto createdProperty = propertyService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProperty);
     }

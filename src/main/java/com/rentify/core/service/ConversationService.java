@@ -1,8 +1,8 @@
 package com.rentify.core.service;
 
-import com.rentify.core.dto.ConversationDto;
-import com.rentify.core.dto.MessageDto;
-import com.rentify.core.dto.SendMessageRequestDto;
+import com.rentify.core.dto.conversation.ConversationDto;
+import com.rentify.core.dto.conversation.MessageDto;
+import com.rentify.core.dto.conversation.SendMessageRequestDto;
 
 import java.util.List;
 

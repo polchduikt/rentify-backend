@@ -1,7 +1,16 @@
 package com.rentify.core;
 
-import com.rentify.core.dto.*;
-import com.rentify.core.entity.*;
+import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyPhotoDto;
+import com.rentify.core.dto.property.PropertyResponseDto;
+import com.rentify.core.dto.property.PropertySearchCriteriaDto;
+import com.rentify.core.entity.Amenity;
+import com.rentify.core.entity.Property;
+import com.rentify.core.entity.PropertyPhoto;
+import com.rentify.core.entity.PropertyPricing;
+import com.rentify.core.entity.PropertyRule;
+import com.rentify.core.entity.Role;
+import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.*;
@@ -75,7 +84,7 @@ class PropertyServiceImplTest {
                 10L, 1L, null, "Тестова квартира", "Опис", null,
                 PropertyStatus.ACTIVE, "apartment", (short)2, (short)5, (short)10,
                 java.math.BigDecimal.valueOf(60.0), (short)4, null, null,
-                null, null, List.of(), Set.of(), java.time.ZonedDateTime.now()
+                null, null, List.of(), Set.of(), java.time.ZonedDateTime.now(), java.time.ZonedDateTime.now()
         );
         pageable = PageRequest.of(0, 10, Sort.by("id"));
     }

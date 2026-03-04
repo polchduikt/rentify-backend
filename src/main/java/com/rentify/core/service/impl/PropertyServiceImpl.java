@@ -1,9 +1,9 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.PropertyCreateRequestDto;
-import com.rentify.core.dto.PropertyPhotoDto;
-import com.rentify.core.dto.PropertyResponseDto;
-import com.rentify.core.dto.PropertySearchCriteriaDto;
+import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyPhotoDto;
+import com.rentify.core.dto.property.PropertyResponseDto;
+import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.entity.Amenity;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.PropertyPhoto;
@@ -59,6 +59,12 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyResponseDto create(PropertyCreateRequestDto request) {
         User host = authenticationService.getCurrentUser();
         Property property = propertyMapper.toEntity(request);
+        if (property.getRentalType() == null) {
+            property.setRentalType(request.rentalType());
+        }
+        if (property.getPropertyType() == null) {
+            property.setPropertyType(request.propertyType());
+        }
         property.setHost(host);
         property.setStatus(PropertyStatus.ACTIVE);
         if (property.getPricing() != null) {
@@ -107,7 +113,8 @@ public class PropertyServiceImpl implements PropertyService {
         return new PropertyPhotoDto(
                 savedPhoto.getId(),
                 savedPhoto.getUrl(),
-                savedPhoto.getSortOrder()
+                savedPhoto.getSortOrder(),
+                savedPhoto.getCreatedAt()
         );
     }
 

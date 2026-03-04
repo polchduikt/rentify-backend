@@ -1,8 +1,8 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.AuthenticationRequestDto;
-import com.rentify.core.dto.AuthenticationResponseDto;
-import com.rentify.core.dto.RegisterRequestDto;
+import com.rentify.core.dto.auth.AuthenticationRequestDto;
+import com.rentify.core.dto.auth.AuthenticationResponseDto;
+import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -40,12 +41,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         var userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Error: ROLE_USER not found."));
+        var roles = new HashSet<com.rentify.core.entity.Role>();
+        roles.add(userRole);
         var user = User.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())
+                .phone(request.phone())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .roles(java.util.Set.of(userRole))
+                .roles(roles)
                 .isActive(true)
                 .build();
         userRepository.save(user);
@@ -56,7 +60,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticationResponseDto authenticate(AuthenticationRequestDto request) {
         logger.info("Authenticating user: {}", request.email());
-
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );

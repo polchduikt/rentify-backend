@@ -1,8 +1,8 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.ConversationDto;
-import com.rentify.core.dto.MessageDto;
-import com.rentify.core.dto.SendMessageRequestDto;
+import com.rentify.core.dto.conversation.ConversationDto;
+import com.rentify.core.dto.conversation.MessageDto;
+import com.rentify.core.dto.conversation.SendMessageRequestDto;
 import com.rentify.core.entity.Conversation;
 import com.rentify.core.entity.Message;
 import com.rentify.core.entity.Property;
