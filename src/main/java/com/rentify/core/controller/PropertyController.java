@@ -50,10 +50,29 @@ public class PropertyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProperty);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<PropertyResponseDto> updateProperty(
+            @PathVariable Long id,
+            @Valid @RequestBody PropertyCreateRequestDto request) {
+        return ResponseEntity.ok(propertyService.updateProperty(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProperty(@PathVariable Long id) {
+        propertyService.deleteProperty(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PropertyPhotoDto> uploadPhoto(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
         PropertyPhotoDto uploadedPhoto = propertyService.uploadPhoto(id, file);
         return ResponseEntity.ok(uploadedPhoto);
+    }
+
+    @DeleteMapping("/{id}/photos/{photoId}")
+    public ResponseEntity<Void> deletePhoto(@PathVariable Long id, @PathVariable Long photoId) {
+        propertyService.deletePhoto(id, photoId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")

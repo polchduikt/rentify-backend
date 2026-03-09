@@ -12,4 +12,5 @@ public interface AvailabilityBlockRepository extends JpaRepository<AvailabilityB
     List<AvailabilityBlock> findAllByPropertyId(Long propertyId);
     List<AvailabilityBlock> findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
             Long propertyId, LocalDate dateTo, LocalDate dateFrom);
+    void deleteAllByPropertyId(Long propertyId);
 }

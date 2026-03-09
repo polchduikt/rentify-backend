@@ -12,4 +12,5 @@ public interface LongTermRequestRepository extends JpaRepository<LongTermRequest
     List<LongTermRequest> findAllByPropertyId(Long propertyId);
     List<LongTermRequest> findAllByTenantId(Long tenantId);
     List<LongTermRequest> findAllByPropertyIdAndStatus(Long propertyId, RequestStatus status);
+    boolean existsByPropertyId(Long propertyId);
 }

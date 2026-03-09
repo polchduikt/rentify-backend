@@ -6,7 +6,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -17,17 +16,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.ZonedDateTime;
 
 @Entity
 @Table(
         name = "favorites",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "property_id"}),
-        indexes = {
-                @Index(name = "idx_favorites_user_id", columnList = "user_id"),
-                @Index(name = "idx_favorites_property_id", columnList = "property_id")
-        }
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "property_id"})
 )
 @Getter
 @Setter

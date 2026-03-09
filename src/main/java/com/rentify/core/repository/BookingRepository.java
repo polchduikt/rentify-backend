@@ -51,4 +51,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("currentDate") LocalDate currentDate);
 
     boolean existsByTenantIdAndPropertyIdAndStatus(Long tenantId, Long propertyId, BookingStatus status);
+    boolean existsByPropertyId(Long propertyId);
 }

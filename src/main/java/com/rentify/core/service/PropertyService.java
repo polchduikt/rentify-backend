@@ -12,7 +12,10 @@ public interface PropertyService {
     Page<PropertyResponseDto> getAllProperties(Pageable pageable);
     PropertyResponseDto getPropertyById(Long id);
     PropertyResponseDto create(PropertyCreateRequestDto request);
+    PropertyResponseDto updateProperty(Long id, PropertyCreateRequestDto request);
+    void deleteProperty(Long id);
     PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file);
+    void deletePhoto(Long propertyId, Long photoId);
     Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable);
     PropertyResponseDto changePropertyStatus(Long id, com.rentify.core.enums.PropertyStatus newStatus);
 }

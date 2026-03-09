@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
     Optional<Conversation> findByPropertyIdAndTenantId(Long propertyId, Long tenantId);
+    boolean existsByPropertyId(Long propertyId);
     @Query("SELECT c FROM Conversation c WHERE c.host.id = :userId OR c.tenant.id = :userId ORDER BY c.createdAt DESC")
     List<Conversation> findAllByUserId(@Param("userId") Long userId);
 }
