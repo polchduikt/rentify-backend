@@ -1,6 +1,7 @@
 package com.rentify.core.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.rentify.core.enums.PropertyMarketType;
 import com.rentify.core.enums.RentalType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -33,6 +34,18 @@ public record PropertyCreateRequestDto(
         @JsonProperty("propertyType")
         String propertyType,
 
+        @JsonProperty("marketType")
+        PropertyMarketType marketType,
+
+        @JsonProperty("isVerifiedProperty")
+        Boolean isVerifiedProperty,
+
+        @JsonProperty("isVerifiedRealtor")
+        Boolean isVerifiedRealtor,
+
+        @JsonProperty("isDuplicate")
+        Boolean isDuplicate,
+
         @Min(value = 1, message = "Rooms must be at least 1")
         @JsonProperty("rooms")
         Short rooms,
@@ -58,6 +71,9 @@ public record PropertyCreateRequestDto(
 
         @JsonProperty("amenityIds")
         List<Long> amenityIds,
+
+        @JsonProperty("amenitySlugs")
+        List<String> amenitySlugs,
 
         @Valid
         @JsonProperty("pricing")

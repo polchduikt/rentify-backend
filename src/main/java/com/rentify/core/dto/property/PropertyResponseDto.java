@@ -2,6 +2,7 @@ package com.rentify.core.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.PropertyMarketType;
 import com.rentify.core.enums.RentalType;
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -18,6 +19,10 @@ public record PropertyResponseDto(
         @JsonProperty("rentalType") RentalType rentalType,
         PropertyStatus status,
         @JsonProperty("propertyType") String propertyType,
+        @JsonProperty("marketType") PropertyMarketType marketType,
+        @JsonProperty("isVerifiedProperty") Boolean isVerifiedProperty,
+        @JsonProperty("isVerifiedRealtor") Boolean isVerifiedRealtor,
+        @JsonProperty("isDuplicate") Boolean isDuplicate,
         Short rooms,
         Short floor,
         @JsonProperty("totalFloors") Short totalFloors,

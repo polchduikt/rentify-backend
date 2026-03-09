@@ -1,6 +1,7 @@
 package com.rentify.core.entity;
 
 import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.PropertyMarketType;
 import com.rentify.core.enums.RentalType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,6 +40,22 @@ public class Property {
 
     @Column(name = "property_type", length = 60)
     private String propertyType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "market_type", length = 40)
+    private PropertyMarketType marketType;
+
+    @Builder.Default
+    @Column(name = "is_verified_property")
+    private Boolean isVerifiedProperty = false;
+
+    @Builder.Default
+    @Column(name = "is_verified_realtor")
+    private Boolean isVerifiedRealtor = false;
+
+    @Builder.Default
+    @Column(name = "is_duplicate")
+    private Boolean isDuplicate = false;
 
     private Short rooms;
     private Short floor;

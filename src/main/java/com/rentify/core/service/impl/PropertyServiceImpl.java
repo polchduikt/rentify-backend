@@ -38,8 +38,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -86,6 +89,8 @@ public class PropertyServiceImpl implements PropertyService {
         if (property.getPropertyType() == null) {
             property.setPropertyType(request.propertyType());
         }
+        property.setMarketType(request.marketType());
+        applyListingFlags(property, request);
         property.setHost(host);
         property.setStatus(PropertyStatus.ACTIVE);
         if (property.getPricing() != null) {
@@ -94,13 +99,7 @@ public class PropertyServiceImpl implements PropertyService {
         if (property.getRules() != null) {
             property.getRules().setProperty(property);
         }
-        if (request.amenityIds() != null && !request.amenityIds().isEmpty()) {
-            List<Amenity> foundAmenities = amenityRepository.findAllById(request.amenityIds());
-            if (foundAmenities.size() != request.amenityIds().size()) {
-                throw new EntityNotFoundException("One or more amenities provided in the request do not exist.");
-            }
-            property.setAmenities(new HashSet<>(foundAmenities));
-        }
+        updateAmenities(property, request.amenityIds(), request.amenitySlugs());
         if (property.getAddress() != null) {
             if (property.getAddress().getLocation() != null) {
                 com.rentify.core.entity.Location savedLocation =
@@ -126,6 +125,8 @@ public class PropertyServiceImpl implements PropertyService {
         property.setDescription(request.description());
         property.setRentalType(request.rentalType());
         property.setPropertyType(request.propertyType());
+        property.setMarketType(request.marketType());
+        applyListingFlags(property, request);
         property.setRooms(request.rooms());
         property.setFloor(request.floor());
         property.setTotalFloors(request.totalFloors());
@@ -133,7 +134,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setMaxGuests(request.maxGuests());
         property.setCheckInTime(request.checkInTime());
         property.setCheckOutTime(request.checkOutTime());
-        updateAmenities(property, request.amenityIds());
+        updateAmenities(property, request.amenityIds(), request.amenitySlugs());
         updateAddress(property, request);
         updatePricing(property, request);
         updateRules(property, request);
@@ -232,16 +233,34 @@ public class PropertyServiceImpl implements PropertyService {
                 .map(propertyMapper::toDto);
     }
 
-    private void updateAmenities(Property property, List<Long> amenityIds) {
-        if (amenityIds == null || amenityIds.isEmpty()) {
+    private void updateAmenities(Property property, List<Long> amenityIds, List<String> amenitySlugs) {
+        boolean hasAmenityIds = amenityIds != null && !amenityIds.isEmpty();
+        List<String> normalizedSlugs = normalizeSlugs(amenitySlugs);
+        boolean hasAmenitySlugs = !normalizedSlugs.isEmpty();
+        if (!hasAmenityIds && !hasAmenitySlugs) {
             property.setAmenities(new HashSet<>());
             return;
         }
-        List<Amenity> foundAmenities = amenityRepository.findAllById(amenityIds);
-        if (foundAmenities.size() != amenityIds.size()) {
-            throw new EntityNotFoundException("One or more amenities provided in the request do not exist.");
+
+        Set<Amenity> amenities = new HashSet<>();
+
+        if (hasAmenityIds) {
+            List<Amenity> foundByIds = amenityRepository.findAllById(amenityIds);
+            if (foundByIds.size() != amenityIds.size()) {
+                throw new EntityNotFoundException("One or more amenities provided in the request do not exist.");
+            }
+            amenities.addAll(foundByIds);
         }
-        property.setAmenities(new HashSet<>(foundAmenities));
+
+        if (hasAmenitySlugs) {
+            List<Amenity> foundBySlugs = amenityRepository.findAllBySlugInIgnoreCase(normalizedSlugs);
+            if (foundBySlugs.size() != normalizedSlugs.size()) {
+                throw new EntityNotFoundException("One or more amenity slugs provided in the request do not exist.");
+            }
+            amenities.addAll(foundBySlugs);
+        }
+
+        property.setAmenities(amenities);
     }
 
     private void updateAddress(Property property, PropertyCreateRequestDto request) {
@@ -309,6 +328,26 @@ public class PropertyServiceImpl implements PropertyService {
         property.getRules().setSmokingAllowed(request.rules().smokingAllowed());
         property.getRules().setPartiesAllowed(request.rules().partiesAllowed());
         property.getRules().setAdditionalRules(request.rules().additionalRules());
+    }
+
+    private void applyListingFlags(Property property, PropertyCreateRequestDto request) {
+        property.setIsVerifiedProperty(Boolean.TRUE.equals(request.isVerifiedProperty()));
+        property.setIsVerifiedRealtor(Boolean.TRUE.equals(request.isVerifiedRealtor()));
+        property.setIsDuplicate(Boolean.TRUE.equals(request.isDuplicate()));
+    }
+
+    private List<String> normalizeSlugs(List<String> amenitySlugs) {
+        if (amenitySlugs == null || amenitySlugs.isEmpty()) {
+            return List.of();
+        }
+        Set<String> normalized = new HashSet<>();
+        for (String slug : amenitySlugs) {
+            if (slug == null || slug.isBlank()) {
+                continue;
+            }
+            normalized.add(slug.trim().toLowerCase(Locale.ROOT));
+        }
+        return new ArrayList<>(normalized);
     }
 
     private void assertCanManageProperty(Property property, User currentUser) {
