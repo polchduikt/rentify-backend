@@ -7,6 +7,8 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.BookingMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -42,9 +44,23 @@ public class BookingServiceImpl implements BookingService {
         User tenant = authService.getCurrentUser();
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+
+        if (property.getStatus() != PropertyStatus.ACTIVE) {
+            throw new IllegalStateException("Only active properties can be booked.");
+        }
+        if (property.getRentalType() != RentalType.SHORT_TERM) {
+            throw new IllegalStateException("Only short-term properties can be booked.");
+        }
+        if (property.getHost().getId().equals(tenant.getId())) {
+            throw new IllegalArgumentException("You cannot book your own property.");
+        }
+
         long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
         if (nights <= 0) {
             throw new IllegalArgumentException("Invalid dates: check-out must be after check-in.");
+        }
+        if (property.getMaxGuests() == null) {
+            throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
         }
         if (request.guests() > property.getMaxGuests()) {
             throw new IllegalArgumentException("Guest count exceeds the maximum capacity of " + property.getMaxGuests() +
@@ -65,6 +81,9 @@ public class BookingServiceImpl implements BookingService {
         );
         if (isOccupied) {
             throw new IllegalStateException("The property is already booked for the selected dates.");
+        }
+        if (property.getPricing() == null || property.getPricing().getPricePerNight() == null) {
+            throw new IllegalStateException("Property configuration is invalid: pricePerNight is not set.");
         }
         BigDecimal pricePerNight = property.getPricing().getPricePerNight();
         BigDecimal totalPrice = pricePerNight.multiply(BigDecimal.valueOf(nights));

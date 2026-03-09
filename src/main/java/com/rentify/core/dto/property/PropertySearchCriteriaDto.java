@@ -5,6 +5,7 @@ import com.rentify.core.enums.AmenityCategory;
 import com.rentify.core.enums.PropertyMarketType;
 import com.rentify.core.enums.RentalType;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public record PropertySearchCriteriaDto(
@@ -31,6 +32,8 @@ public record PropertySearchCriteriaDto(
         @JsonProperty("maxSleepingPlaces") Short maxSleepingPlaces,
         @JsonProperty("minArea") Double minArea,
         @JsonProperty("maxArea") Double maxArea,
+        @JsonProperty("dateFrom") LocalDate dateFrom,
+        @JsonProperty("dateTo") LocalDate dateTo,
         @JsonProperty("rentalType") RentalType rentalType,
         @JsonProperty("marketType") PropertyMarketType marketType,
         @JsonProperty("propertyType") String propertyType,

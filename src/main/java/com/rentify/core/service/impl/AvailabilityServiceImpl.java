@@ -2,7 +2,9 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.property.AvailabilityBlockDto;
 import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
+import com.rentify.core.dto.property.UnavailableDateRangeDto;
 import com.rentify.core.entity.AvailabilityBlock;
+import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
@@ -17,6 +19,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,6 +81,59 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<UnavailableDateRangeDto> getUnavailableRangesByProperty(Long propertyId, LocalDate dateFrom, LocalDate dateTo) {
+        validateDateRange(dateFrom, dateTo);
+
+        if (!propertyRepository.existsById(propertyId)) {
+            throw new EntityNotFoundException("Property not found");
+        }
+
+        List<AvailabilityBlock> blocks;
+        List<Booking> bookings;
+        List<BookingStatus> excludedStatuses = List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED);
+
+        if (dateFrom != null) {
+            blocks = availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
+                    propertyId, dateTo, dateFrom
+            );
+            bookings = bookingRepository.findAllByPropertyIdAndStatusNotInAndDateFromLessThanAndDateToGreaterThan(
+                    propertyId, excludedStatuses, dateTo, dateFrom
+            );
+        } else {
+            blocks = availabilityRepository.findAllByPropertyId(propertyId);
+            bookings = bookingRepository.findAllByPropertyIdAndStatusNotIn(propertyId, excludedStatuses);
+        }
+
+        List<UnavailableDateRangeDto> unavailableRanges = new ArrayList<>();
+
+        for (AvailabilityBlock block : blocks) {
+            unavailableRanges.add(new UnavailableDateRangeDto(
+                    block.getDateFrom(),
+                    block.getDateTo(),
+                    "BLOCK",
+                    null
+            ));
+        }
+
+        for (Booking booking : bookings) {
+            unavailableRanges.add(new UnavailableDateRangeDto(
+                    booking.getDateFrom(),
+                    booking.getDateTo(),
+                    "BOOKING",
+                    booking.getStatus()
+            ));
+        }
+
+        unavailableRanges.sort(
+                Comparator.comparing(UnavailableDateRangeDto::dateFrom)
+                        .thenComparing(UnavailableDateRangeDto::dateTo)
+        );
+
+        return unavailableRanges;
+    }
+
+    @Override
     @Transactional
     public void deleteBlock(Long propertyId, Long blockId) {
         AvailabilityBlock block = availabilityRepository.findById(blockId)
@@ -85,5 +144,14 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             throw new AccessDeniedException("You do not have permission to delete this block");
         }
         availabilityRepository.delete(block);
+    }
+
+    private void validateDateRange(LocalDate dateFrom, LocalDate dateTo) {
+        if ((dateFrom == null) != (dateTo == null)) {
+            throw new IllegalArgumentException("Both dateFrom and dateTo must be provided together.");
+        }
+        if (dateFrom != null && !dateFrom.isBefore(dateTo)) {
+            throw new IllegalArgumentException("dateFrom must be before dateTo.");
+        }
     }
 }

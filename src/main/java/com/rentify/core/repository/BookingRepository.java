@@ -52,4 +52,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByTenantIdAndPropertyIdAndStatus(Long tenantId, Long propertyId, BookingStatus status);
     boolean existsByPropertyId(Long propertyId);
+
+    List<Booking> findAllByPropertyIdAndStatusNotIn(Long propertyId, List<BookingStatus> excludedStatuses);
+
+    List<Booking> findAllByPropertyIdAndStatusNotInAndDateFromLessThanAndDateToGreaterThan(
+            Long propertyId,
+            List<BookingStatus> excludedStatuses,
+            LocalDate endDate,
+            LocalDate startDate
+    );
 }

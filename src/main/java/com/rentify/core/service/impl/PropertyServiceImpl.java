@@ -28,7 +28,6 @@ import com.rentify.core.repository.ConversationRepository;
 import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.FavoriteRepository;
 import com.rentify.core.repository.LocationRepository;
-import com.rentify.core.repository.LongTermRequestRepository;
 import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.PropertyPhotoRepository;
 import com.rentify.core.repository.PropertyRepository;
@@ -73,7 +72,6 @@ public class PropertyServiceImpl implements PropertyService {
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
     private final ConversationRepository conversationRepository;
-    private final LongTermRequestRepository longTermRequestRepository;
     private final FavoriteRepository favoriteRepository;
 
     @Override
@@ -170,9 +168,6 @@ public class PropertyServiceImpl implements PropertyService {
         if (conversationRepository.existsByPropertyId(id)) {
             throw new IllegalStateException("Property cannot be deleted because it has conversations");
         }
-        if (longTermRequestRepository.existsByPropertyId(id)) {
-            throw new IllegalStateException("Property cannot be deleted because it has long-term requests");
-        }
         favoriteRepository.deleteByProperty_Id(id);
         availabilityBlockRepository.deleteAllByPropertyId(id);
         propertyRepository.delete(property);
@@ -241,6 +236,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
+        validateSearchDateRange(criteria);
         return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), pageable)
                 .map(propertyMapper::toDto);
     }
@@ -464,5 +460,14 @@ public class PropertyServiceImpl implements PropertyService {
     private boolean isAdmin(User user) {
         return user.getRoles().stream()
                 .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+    }
+
+    private void validateSearchDateRange(PropertySearchCriteriaDto criteria) {
+        if ((criteria.dateFrom() == null) != (criteria.dateTo() == null)) {
+            throw new IllegalArgumentException("Both dateFrom and dateTo must be provided together for availability search.");
+        }
+        if (criteria.dateFrom() != null && !criteria.dateFrom().isBefore(criteria.dateTo())) {
+            throw new IllegalArgumentException("dateFrom must be before dateTo for availability search.");
+        }
     }
 }

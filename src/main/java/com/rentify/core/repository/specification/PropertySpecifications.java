@@ -1,8 +1,12 @@
 package com.rentify.core.repository.specification;
 
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
+import com.rentify.core.entity.AvailabilityBlock;
 import com.rentify.core.entity.Amenity;
+import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
+import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.enums.RentalType;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -100,6 +104,30 @@ public class PropertySpecifications {
             }
             if (criteria.maxArea() != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("areaSqm"), criteria.maxArea()));
+            }
+            if (criteria.dateFrom() != null && criteria.dateTo() != null) {
+                predicates.add(cb.equal(root.get("rentalType"), RentalType.SHORT_TERM));
+
+                var blockSubquery = query.subquery(Long.class);
+                var blockRoot = blockSubquery.from(AvailabilityBlock.class);
+                blockSubquery.select(cb.literal(1L));
+                blockSubquery.where(
+                        cb.equal(blockRoot.get("property").get("id"), root.get("id")),
+                        cb.lessThanOrEqualTo(blockRoot.get("dateFrom"), criteria.dateTo()),
+                        cb.greaterThanOrEqualTo(blockRoot.get("dateTo"), criteria.dateFrom())
+                );
+                predicates.add(cb.not(cb.exists(blockSubquery)));
+
+                var bookingSubquery = query.subquery(Long.class);
+                var bookingRoot = bookingSubquery.from(Booking.class);
+                bookingSubquery.select(cb.literal(1L));
+                bookingSubquery.where(
+                        cb.equal(bookingRoot.get("property").get("id"), root.get("id")),
+                        cb.not(bookingRoot.get("status").in(List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED))),
+                        cb.lessThan(bookingRoot.get("dateFrom"), criteria.dateTo()),
+                        cb.greaterThan(bookingRoot.get("dateTo"), criteria.dateFrom())
+                );
+                predicates.add(cb.not(cb.exists(bookingSubquery)));
             }
             if (criteria.rentalType() != null) {
                 predicates.add(cb.equal(root.get("rentalType"), criteria.rentalType()));

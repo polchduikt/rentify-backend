@@ -7,6 +7,7 @@ import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.dto.property.PropertyStatusUpdateRequestDto;
+import com.rentify.core.dto.property.UnavailableDateRangeDto;
 import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
 import jakarta.validation.Valid;
@@ -19,9 +20,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -100,6 +103,14 @@ public class PropertyController {
     @GetMapping("/{propertyId}/availability")
     public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(@PathVariable Long propertyId) {
         return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
+    }
+
+    @GetMapping("/{propertyId}/availability/unavailable")
+    public ResponseEntity<List<UnavailableDateRangeDto>> getUnavailableRanges(
+            @PathVariable Long propertyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
+        return ResponseEntity.ok(availabilityService.getUnavailableRangesByProperty(propertyId, dateFrom, dateTo));
     }
 
     @PatchMapping("/{id}/status")
