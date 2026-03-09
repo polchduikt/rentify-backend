@@ -2,6 +2,7 @@ package com.rentify.core.controller;
 
 import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
+import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.service.AuthenticationService;
 import jakarta.validation.Valid;
@@ -27,5 +28,11 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponseDto> authenticate(@Valid @RequestBody AuthenticationRequestDto request) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthenticationResponseDto> authenticateWithGoogle(
+            @Valid @RequestBody GoogleOAuthRequestDto request) {
+        return ResponseEntity.ok(authenticationService.authenticateWithGoogle(request));
     }
 }
