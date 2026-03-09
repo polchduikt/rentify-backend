@@ -32,6 +32,18 @@ public interface PropertyMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "property", ignore = true)
     PropertyRule toRuleEntity(PropertyRuleDto dto);
+    @Mapping(source = "cityRef.id", target = "cityId")
+    @Mapping(source = "districtRef.id", target = "districtId")
+    @Mapping(source = "metroStationRef.id", target = "metroStationId")
+    @Mapping(source = "residentialComplexRef.id", target = "residentialComplexId")
+    @Mapping(source = "districtRef.name", target = "districtName")
+    @Mapping(source = "metroStationRef.name", target = "metroStationName")
+    @Mapping(source = "residentialComplexRef.name", target = "residentialComplexName")
+    AddressDto toAddressDto(Address address);
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "cityRef", ignore = true)
+    @Mapping(target = "districtRef", ignore = true)
+    @Mapping(target = "metroStationRef", ignore = true)
+    @Mapping(target = "residentialComplexRef", ignore = true)
     Address toAddressEntity(AddressDto dto);
 }

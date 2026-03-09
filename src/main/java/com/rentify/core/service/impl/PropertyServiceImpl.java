@@ -1,16 +1,21 @@
 package com.rentify.core.service.impl;
 
+import com.rentify.core.dto.property.AddressDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.entity.Address;
 import com.rentify.core.entity.Amenity;
+import com.rentify.core.entity.City;
+import com.rentify.core.entity.District;
 import com.rentify.core.entity.Location;
+import com.rentify.core.entity.MetroStation;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.PropertyPhoto;
 import com.rentify.core.entity.PropertyPricing;
 import com.rentify.core.entity.PropertyRule;
+import com.rentify.core.entity.ResidentialComplex;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
@@ -18,12 +23,16 @@ import com.rentify.core.repository.AddressRepository;
 import com.rentify.core.repository.AmenityRepository;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
+import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.ConversationRepository;
+import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.FavoriteRepository;
 import com.rentify.core.repository.LocationRepository;
 import com.rentify.core.repository.LongTermRequestRepository;
+import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.PropertyPhotoRepository;
 import com.rentify.core.repository.PropertyRepository;
+import com.rentify.core.repository.ResidentialComplexRepository;
 import com.rentify.core.repository.ReviewRepository;
 import com.rentify.core.repository.specification.PropertySpecifications;
 import com.rentify.core.service.AuthenticationService;
@@ -52,6 +61,10 @@ public class PropertyServiceImpl implements PropertyService {
     private final AmenityRepository amenityRepository;
     private final PropertyMapper propertyMapper;
     private final AddressRepository addressRepository;
+    private final CityRepository cityRepository;
+    private final DistrictRepository districtRepository;
+    private final MetroStationRepository metroStationRepository;
+    private final ResidentialComplexRepository residentialComplexRepository;
     private final LocationRepository locationRepository;
     private final AuthenticationService authenticationService;
     private final CloudinaryService cloudinaryService;
@@ -100,16 +113,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.getRules().setProperty(property);
         }
         updateAmenities(property, request.amenityIds(), request.amenitySlugs());
-        if (property.getAddress() != null) {
-            if (property.getAddress().getLocation() != null) {
-                com.rentify.core.entity.Location savedLocation =
-                        locationRepository.save(property.getAddress().getLocation());
-                property.getAddress().setLocation(savedLocation);
-            }
-            com.rentify.core.entity.Address savedAddress =
-                    addressRepository.save(property.getAddress());
-            property.setAddress(savedAddress);
-        }
+        updateAddress(property, request);
         Property savedProperty = propertyRepository.save(property);
         return propertyMapper.toDto(savedProperty);
     }
@@ -267,34 +271,62 @@ public class PropertyServiceImpl implements PropertyService {
         if (request.address() == null) {
             return;
         }
-        if (property.getAddress() == null) {
-            Address newAddress = propertyMapper.toAddressEntity(request.address());
-            if (newAddress.getLocation() != null) {
-                Location savedLocation = locationRepository.save(newAddress.getLocation());
-                newAddress.setLocation(savedLocation);
+        AddressDto dto = request.address();
+        Address address = property.getAddress();
+        if (address == null) {
+            address = propertyMapper.toAddressEntity(dto);
+        }
+
+        City cityRef = resolveCityReference(dto);
+        District districtRef = resolveDistrictReference(dto);
+        MetroStation metroStationRef = resolveMetroStationReference(dto);
+        ResidentialComplex residentialComplexRef = resolveResidentialComplexReference(dto);
+
+        cityRef = resolveCityFromReferences(cityRef, districtRef, metroStationRef, residentialComplexRef);
+
+        if (cityRef != null) {
+            if (districtRef != null && !districtRef.getCity().getId().equals(cityRef.getId())) {
+                throw new IllegalArgumentException("District does not belong to selected city");
             }
-            Address savedAddress = addressRepository.save(newAddress);
-            property.setAddress(savedAddress);
-            return;
+            if (metroStationRef != null && !metroStationRef.getCity().getId().equals(cityRef.getId())) {
+                throw new IllegalArgumentException("Metro station does not belong to selected city");
+            }
+            if (residentialComplexRef != null && !residentialComplexRef.getCity().getId().equals(cityRef.getId())) {
+                throw new IllegalArgumentException("Residential complex does not belong to selected city");
+            }
         }
 
-        Address existingAddress = property.getAddress();
-        if (existingAddress.getLocation() == null) {
-            existingAddress.setLocation(new Location());
+        if (address.getLocation() == null) {
+            address.setLocation(new Location());
         }
-        Location location = existingAddress.getLocation();
-        location.setCountry(request.address().location().country());
-        location.setRegion(request.address().location().region());
-        location.setCity(request.address().location().city());
-        locationRepository.save(location);
+        Location location = address.getLocation();
+        if (cityRef != null) {
+            location.setCountry(cityRef.getCountry());
+            location.setRegion(cityRef.getRegion());
+            location.setCity(cityRef.getName());
+        } else if (dto.location() != null) {
+            location.setCountry(dto.location().country());
+            location.setRegion(dto.location().region());
+            location.setCity(dto.location().city());
+        } else {
+            throw new IllegalArgumentException("Either cityId or address.location must be provided");
+        }
+        Location savedLocation = locationRepository.save(location);
 
-        existingAddress.setStreet(request.address().street());
-        existingAddress.setHouseNumber(request.address().houseNumber());
-        existingAddress.setApartment(request.address().apartment());
-        existingAddress.setPostalCode(request.address().postalCode());
-        existingAddress.setLat(request.address().lat());
-        existingAddress.setLng(request.address().lng());
-        addressRepository.save(existingAddress);
+        address.setLocation(savedLocation);
+        address.setCityRef(cityRef);
+        address.setDistrictRef(districtRef);
+        address.setMetroStationRef(metroStationRef);
+        address.setResidentialComplexRef(residentialComplexRef);
+        address.setStreet(dto.street());
+        address.setHouseNumber(dto.houseNumber());
+        address.setApartment(dto.apartment());
+        address.setPostalCode(dto.postalCode());
+        address.setLat(dto.lat());
+        address.setLng(dto.lng());
+
+        Address savedAddress = addressRepository.save(address);
+        property.setAddress(savedAddress);
     }
 
     private void updatePricing(Property property, PropertyCreateRequestDto request) {
@@ -348,6 +380,69 @@ public class PropertyServiceImpl implements PropertyService {
             normalized.add(slug.trim().toLowerCase(Locale.ROOT));
         }
         return new ArrayList<>(normalized);
+    }
+
+    private City resolveCityReference(AddressDto addressDto) {
+        if (addressDto.cityId() != null) {
+            return cityRepository.findById(addressDto.cityId())
+                    .orElseThrow(() -> new EntityNotFoundException("City not found"));
+        }
+        if (addressDto.location() != null
+                && addressDto.location().city() != null
+                && !addressDto.location().city().isBlank()
+                && addressDto.location().region() != null
+                && !addressDto.location().region().isBlank()) {
+            return cityRepository.findFirstByNameIgnoreCaseAndRegionIgnoreCase(
+                    addressDto.location().city(),
+                    addressDto.location().region()
+            ).orElse(null);
+        }
+        return null;
+    }
+
+    private District resolveDistrictReference(AddressDto addressDto) {
+        if (addressDto.districtId() == null) {
+            return null;
+        }
+        return districtRepository.findById(addressDto.districtId())
+                .orElseThrow(() -> new EntityNotFoundException("District not found"));
+    }
+
+    private MetroStation resolveMetroStationReference(AddressDto addressDto) {
+        if (addressDto.metroStationId() == null) {
+            return null;
+        }
+        return metroStationRepository.findById(addressDto.metroStationId())
+                .orElseThrow(() -> new EntityNotFoundException("Metro station not found"));
+    }
+
+    private ResidentialComplex resolveResidentialComplexReference(AddressDto addressDto) {
+        if (addressDto.residentialComplexId() == null) {
+            return null;
+        }
+        return residentialComplexRepository.findById(addressDto.residentialComplexId())
+                .orElseThrow(() -> new EntityNotFoundException("Residential complex not found"));
+    }
+
+    private City resolveCityFromReferences(
+            City initialCity,
+            District district,
+            MetroStation metroStation,
+            ResidentialComplex residentialComplex
+    ) {
+        if (initialCity != null) {
+            return initialCity;
+        }
+        if (district != null) {
+            return district.getCity();
+        }
+        if (metroStation != null) {
+            return metroStation.getCity();
+        }
+        if (residentialComplex != null) {
+            return residentialComplex.getCity();
+        }
+        return null;
     }
 
     private void assertCanManageProperty(Property property, User currentUser) {

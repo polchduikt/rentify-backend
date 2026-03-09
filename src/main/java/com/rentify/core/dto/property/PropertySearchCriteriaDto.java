@@ -9,6 +9,10 @@ import java.util.List;
 
 public record PropertySearchCriteriaDto(
         @JsonProperty("propertyId") Long propertyId,
+        @JsonProperty("cityId") Long cityId,
+        @JsonProperty("districtId") Long districtId,
+        @JsonProperty("metroStationId") Long metroStationId,
+        @JsonProperty("residentialComplexId") Long residentialComplexId,
         String country,
         String region,
         String city,

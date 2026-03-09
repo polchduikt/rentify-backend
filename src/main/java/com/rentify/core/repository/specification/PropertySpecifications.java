@@ -20,6 +20,18 @@ public class PropertySpecifications {
             if (criteria.propertyId() != null) {
                 predicates.add(cb.equal(root.get("id"), criteria.propertyId()));
             }
+            if (criteria.cityId() != null) {
+                predicates.add(cb.equal(root.get("address").get("cityRef").get("id"), criteria.cityId()));
+            }
+            if (criteria.districtId() != null) {
+                predicates.add(cb.equal(root.get("address").get("districtRef").get("id"), criteria.districtId()));
+            }
+            if (criteria.metroStationId() != null) {
+                predicates.add(cb.equal(root.get("address").get("metroStationRef").get("id"), criteria.metroStationId()));
+            }
+            if (criteria.residentialComplexId() != null) {
+                predicates.add(cb.equal(root.get("address").get("residentialComplexRef").get("id"), criteria.residentialComplexId()));
+            }
             if (criteria.country() != null && !criteria.country().isBlank()) {
                 predicates.add(cb.equal(root.get("address").get("location").get("country"), criteria.country()));
             }

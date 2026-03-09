@@ -16,6 +16,22 @@ public class Address {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City cityRef;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "district_id")
+    private District districtRef;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "metro_station_id")
+    private MetroStation metroStationRef;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "residential_complex_id")
+    private ResidentialComplex residentialComplexRef;
+
     @Column(length = 180)
     private String street;
 
