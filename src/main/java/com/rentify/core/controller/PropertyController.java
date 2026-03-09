@@ -39,6 +39,13 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.getAllProperties(pageable));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<Page<PropertyResponseDto>> getMyProperties(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return ResponseEntity.ok(propertyService.getCurrentUserProperties(pageable));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PropertyResponseDto> getPropertyById(@PathVariable Long id) {
         return ResponseEntity.ok(propertyService.getPropertyById(id));

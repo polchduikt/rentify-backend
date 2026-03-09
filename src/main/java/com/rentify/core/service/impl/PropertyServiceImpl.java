@@ -85,6 +85,14 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable) {
+        User currentUser = authenticationService.getCurrentUser();
+        return propertyRepository.findAllByHostId(currentUser.getId(), pageable)
+                .map(propertyMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PropertyResponseDto getPropertyById(Long id) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));

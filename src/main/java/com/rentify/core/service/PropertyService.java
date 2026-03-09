@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface PropertyService {
     Page<PropertyResponseDto> getAllProperties(Pageable pageable);
+    Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable);
     PropertyResponseDto getPropertyById(Long id);
     PropertyResponseDto create(PropertyCreateRequestDto request);
     PropertyResponseDto updateProperty(Long id, PropertyCreateRequestDto request);
