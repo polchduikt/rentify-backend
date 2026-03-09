@@ -57,6 +57,13 @@ public class Property {
     @Column(name = "is_duplicate")
     private Boolean isDuplicate = false;
 
+    @Builder.Default
+    @Column(name = "is_top_promoted", nullable = false, columnDefinition = "boolean default false")
+    private Boolean isTopPromoted = false;
+
+    @Column(name = "top_promoted_until")
+    private ZonedDateTime topPromotedUntil;
+
     private Short rooms;
     private Short floor;
     @Column(name = "total_floors")

@@ -44,6 +44,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/**").hasRole("USER")
                         .requestMatchers("/api/v1/bookings/**").hasRole("USER")
                         .requestMatchers("/api/v1/favorites/**").hasRole("USER")
+                        .requestMatchers("/api/v1/payments/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/v1/wallet/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/v1/promotions/**").hasAnyRole("USER", "ADMIN")
 
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 

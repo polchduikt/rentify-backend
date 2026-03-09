@@ -40,12 +40,13 @@ import com.rentify.core.service.PropertyService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -77,7 +78,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> getAllProperties(Pageable pageable) {
-        Page<Property> propertiesPage = propertyRepository.findAll(pageable);
+        Page<Property> propertiesPage = propertyRepository.findAll(withTopPrioritySort(pageable));
         return propertiesPage.map(propertyMapper::toDto);
     }
 
@@ -237,7 +238,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
         validateSearchDateRange(criteria);
-        return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), pageable)
+        return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), withTopPrioritySort(pageable))
                 .map(propertyMapper::toDto);
     }
 
@@ -469,5 +470,16 @@ public class PropertyServiceImpl implements PropertyService {
         if (criteria.dateFrom() != null && !criteria.dateFrom().isBefore(criteria.dateTo())) {
             throw new IllegalArgumentException("dateFrom must be before dateTo for availability search.");
         }
+    }
+
+    private Pageable withTopPrioritySort(Pageable pageable) {
+        Sort topPrioritySort = Sort.by(
+                Sort.Order.desc("isTopPromoted"),
+                Sort.Order.desc("topPromotedUntil")
+        );
+        Sort finalSort = pageable.getSort().isSorted()
+                ? topPrioritySort.and(pageable.getSort())
+                : topPrioritySort.and(Sort.by(Sort.Direction.DESC, "createdAt"));
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
     }
 }

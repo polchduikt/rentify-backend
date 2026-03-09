@@ -1,9 +1,12 @@
 package com.rentify.core.entity;
 
+import com.rentify.core.enums.SubscriptionPlan;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.Set;
 
@@ -42,6 +45,18 @@ public class User {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Builder.Default
+    @Column(name = "balance", nullable = false, precision = 12, scale = 2, columnDefinition = "numeric(12,2) default 0")
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_plan", nullable = false, length = 30, columnDefinition = "varchar(30) default 'FREE'")
+    private SubscriptionPlan subscriptionPlan = SubscriptionPlan.FREE;
+
+    @Column(name = "subscription_active_until")
+    private ZonedDateTime subscriptionActiveUntil;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

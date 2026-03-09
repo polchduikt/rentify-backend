@@ -1,0 +1,129 @@
+package com.rentify.core.service.impl;
+
+import com.rentify.core.dto.wallet.WalletBalanceDto;
+import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
+import com.rentify.core.dto.wallet.WalletTransactionDto;
+import com.rentify.core.entity.User;
+import com.rentify.core.entity.WalletTransaction;
+import com.rentify.core.enums.SubscriptionPlan;
+import com.rentify.core.enums.WalletTransactionDirection;
+import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.mapper.WalletTransactionMapper;
+import com.rentify.core.repository.UserRepository;
+import com.rentify.core.repository.WalletTransactionRepository;
+import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.WalletService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.ZonedDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class WalletServiceImpl implements WalletService {
+
+    private static final String UAH = "UAH";
+    private static final List<BigDecimal> TOP_UP_OPTIONS = List.of(
+            new BigDecimal("300.00"),
+            new BigDecimal("500.00"),
+            new BigDecimal("1000.00")
+    );
+
+    private final AuthenticationService authenticationService;
+    private final UserRepository userRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
+    private final WalletTransactionMapper walletTransactionMapper;
+
+    @Override
+    @Transactional
+    public WalletBalanceDto getMyWallet() {
+        User user = authenticationService.getCurrentUser();
+        normalizeWalletDefaults(user);
+        normalizeSubscription(user);
+        return toWalletBalanceDto(user);
+    }
+
+    @Override
+    @Transactional
+    public WalletBalanceDto topUpBalance(WalletTopUpRequestDto request) {
+        User user = authenticationService.getCurrentUser();
+        normalizeWalletDefaults(user);
+        BigDecimal amount = normalizeAmount(request.amount());
+
+        user.setBalance(user.getBalance().add(amount));
+        normalizeSubscription(user);
+        userRepository.save(user);
+
+        WalletTransaction transaction = WalletTransaction.builder()
+                .user(user)
+                .direction(WalletTransactionDirection.CREDIT)
+                .type(WalletTransactionType.TOP_UP)
+                .amount(amount)
+                .currency(UAH)
+                .description("Mock wallet top-up")
+                .referenceType("WALLET")
+                .build();
+        walletTransactionRepository.save(transaction);
+
+        return toWalletBalanceDto(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<WalletTransactionDto> getMyTransactions(Pageable pageable) {
+        User user = authenticationService.getCurrentUser();
+        return walletTransactionRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId(), pageable)
+                .map(walletTransactionMapper::toDto);
+    }
+
+    @Override
+    public List<BigDecimal> getTopUpOptions() {
+        return TOP_UP_OPTIONS;
+    }
+
+    private void normalizeSubscription(User user) {
+        ZonedDateTime now = ZonedDateTime.now();
+        if (user.getSubscriptionActiveUntil() != null && user.getSubscriptionActiveUntil().isBefore(now)) {
+            user.setSubscriptionPlan(SubscriptionPlan.FREE);
+            user.setSubscriptionActiveUntil(null);
+            userRepository.save(user);
+        }
+    }
+
+    private void normalizeWalletDefaults(User user) {
+        if (user.getBalance() == null) {
+            user.setBalance(BigDecimal.ZERO);
+            userRepository.save(user);
+        }
+        if (user.getSubscriptionPlan() == null) {
+            user.setSubscriptionPlan(SubscriptionPlan.FREE);
+            userRepository.save(user);
+        }
+    }
+
+    private WalletBalanceDto toWalletBalanceDto(User user) {
+        return new WalletBalanceDto(
+                user.getBalance(),
+                UAH,
+                user.getSubscriptionPlan(),
+                user.getSubscriptionActiveUntil()
+        );
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new IllegalArgumentException("Top-up amount is required");
+        }
+        BigDecimal normalizedAmount = amount.setScale(2, RoundingMode.HALF_UP);
+        if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Top-up amount must be greater than zero");
+        }
+        return normalizedAmount;
+    }
+}

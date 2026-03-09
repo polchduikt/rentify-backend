@@ -23,6 +23,8 @@ public record PropertyResponseDto(
         @JsonProperty("isVerifiedProperty") Boolean isVerifiedProperty,
         @JsonProperty("isVerifiedRealtor") Boolean isVerifiedRealtor,
         @JsonProperty("isDuplicate") Boolean isDuplicate,
+        @JsonProperty("isTopPromoted") Boolean isTopPromoted,
+        @JsonProperty("topPromotedUntil") ZonedDateTime topPromotedUntil,
         Short rooms,
         Short floor,
         @JsonProperty("totalFloors") Short totalFloors,

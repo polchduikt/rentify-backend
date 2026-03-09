@@ -5,6 +5,7 @@ import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
+import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.mapper.UserMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.service.AuthenticationService;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -90,6 +92,9 @@ public class UserServiceImpl implements UserService {
         user.setAvatarUrl(null);
         user.setOauthProvider(null);
         user.setOauthSubject(null);
+        user.setBalance(BigDecimal.ZERO);
+        user.setSubscriptionPlan(SubscriptionPlan.FREE);
+        user.setSubscriptionActiveUntil(null);
 
         userRepository.save(user);
     }
