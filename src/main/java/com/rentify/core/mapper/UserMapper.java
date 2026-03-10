@@ -1,5 +1,6 @@
 package com.rentify.core.mapper;
 
+import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.Role;
@@ -13,6 +14,7 @@ public interface UserMapper {
 
     @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
     UserResponseDto toDto(User user);
+    PublicUserProfileDto toPublicProfileDto(User user);
 
     default Set<String> mapRoles(Set<Role> roles) {
         return roles.stream()

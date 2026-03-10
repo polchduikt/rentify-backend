@@ -22,4 +22,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
             "AND p.topPromotedUntil IS NOT NULL " +
             "AND p.topPromotedUntil < :now")
     int deactivateExpiredTopPromotions(@Param("now") ZonedDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Property p SET p.viewCount = p.viewCount + 1 WHERE p.id = :id")
+    int incrementViewCount(@Param("id") Long id);
 }

@@ -2,18 +2,22 @@ package com.rentify.core.controller;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
 import com.rentify.core.dto.user.DeleteAccountRequestDto;
+import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@Validated
 @RequiredArgsConstructor
 public class UserController {
 
@@ -22,6 +26,11 @@ public class UserController {
     @GetMapping("/profile")
     public ResponseEntity<UserResponseDto> getMyProfile() {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
+    }
+
+    @GetMapping("/{userId}/public")
+    public ResponseEntity<PublicUserProfileDto> getPublicProfile(@PathVariable @Positive Long userId) {
+        return ResponseEntity.ok(userService.getPublicProfile(userId));
     }
 
     @PutMapping("/profile")

@@ -95,8 +95,12 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PropertyResponseDto getPropertyById(Long id) {
+        int updatedRows = propertyRepository.incrementViewCount(id);
+        if (updatedRows == 0) {
+            throw new EntityNotFoundException("Property not found");
+        }
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         return propertyMapper.toDto(property);

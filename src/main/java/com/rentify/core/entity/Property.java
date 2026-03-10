@@ -61,6 +61,10 @@ public class Property {
     @Column(name = "is_top_promoted", nullable = false, columnDefinition = "boolean default false")
     private Boolean isTopPromoted = false;
 
+    @Builder.Default
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount = 0L;
+
     @Column(name = "top_promoted_until")
     private ZonedDateTime topPromotedUntil;
 

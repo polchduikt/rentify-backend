@@ -2,6 +2,7 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
 import com.rentify.core.dto.user.DeleteAccountRequestDto;
+import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
@@ -12,6 +13,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.UserService;
 import com.rentify.core.validation.UserValidator;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,14 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto getCurrentUserProfile() {
         User currentUser = authenticationService.getCurrentUser();
         return userMapper.toDto(currentUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicUserProfileDto getPublicProfile(Long userId) {
+        User user = userRepository.findByIdAndIsActiveTrue(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return userMapper.toPublicProfileDto(user);
     }
 
     @Override
