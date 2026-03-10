@@ -18,6 +18,7 @@ import com.rentify.core.entity.PropertyRule;
 import com.rentify.core.entity.ResidentialComplex;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AddressRepository;
 import com.rentify.core.repository.AmenityRepository;
@@ -37,6 +38,7 @@ import com.rentify.core.repository.specification.PropertySpecifications;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.PropertyService;
+import com.rentify.core.validation.PropertyValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,6 +49,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -74,6 +77,7 @@ public class PropertyServiceImpl implements PropertyService {
     private final ReviewRepository reviewRepository;
     private final ConversationRepository conversationRepository;
     private final FavoriteRepository favoriteRepository;
+    private final PropertyValidator propertyValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -101,6 +105,8 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional
     public PropertyResponseDto create(PropertyCreateRequestDto request) {
+        propertyValidator.validateCreateOrUpdateRequest(request);
+        assertRentalPricingRules(request);
         User host = authenticationService.getCurrentUser();
         Property property = propertyMapper.toEntity(request);
         if (property.getRentalType() == null) {
@@ -128,6 +134,8 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional
     public PropertyResponseDto updateProperty(Long id, PropertyCreateRequestDto request) {
+        propertyValidator.validateCreateOrUpdateRequest(request);
+        assertRentalPricingRules(request);
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
@@ -237,7 +245,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
-        validateSearchDateRange(criteria);
+        propertyValidator.validateSearchCriteria(criteria);
         return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), withTopPrioritySort(pageable))
                 .map(propertyMapper::toDto);
     }
@@ -463,12 +471,23 @@ public class PropertyServiceImpl implements PropertyService {
                 .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
     }
 
-    private void validateSearchDateRange(PropertySearchCriteriaDto criteria) {
-        if ((criteria.dateFrom() == null) != (criteria.dateTo() == null)) {
-            throw new IllegalArgumentException("Both dateFrom and dateTo must be provided together for availability search.");
+    private void assertRentalPricingRules(PropertyCreateRequestDto request) {
+        if (request.rentalType() == RentalType.SHORT_TERM) {
+            if (request.maxGuests() == null) {
+                throw new IllegalArgumentException("maxGuests is required for short-term rental");
+            }
+            if (request.pricing() == null || request.pricing().pricePerNight() == null
+                    || request.pricing().pricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "pricePerNight is required and must be greater than 0 for short-term rental");
+            }
         }
-        if (criteria.dateFrom() != null && !criteria.dateFrom().isBefore(criteria.dateTo())) {
-            throw new IllegalArgumentException("dateFrom must be before dateTo for availability search.");
+        if (request.rentalType() == RentalType.LONG_TERM) {
+            if (request.pricing() == null || request.pricing().pricePerMonth() == null
+                    || request.pricing().pricePerMonth().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "pricePerMonth is required and must be greater than 0 for long-term rental");
+            }
         }
     }
 

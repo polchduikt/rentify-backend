@@ -165,7 +165,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setOauthProvider(GOOGLE_PROVIDER);
         user.setOauthSubject(googleUser.subject());
         updateUserProfileFromGoogle(user, googleUser);
-        ensureUserRolePresent(user);
         return user;
     }
 
@@ -197,14 +196,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         if (googleUser.pictureUrl() != null && !googleUser.pictureUrl().isBlank()) {
             user.setAvatarUrl(googleUser.pictureUrl());
-        }
-    }
-
-    private void ensureUserRolePresent(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            Set<Role> roles = new HashSet<>();
-            roles.add(getUserRole());
-            user.setRoles(roles);
         }
     }
 

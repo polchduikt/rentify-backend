@@ -18,7 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +32,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewDto createReview(ReviewRequestDto request) {
-        if (request.rating() < 1 || request.rating() > 5) {
-            throw new IllegalArgumentException("Rating must be between 1 and 5");
-        }
         User author = authService.getCurrentUser();
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));

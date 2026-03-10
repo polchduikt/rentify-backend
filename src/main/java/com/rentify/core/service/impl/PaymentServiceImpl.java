@@ -33,7 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentResponseDto PayBooking(Long bookingId) {
+    public PaymentResponseDto payBooking(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         User currentUser = authenticationService.getCurrentUser();
@@ -58,6 +58,7 @@ public class PaymentServiceImpl implements PaymentService {
             currency = booking.getProperty().getPricing().getCurrency().trim();
         }
 
+        // TODO: Replace mock payment flow with a real payment gateway integration (LiqPay/Stripe/etc.).
         Payment payment = Payment.builder()
                 .booking(booking)
                 .amount(booking.getTotalPrice())

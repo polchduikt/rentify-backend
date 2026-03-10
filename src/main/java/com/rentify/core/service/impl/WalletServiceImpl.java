@@ -5,13 +5,13 @@ import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
-import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,13 +39,19 @@ public class WalletServiceImpl implements WalletService {
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletTransactionMapper walletTransactionMapper;
+    private final WalletNormalizationService walletNormalizationService;
 
     @Override
+    // Not readOnly because we may persist lazy wallet/subscription normalization for legacy users.
     @Transactional
     public WalletBalanceDto getMyWallet() {
         User user = authenticationService.getCurrentUser();
-        normalizeWalletDefaults(user);
-        normalizeSubscription(user);
+        boolean changed = false;
+        changed |= walletNormalizationService.normalizeWalletDefaults(user);
+        changed |= walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
+        if (changed) {
+            userRepository.save(user);
+        }
         return toWalletBalanceDto(user);
     }
 
@@ -53,11 +59,11 @@ public class WalletServiceImpl implements WalletService {
     @Transactional
     public WalletBalanceDto topUpBalance(WalletTopUpRequestDto request) {
         User user = authenticationService.getCurrentUser();
-        normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
         BigDecimal amount = normalizeAmount(request.amount());
 
         user.setBalance(user.getBalance().add(amount));
-        normalizeSubscription(user);
         userRepository.save(user);
 
         WalletTransaction transaction = WalletTransaction.builder()
@@ -85,26 +91,6 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public List<BigDecimal> getTopUpOptions() {
         return TOP_UP_OPTIONS;
-    }
-
-    private void normalizeSubscription(User user) {
-        ZonedDateTime now = ZonedDateTime.now();
-        if (user.getSubscriptionActiveUntil() != null && user.getSubscriptionActiveUntil().isBefore(now)) {
-            user.setSubscriptionPlan(SubscriptionPlan.FREE);
-            user.setSubscriptionActiveUntil(null);
-            userRepository.save(user);
-        }
-    }
-
-    private void normalizeWalletDefaults(User user) {
-        if (user.getBalance() == null) {
-            user.setBalance(BigDecimal.ZERO);
-            userRepository.save(user);
-        }
-        if (user.getSubscriptionPlan() == null) {
-            user.setSubscriptionPlan(SubscriptionPlan.FREE);
-            userRepository.save(user);
-        }
     }
 
     private WalletBalanceDto toWalletBalanceDto(User user) {

@@ -22,7 +22,7 @@ public class PaymentController {
 
     @PostMapping("/bookings/{bookingId}/mock-pay")
     public ResponseEntity<PaymentResponseDto> mockPayBooking(@PathVariable Long bookingId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.PayBooking(bookingId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.payBooking(bookingId));
     }
 
     @GetMapping("/my")

@@ -15,12 +15,14 @@ import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.BookingService;
+import com.rentify.core.validation.BookingValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -37,10 +39,12 @@ public class BookingServiceImpl implements BookingService {
     private final AuthenticationService authService;
     private final BookingMapper bookingMapper;
     private final AvailabilityBlockRepository availabilityRepository;
+    private final BookingValidator bookingValidator;
 
     @Override
     @Transactional
     public BookingDto createBooking(BookingRequestDto request) {
+        bookingValidator.validateCreateBookingRequest(request);
         User tenant = authService.getCurrentUser();
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -56,9 +60,6 @@ public class BookingServiceImpl implements BookingService {
         }
 
         long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
-        if (nights <= 0) {
-            throw new IllegalArgumentException("Invalid dates: check-out must be after check-in.");
-        }
         if (property.getMaxGuests() == null) {
             throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
         }
@@ -128,7 +129,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         User currentUser = authService.getCurrentUser();
         if (!booking.getTenant().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You can only cancel your own bookings");
+            throw new AccessDeniedException("You can only cancel your own bookings");
         }
         booking.setStatus(BookingStatus.CANCELLED);
         return bookingMapper.toDto(bookingRepository.save(booking));

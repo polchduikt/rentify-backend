@@ -9,7 +9,6 @@ import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.SubscriptionPackageType;
-import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.enums.TopPromotionPackageType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
@@ -18,6 +17,7 @@ import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PromotionService;
+import com.rentify.core.service.WalletNormalizationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,6 +39,7 @@ public class PromotionServiceImpl implements PromotionService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final WalletNormalizationService walletNormalizationService;
 
     @Override
     @Transactional
@@ -49,7 +50,7 @@ public class PromotionServiceImpl implements PromotionService {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User user = authenticationService.getCurrentUser();
-        normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeWalletDefaults(user);
 
         if (!property.getHost().getId().equals(user.getId())) {
             throw new AccessDeniedException("You can only promote your own properties");
@@ -102,7 +103,7 @@ public class PromotionServiceImpl implements PromotionService {
             throw new IllegalArgumentException("Subscription package is required");
         }
         User user = authenticationService.getCurrentUser();
-        normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeWalletDefaults(user);
         BigDecimal price = packageType.getPrice();
         ensureSufficientBalance(user, price);
 
@@ -165,17 +166,6 @@ public class PromotionServiceImpl implements PromotionService {
     private void ensureSufficientBalance(User user, BigDecimal price) {
         if (user.getBalance().compareTo(price) < 0) {
             throw new IllegalStateException("Insufficient balance. Please top up your wallet.");
-        }
-    }
-
-    private void normalizeWalletDefaults(User user) {
-        if (user.getBalance() == null) {
-            user.setBalance(BigDecimal.ZERO);
-            userRepository.save(user);
-        }
-        if (user.getSubscriptionPlan() == null) {
-            user.setSubscriptionPlan(SubscriptionPlan.FREE);
-            userRepository.save(user);
         }
     }
 }

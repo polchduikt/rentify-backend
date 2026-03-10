@@ -11,12 +11,12 @@ import com.rentify.core.repository.UserRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.UserService;
+import com.rentify.core.validation.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -30,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
     private final PasswordEncoder passwordEncoder;
+    private final UserValidator userValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -41,6 +42,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDto updateProfile(UpdateUserRequestDto request) {
+        userValidator.validateUpdateProfile(request);
         User user = authenticationService.getCurrentUser();
         if (request.firstName() != null) {
             user.setFirstName(request.firstName());
@@ -58,15 +60,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(ChangePasswordRequestDto request) {
+        userValidator.validateChangePassword(request);
         User user = authenticationService.getCurrentUser();
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
-        }
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new IllegalArgumentException("New password and confirmation do not match");
-        }
-        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("New password must be different from current password");
         }
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
@@ -75,6 +72,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteCurrentAccount(DeleteAccountRequestDto request) {
+        userValidator.validateDeleteAccount(request);
         User user = authenticationService.getCurrentUser();
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
