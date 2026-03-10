@@ -62,8 +62,16 @@ public class Property {
     private Boolean isTopPromoted = false;
 
     @Builder.Default
-    @Column(name = "view_count", nullable = false)
+    @Column(name = "view_count", nullable = false, columnDefinition = "bigint default 0")
     private Long viewCount = 0L;
+
+    @Builder.Default
+    @Column(name = "review_count", nullable = false, columnDefinition = "bigint default 0")
+    private Long reviewCount = 0L;
+
+    @Builder.Default
+    @Column(name = "average_rating", nullable = false, precision = 3, scale = 2, columnDefinition = "numeric(3,2) default 0")
+    private BigDecimal averageRating = BigDecimal.ZERO;
 
     @Column(name = "top_promoted_until")
     private ZonedDateTime topPromotedUntil;

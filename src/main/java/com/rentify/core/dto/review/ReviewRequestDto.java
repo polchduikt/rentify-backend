@@ -11,6 +11,10 @@ public record ReviewRequestDto(
         @JsonProperty("propertyId")
         Long propertyId,
 
+        @NotNull(message = "Booking id is required")
+        @JsonProperty("bookingId")
+        Long bookingId,
+
         @NotNull(message = "Rating is required")
         @Min(value = 1, message = "Rating must be from 1 to 5")
         @Max(value = 5, message = "Rating must be from 1 to 5")

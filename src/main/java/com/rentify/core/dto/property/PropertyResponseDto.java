@@ -25,6 +25,8 @@ public record PropertyResponseDto(
         @JsonProperty("isDuplicate") Boolean isDuplicate,
         @JsonProperty("isTopPromoted") Boolean isTopPromoted,
         @JsonProperty("viewCount") Long viewCount,
+        @JsonProperty("reviewCount") Long reviewCount,
+        @JsonProperty("averageRating") BigDecimal averageRating,
         @JsonProperty("topPromotedUntil") ZonedDateTime topPromotedUntil,
         Short rooms,
         Short floor,

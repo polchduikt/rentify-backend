@@ -109,9 +109,16 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public BookingDto getBookingById(Long id) {
-        return bookingRepository.findById(id)
-                .map(bookingMapper::toDto)
+        Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
+        User currentUser = authService.getCurrentUser();
+        boolean isTenant = booking.getTenant().getId().equals(currentUser.getId());
+        boolean isHost = booking.getProperty().getHost().getId().equals(currentUser.getId());
+        boolean isAdmin = isAdmin(currentUser);
+        if (!isTenant && !isHost && !isAdmin) {
+            throw new AccessDeniedException("You do not have permission to view this booking");
+        }
+        return bookingMapper.toDto(booking);
     }
 
     @Override
@@ -169,5 +176,10 @@ public class BookingServiceImpl implements BookingService {
         }
         booking.setStatus(newStatus);
         return bookingRepository.save(booking);
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRoles().stream()
+                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
     }
 }

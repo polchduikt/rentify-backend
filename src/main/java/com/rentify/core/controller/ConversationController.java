@@ -26,6 +26,14 @@ public class ConversationController {
                 .body(conversationService.sendMessage(propertyId, request));
     }
 
+    @PostMapping("/{conversationId}/reply")
+    public ResponseEntity<MessageDto> replyToConversation(
+            @PathVariable Long conversationId,
+            @Valid @RequestBody SendMessageRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(conversationService.replyToConversation(conversationId, request));
+    }
+
     @GetMapping
     public ResponseEntity<List<ConversationDto>> getMyConversations() {
         return ResponseEntity.ok(conversationService.getMyConversations());

@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface ConversationService {
     MessageDto sendMessage(Long propertyId, SendMessageRequestDto request);
+    MessageDto replyToConversation(Long conversationId, SendMessageRequestDto request);
     List<ConversationDto> getMyConversations();
     List<MessageDto> getConversationMessages(Long conversationId);
 }

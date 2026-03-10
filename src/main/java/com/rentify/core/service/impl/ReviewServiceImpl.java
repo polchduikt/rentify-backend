@@ -2,6 +2,7 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.review.ReviewDto;
 import com.rentify.core.dto.review.ReviewRequestDto;
+import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.Review;
 import com.rentify.core.entity.User;
@@ -16,8 +17,11 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -33,26 +37,40 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewDto createReview(ReviewRequestDto request) {
         User author = authService.getCurrentUser();
+        Booking booking = bookingRepository.findById(request.bookingId())
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        boolean hasStayed = bookingRepository.existsByTenantIdAndPropertyIdAndStatus(
-                author.getId(),
-                property.getId(),
-                BookingStatus.COMPLETED
-        );
-        if (!hasStayed) {
-            throw new IllegalStateException("You can only review properties after your stay is COMPLETED.");
+
+        if (!booking.getTenant().getId().equals(author.getId())) {
+            throw new AccessDeniedException("You can only review bookings that belong to you");
         }
-        if (reviewRepository.existsByAuthorIdAndPropertyId(author.getId(), property.getId())) {
-            throw new IllegalStateException("You have already reviewed this property.");
+        if (!booking.getProperty().getId().equals(property.getId())) {
+            throw new IllegalArgumentException("Booking does not belong to the specified property");
         }
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new IllegalStateException("You can only review properties after your stay is COMPLETED");
+        }
+        if (reviewRepository.existsByBookingId(booking.getId())) {
+            throw new IllegalStateException("You have already reviewed this booking");
+        }
+
         Review review = Review.builder()
                 .property(property)
+                .booking(booking)
                 .author(author)
                 .rating(request.rating())
                 .comment(request.comment())
                 .build();
-        return reviewMapper.toDto(reviewRepository.save(review));
+        Review savedReview = reviewRepository.save(review);
+
+        long reviewCount = reviewRepository.countByPropertyId(property.getId());
+        double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
+        property.setReviewCount(reviewCount);
+        property.setAverageRating(BigDecimal.valueOf(averageRating).setScale(2, RoundingMode.HALF_UP));
+        propertyRepository.save(property);
+
+        return reviewMapper.toDto(savedReview);
     }
 
     @Override

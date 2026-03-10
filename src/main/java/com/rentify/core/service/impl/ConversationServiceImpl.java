@@ -61,6 +61,24 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
+    @Transactional
+    public MessageDto replyToConversation(Long conversationId, SendMessageRequestDto request) {
+        User sender = authService.getCurrentUser();
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
+        assertParticipant(conversation, sender);
+
+        Message message = Message.builder()
+                .conversation(conversation)
+                .sender(sender)
+                .type(MessageType.TEXT)
+                .text(request.text())
+                .isRead(false)
+                .build();
+        return chatMapper.toMessageDto(messageRepository.save(message));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ConversationDto> getMyConversations() {
         User currentUser = authService.getCurrentUser();
@@ -76,13 +94,17 @@ public class ConversationServiceImpl implements ConversationService {
         User currentUser = authService.getCurrentUser();
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
-        if (!conversation.getHost().getId().equals(currentUser.getId()) &&
-                !conversation.getTenant().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("You do not have permission to view this conversation");
-        }
+        assertParticipant(conversation, currentUser);
         return messageRepository.findAllByConversationIdOrderByCreatedAtAsc(conversationId)
                 .stream()
                 .map(chatMapper::toMessageDto)
                 .collect(Collectors.toList());
+    }
+
+    private void assertParticipant(Conversation conversation, User user) {
+        if (!conversation.getHost().getId().equals(user.getId()) &&
+                !conversation.getTenant().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not have permission to access this conversation");
+        }
     }
 }
