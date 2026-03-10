@@ -2,6 +2,7 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.property.AddressDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
@@ -45,6 +46,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -252,6 +254,19 @@ public class PropertyServiceImpl implements PropertyService {
         propertyValidator.validateSearchCriteria(criteria);
         return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), withTopPrioritySort(pageable))
                 .map(propertyMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PropertyMapPinDto> searchMapPins(PropertySearchCriteriaDto criteria, Pageable pageable) {
+        propertyValidator.validateSearchCriteria(criteria);
+        Specification<Property> mapSpecification = PropertySpecifications.withFilters(criteria)
+                .and((root, query, cb) -> cb.and(
+                        cb.isNotNull(root.get("address").get("lat")),
+                        cb.isNotNull(root.get("address").get("lng"))
+                ));
+        return propertyRepository.findAll(mapSpecification, withTopPrioritySort(pageable))
+                .map(this::toMapPinDto);
     }
 
     private void updateAmenities(Property property, List<Long> amenityIds, List<String> amenitySlugs) {
@@ -504,5 +519,41 @@ public class PropertyServiceImpl implements PropertyService {
                 ? topPrioritySort.and(pageable.getSort())
                 : topPrioritySort.and(Sort.by(Sort.Direction.DESC, "createdAt"));
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
+    }
+
+    private PropertyMapPinDto toMapPinDto(Property property) {
+        PropertyPricing pricing = property.getPricing();
+        BigDecimal price = resolveMapPrice(property);
+        String currency = pricing != null ? pricing.getCurrency() : null;
+        BigDecimal lat = property.getAddress() != null ? property.getAddress().getLat() : null;
+        BigDecimal lng = property.getAddress() != null ? property.getAddress().getLng() : null;
+        return new PropertyMapPinDto(
+                property.getId(),
+                property.getTitle(),
+                property.getPropertyType(),
+                property.getMarketType(),
+                property.getRentalType(),
+                lat,
+                lng,
+                price,
+                currency,
+                property.getIsTopPromoted(),
+                property.getAverageRating(),
+                property.getReviewCount()
+        );
+    }
+
+    private BigDecimal resolveMapPrice(Property property) {
+        PropertyPricing pricing = property.getPricing();
+        if (pricing == null) {
+            return null;
+        }
+        if (property.getRentalType() == RentalType.SHORT_TERM) {
+            return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
+        }
+        if (property.getRentalType() == RentalType.LONG_TERM) {
+            return pricing.getPricePerMonth() != null ? pricing.getPricePerMonth() : pricing.getPricePerNight();
+        }
+        return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
     }
 }

@@ -76,6 +76,39 @@ public class PropertyValidator {
             errors.add("radiusKm: requires lat/lng to be provided");
         }
 
+        boolean hasAnyBoundsValue = criteria.southWestLat() != null
+                || criteria.southWestLng() != null
+                || criteria.northEastLat() != null
+                || criteria.northEastLng() != null;
+        boolean hasFullBounds = criteria.southWestLat() != null
+                && criteria.southWestLng() != null
+                && criteria.northEastLat() != null
+                && criteria.northEastLng() != null;
+        if (hasAnyBoundsValue && !hasFullBounds) {
+            errors.add("southWestLat/southWestLng/northEastLat/northEastLng: all values must be provided together");
+        }
+        if (criteria.southWestLat() != null && (criteria.southWestLat() < -90 || criteria.southWestLat() > 90)) {
+            errors.add("southWestLat: must be between -90 and 90");
+        }
+        if (criteria.northEastLat() != null && (criteria.northEastLat() < -90 || criteria.northEastLat() > 90)) {
+            errors.add("northEastLat: must be between -90 and 90");
+        }
+        if (criteria.southWestLng() != null && (criteria.southWestLng() < -180 || criteria.southWestLng() > 180)) {
+            errors.add("southWestLng: must be between -180 and 180");
+        }
+        if (criteria.northEastLng() != null && (criteria.northEastLng() < -180 || criteria.northEastLng() > 180)) {
+            errors.add("northEastLng: must be between -180 and 180");
+        }
+        if (hasFullBounds && criteria.southWestLat() > criteria.northEastLat()) {
+            errors.add("southWestLat: must be less than or equal to northEastLat");
+        }
+        if (hasFullBounds && criteria.radiusKm() != null) {
+            errors.add("radiusKm: cannot be used together with map bounds");
+        }
+        if (hasFullBounds && (criteria.lat() != null || criteria.lng() != null)) {
+            errors.add("lat/lng: cannot be used together with map bounds");
+        }
+
         throwIfAny(errors);
     }
 

@@ -69,6 +69,31 @@ public class PropertySpecifications {
                 );
                 predicates.add(cb.le(distance, criteria.radiusKm()));
             }
+            if (criteria.southWestLat() != null
+                    && criteria.southWestLng() != null
+                    && criteria.northEastLat() != null
+                    && criteria.northEastLng() != null) {
+                predicates.add(cb.isNotNull(root.get("address").get("lat")));
+                predicates.add(cb.isNotNull(root.get("address").get("lng")));
+                predicates.add(cb.between(
+                        root.get("address").get("lat").as(Double.class),
+                        criteria.southWestLat(),
+                        criteria.northEastLat()
+                ));
+
+                if (criteria.southWestLng() <= criteria.northEastLng()) {
+                    predicates.add(cb.between(
+                            root.get("address").get("lng").as(Double.class),
+                            criteria.southWestLng(),
+                            criteria.northEastLng()
+                    ));
+                } else {
+                    predicates.add(cb.or(
+                            cb.greaterThanOrEqualTo(root.get("address").get("lng").as(Double.class), criteria.southWestLng()),
+                            cb.lessThanOrEqualTo(root.get("address").get("lng").as(Double.class), criteria.northEastLng())
+                    ));
+                }
+            }
             if (criteria.minPrice() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("pricing").get("pricePerNight"), criteria.minPrice()));
             }

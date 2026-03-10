@@ -3,6 +3,7 @@ package com.rentify.core.controller;
 import com.rentify.core.dto.property.AvailabilityBlockDto;
 import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
@@ -90,6 +91,14 @@ public class PropertyController {
             @ParameterObject PropertySearchCriteriaDto criteria,
             @ParameterObject Pageable pageable) {
         return ResponseEntity.ok(propertyService.search(criteria, pageable));
+    }
+
+    @GetMapping("/search/map-pins")
+    public ResponseEntity<Page<PropertyMapPinDto>> searchMapPins(
+            @ParameterObject PropertySearchCriteriaDto criteria,
+            @PageableDefault(size = 200, sort = "createdAt", direction = Sort.Direction.DESC)
+            @ParameterObject Pageable pageable) {
+        return ResponseEntity.ok(propertyService.searchMapPins(criteria, pageable));
     }
 
     @PostMapping("/{id}/availability")

@@ -1,6 +1,7 @@
 package com.rentify.core.service;
 
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
+import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
@@ -18,5 +19,6 @@ public interface PropertyService {
     PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file);
     void deletePhoto(Long propertyId, Long photoId);
     Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable);
+    Page<PropertyMapPinDto> searchMapPins(PropertySearchCriteriaDto criteria, Pageable pageable);
     PropertyResponseDto changePropertyStatus(Long id, com.rentify.core.enums.PropertyStatus newStatus);
 }
