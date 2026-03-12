@@ -44,8 +44,8 @@ public class PaymentServiceImpl implements PaymentService {
         if (paymentRepository.existsByBookingIdAndStatus(bookingId, PaymentStatus.PAID)) {
             throw new IllegalStateException("Booking is already paid");
         }
-        if (booking.getStatus() != BookingStatus.CREATED && booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Only bookings in CREATED or CONFIRMED status can be paid");
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Booking must be CONFIRMED by host before payment");
         }
         if (booking.getTotalPrice() == null) {
             throw new IllegalStateException("Booking has no calculated total price");
@@ -67,11 +67,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .provider(MOCK_PROVIDER)
                 .providerPaymentId("mock_" + UUID.randomUUID())
                 .build();
-
-        if (booking.getStatus() == BookingStatus.CREATED) {
-            booking.setStatus(BookingStatus.CONFIRMED);
-            bookingRepository.save(booking);
-        }
 
         Payment savedPayment = paymentRepository.save(payment);
         return paymentMapper.toDto(savedPayment);

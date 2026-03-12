@@ -14,4 +14,5 @@ public interface UserService {
     void changePassword(ChangePasswordRequestDto request);
     void deleteCurrentAccount(DeleteAccountRequestDto request);
     String uploadAvatar(MultipartFile file);
+    void deleteAvatar();
 }

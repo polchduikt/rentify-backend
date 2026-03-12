@@ -117,6 +117,17 @@ public class UserServiceImpl implements UserService {
         return imageUrl;
     }
 
+    @Override
+    @Transactional
+    public void deleteAvatar() {
+        User user = authenticationService.getCurrentUser();
+        if (user.getAvatarUrl() != null) {
+            cloudinaryService.deleteFile(user.getAvatarUrl());
+            user.setAvatarUrl(null);
+            userRepository.save(user);
+        }
+    }
+
     private String buildDeletedEmail(Long userId) {
         long epochSeconds = Instant.now().getEpochSecond();
         return "deleted_" + userId + "_" + epochSeconds + "@deleted.local";

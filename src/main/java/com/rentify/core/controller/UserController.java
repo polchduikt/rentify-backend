@@ -58,4 +58,10 @@ public class UserController {
         String avatarUrl = userService.uploadAvatar(file);
         return ResponseEntity.ok(avatarUrl);
     }
+
+    @DeleteMapping("/profile/avatar")
+    public ResponseEntity<Void> deleteAvatar() {
+        userService.deleteAvatar();
+        return ResponseEntity.noContent().build();
+    }
 }

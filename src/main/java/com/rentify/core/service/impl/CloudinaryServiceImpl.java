@@ -43,6 +43,34 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
     }
 
+    @Override
+    public void deleteFile(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+        try {
+            String publicId = extractPublicIdFromUrl(imageUrl);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
+        } catch (Exception e) {
+            throw new RuntimeException("Image deletion failed: " + e.getMessage());
+        }
+    }
+
+    private String extractPublicIdFromUrl(String imageUrl) {
+        if (imageUrl == null || !imageUrl.contains("/upload/")) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL");
+        }
+        
+        String[] parts = imageUrl.split("/upload/");
+        if (parts.length < 2) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+        }
+        
+        String pathPart = parts[1];
+        String publicId = pathPart.substring(0, pathPart.lastIndexOf("."));
+        return publicId;
+    }
+
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is required");

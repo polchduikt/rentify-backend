@@ -4,14 +4,17 @@ import com.rentify.core.dto.booking.BookingDto;
 import com.rentify.core.dto.booking.BookingRequestDto;
 import com.rentify.core.entity.AvailabilityBlock;
 import com.rentify.core.entity.Booking;
+import com.rentify.core.entity.Payment;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.enums.PaymentStatus;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.BookingMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
+import com.rentify.core.repository.PaymentRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.BookingService;
@@ -29,13 +32,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final String REFUND_PROVIDER = "MOCK_GATEWAY";
+
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
+    private final PaymentRepository paymentRepository;
     private final AuthenticationService authService;
     private final BookingMapper bookingMapper;
     private final AvailabilityBlockRepository availabilityRepository;
@@ -135,11 +142,27 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         User currentUser = authService.getCurrentUser();
-        if (!booking.getTenant().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("You can only cancel your own bookings");
+        boolean isTenant = booking.getTenant().getId().equals(currentUser.getId());
+        boolean isHost = booking.getProperty().getHost().getId().equals(currentUser.getId());
+        if (!isTenant && !isHost) {
+            throw new AccessDeniedException("You can only cancel your own or hosted bookings");
         }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.REJECTED) {
+            throw new IllegalStateException("Booking is already closed");
+        }
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new IllegalStateException("Completed booking cannot be cancelled");
+        }
+
+        if (isTenant && booking.getStatus() == BookingStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Tenant cannot cancel booking in progress");
+        }
+
         booking.setStatus(BookingStatus.CANCELLED);
-        return bookingMapper.toDto(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        refundIfPaid(savedBooking);
+        return bookingMapper.toDto(savedBooking);
     }
 
     @Override
@@ -181,5 +204,34 @@ public class BookingServiceImpl implements BookingService {
     private boolean isAdmin(User user) {
         return user.getRoles().stream()
                 .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+    }
+
+    private void refundIfPaid(Booking booking) {
+        if (!paymentRepository.existsByBookingIdAndStatus(booking.getId(), PaymentStatus.PAID)) {
+            return;
+        }
+        if (paymentRepository.existsByBookingIdAndStatus(booking.getId(), PaymentStatus.REFUNDED)) {
+            return;
+        }
+        if (booking.getTotalPrice() == null) {
+            return;
+        }
+
+        String currency = "UAH";
+        if (booking.getProperty().getPricing() != null
+                && booking.getProperty().getPricing().getCurrency() != null
+                && !booking.getProperty().getPricing().getCurrency().isBlank()) {
+            currency = booking.getProperty().getPricing().getCurrency().trim();
+        }
+
+        Payment refund = Payment.builder()
+                .booking(booking)
+                .amount(booking.getTotalPrice())
+                .currency(currency)
+                .status(PaymentStatus.REFUNDED)
+                .provider(REFUND_PROVIDER)
+                .providerPaymentId("mock_refund_" + UUID.randomUUID())
+                .build();
+        paymentRepository.save(refund);
     }
 }
