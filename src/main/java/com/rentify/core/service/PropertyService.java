@@ -5,13 +5,16 @@ import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
+import com.rentify.core.enums.PropertyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface PropertyService {
     Page<PropertyResponseDto> getAllProperties(Pageable pageable);
-    Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable);
+    Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable, List<PropertyStatus> statuses);
     PropertyResponseDto getPropertyById(Long id);
     PropertyResponseDto create(PropertyCreateRequestDto request);
     PropertyResponseDto updateProperty(Long id, PropertyCreateRequestDto request);

@@ -148,7 +148,9 @@ public class PropertySpecifications {
                 bookingSubquery.select(cb.literal(1L));
                 bookingSubquery.where(
                         cb.equal(bookingRoot.get("property").get("id"), root.get("id")),
-                        cb.not(bookingRoot.get("status").in(List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED))),
+                        cb.not(bookingRoot.get("status").in(
+                                List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.COMPLETED)
+                        )),
                         cb.lessThan(bookingRoot.get("dateFrom"), criteria.dateTo()),
                         cb.greaterThan(bookingRoot.get("dateTo"), criteria.dateFrom())
                 );

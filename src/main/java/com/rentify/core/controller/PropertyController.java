@@ -9,6 +9,7 @@ import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.dto.property.PropertyStatusUpdateRequestDto;
 import com.rentify.core.dto.property.UnavailableDateRangeDto;
+import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
 import jakarta.validation.Valid;
@@ -45,9 +46,10 @@ public class PropertyController {
 
     @GetMapping("/my")
     public ResponseEntity<Page<PropertyResponseDto>> getMyProperties(
+            @RequestParam(required = false) List<PropertyStatus> statuses,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(propertyService.getCurrentUserProperties(pageable));
+        return ResponseEntity.ok(propertyService.getCurrentUserProperties(pageable, statuses));
     }
 
     @GetMapping("/{id}")

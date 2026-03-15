@@ -80,7 +80,11 @@ public class BookingServiceImpl implements BookingService {
         if (!overlappingBlocks.isEmpty()) {
             throw new IllegalStateException("The property is blocked by the host for the selected dates.");
         }
-        List<BookingStatus> ignoredStatuses = List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED);
+        List<BookingStatus> ignoredStatuses = List.of(
+                BookingStatus.CANCELLED,
+                BookingStatus.REJECTED,
+                BookingStatus.COMPLETED
+        );
         boolean isOccupied = bookingRepository.hasOverlappingBookings(
                 property.getId(),
                 request.dateFrom(),

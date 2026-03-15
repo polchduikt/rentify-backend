@@ -56,7 +56,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         }
         boolean hasBookings = bookingRepository.hasOverlappingBookings(
                 propertyId, request.dateFrom(), request.dateTo(),
-                List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED)
+                List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.COMPLETED)
         );
         if (hasBookings) {
             throw new IllegalStateException("Cannot block dates because there are existing bookings for this period.");
@@ -91,7 +91,11 @@ public class AvailabilityServiceImpl implements AvailabilityService {
 
         List<AvailabilityBlock> blocks;
         List<Booking> bookings;
-        List<BookingStatus> excludedStatuses = List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED);
+        List<BookingStatus> excludedStatuses = List.of(
+                BookingStatus.CANCELLED,
+                BookingStatus.REJECTED,
+                BookingStatus.COMPLETED
+        );
 
         if (dateFrom != null) {
             blocks = availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(

@@ -1,6 +1,7 @@
 package com.rentify.core.repository;
 
 import com.rentify.core.entity.Property;
+import com.rentify.core.enums.PropertyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,17 +11,19 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.time.ZonedDateTime;
 
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
     Page<Property> findAllByHostId(Long hostId, Pageable pageable);
+    Page<Property> findAllByHostIdAndStatusIn(Long hostId, List<PropertyStatus> statuses, Pageable pageable);
 
     @Modifying
     @Query("UPDATE Property p SET p.isTopPromoted = false, p.topPromotedUntil = null " +
             "WHERE p.isTopPromoted = true " +
             "AND p.topPromotedUntil IS NOT NULL " +
-            "AND p.topPromotedUntil < :now")
+            "AND p.topPromotedUntil <= :now")
     int deactivateExpiredTopPromotions(@Param("now") ZonedDateTime now);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

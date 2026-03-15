@@ -90,9 +90,14 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable) {
+    public Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable, List<PropertyStatus> statuses) {
         User currentUser = authenticationService.getCurrentUser();
-        return propertyRepository.findAllByHostId(currentUser.getId(), pageable)
+        Pageable sortedPageable = withTopPrioritySort(pageable);
+        if (statuses == null || statuses.isEmpty()) {
+            return propertyRepository.findAllByHostId(currentUser.getId(), sortedPageable)
+                    .map(propertyMapper::toDto);
+        }
+        return propertyRepository.findAllByHostIdAndStatusIn(currentUser.getId(), statuses, sortedPageable)
                 .map(propertyMapper::toDto);
     }
 

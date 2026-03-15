@@ -84,9 +84,6 @@ public class UserServiceImpl implements UserService {
     public void deleteCurrentAccount(DeleteAccountRequestDto request) {
         userValidator.validateDeleteAccount(request);
         User user = authenticationService.getCurrentUser();
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Current password is incorrect");
-        }
         if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new IllegalStateException("Account is already deactivated");
         }

@@ -44,7 +44,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("currentDate") LocalDate currentDate);
 
     @Modifying
-    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status IN :oldStatuses AND b.dateTo < :currentDate")
+    @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status IN :oldStatuses AND b.dateTo <= :currentDate")
     int updateStatusToCompleted(
             @Param("oldStatuses") List<BookingStatus> oldStatuses,
             @Param("newStatus") BookingStatus newStatus,

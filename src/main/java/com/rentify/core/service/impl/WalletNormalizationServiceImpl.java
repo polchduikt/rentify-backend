@@ -27,7 +27,7 @@ public class WalletNormalizationServiceImpl implements WalletNormalizationServic
 
     @Override
     public boolean normalizeSubscription(User user, ZonedDateTime now) {
-        if (user.getSubscriptionActiveUntil() != null && user.getSubscriptionActiveUntil().isBefore(now)) {
+        if (user.getSubscriptionActiveUntil() != null && !user.getSubscriptionActiveUntil().isAfter(now)) {
             user.setSubscriptionPlan(SubscriptionPlan.FREE);
             user.setSubscriptionActiveUntil(null);
             return true;

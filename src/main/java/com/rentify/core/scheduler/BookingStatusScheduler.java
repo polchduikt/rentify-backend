@@ -5,24 +5,39 @@ import com.rentify.core.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class BookingStatusScheduler {
 
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Europe/Kiev");
+
     private final BookingRepository bookingRepository;
     private final Logger logger = LoggerFactory.getLogger(BookingStatusScheduler.class);
 
-    @Scheduled(cron = "0 0 12 * * ?")
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void syncBookingStatusesOnStartup() {
+        updateStatuses("startup");
+    }
+
+    @Scheduled(cron = "0 0 * * * *", zone = "Europe/Kiev")
     @Transactional
     public void updateBookingStatuses() {
-        LocalDate today = LocalDate.now();
-        logger.info("Running daily booking status update job for date: {}", today);
+        updateStatuses("schedule");
+    }
+
+    private void updateStatuses(String trigger) {
+        LocalDate today = LocalDate.now(BUSINESS_ZONE);
+        logger.info("Running booking status update job [{}] for date: {}", trigger, today);
         int inProgressCount = bookingRepository.updateStatusToInProgress(
                 BookingStatus.CONFIRMED,
                 BookingStatus.IN_PROGRESS,

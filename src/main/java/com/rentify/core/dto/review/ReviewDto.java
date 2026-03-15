@@ -6,6 +6,7 @@ import java.time.ZonedDateTime;
 public record ReviewDto(
         Long id,
         @JsonProperty("propertyId") Long propertyId,
+        @JsonProperty("bookingId") Long bookingId,
         @JsonProperty("authorId") Long authorId,
         Short rating,
         @JsonProperty("authorFirstName") String authorFirstName,

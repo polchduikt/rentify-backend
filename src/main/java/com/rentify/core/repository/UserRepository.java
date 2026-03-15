@@ -21,7 +21,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query("UPDATE User u SET u.subscriptionPlan = :freePlan, u.subscriptionActiveUntil = null " +
             "WHERE u.subscriptionActiveUntil IS NOT NULL " +
-            "AND u.subscriptionActiveUntil < :now " +
+            "AND u.subscriptionActiveUntil <= :now " +
             "AND u.subscriptionPlan <> :freePlan")
     int resetExpiredSubscriptions(
             @Param("freePlan") SubscriptionPlan freePlan,

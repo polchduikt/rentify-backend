@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ReviewMapper {
     @Mapping(source = "property.id", target = "propertyId")
+    @Mapping(source = "booking.id", target = "bookingId")
     @Mapping(source = "author.id", target = "authorId")
     @Mapping(source = "author.firstName", target = "authorFirstName")
     ReviewDto toDto(Review review);
