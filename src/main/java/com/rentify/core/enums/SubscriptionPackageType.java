@@ -1,7 +1,13 @@
 package com.rentify.core.enums;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+@Schema(
+        description = "Subscription purchase package with plan, duration and price.",
+        example = "BASIC_30_DAYS",
+        allowableValues = {"BASIC_30_DAYS", "BASIC_90_DAYS", "PREMIUM_30_DAYS", "PREMIUM_90_DAYS"}
+)
 public enum SubscriptionPackageType
 {
     BASIC_30_DAYS(SubscriptionPlan.BASIC, 30, new BigDecimal("199.00")),

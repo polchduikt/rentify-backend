@@ -18,6 +18,7 @@ import com.rentify.core.entity.PropertyPricing;
 import com.rentify.core.entity.PropertyRule;
 import com.rentify.core.entity.ResidentialComplex;
 import com.rentify.core.entity.User;
+import com.rentify.core.enums.AmenityCategory;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.PropertyMapper;
@@ -57,6 +58,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -127,7 +129,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.setPropertyType(request.propertyType());
         }
         property.setMarketType(request.marketType());
-        applyListingFlags(property, request);
+        applyListingFlags(property, request, host);
         property.setHost(host);
         property.setStatus(PropertyStatus.ACTIVE);
         if (property.getPricing() != null) {
@@ -136,7 +138,7 @@ public class PropertyServiceImpl implements PropertyService {
         if (property.getRules() != null) {
             property.getRules().setProperty(property);
         }
-        updateAmenities(property, request.amenityIds(), request.amenitySlugs());
+        updateAmenities(property, request.amenityIds(), request.amenitySlugs(), host);
         updateAddress(property, request);
         Property savedProperty = propertyRepository.save(property);
         return propertyMapper.toDto(savedProperty);
@@ -156,7 +158,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setRentalType(request.rentalType());
         property.setPropertyType(request.propertyType());
         property.setMarketType(request.marketType());
-        applyListingFlags(property, request);
+        applyListingFlags(property, request, currentUser);
         property.setRooms(request.rooms());
         property.setFloor(request.floor());
         property.setTotalFloors(request.totalFloors());
@@ -164,7 +166,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setMaxGuests(request.maxGuests());
         property.setCheckInTime(request.checkInTime());
         property.setCheckOutTime(request.checkOutTime());
-        updateAmenities(property, request.amenityIds(), request.amenitySlugs());
+        updateAmenities(property, request.amenityIds(), request.amenitySlugs(), currentUser);
         updateAddress(property, request);
         updatePricing(property, request);
         updateRules(property, request);
@@ -274,7 +276,12 @@ public class PropertyServiceImpl implements PropertyService {
                 .map(this::toMapPinDto);
     }
 
-    private void updateAmenities(Property property, List<Long> amenityIds, List<String> amenitySlugs) {
+    private void updateAmenities(
+            Property property,
+            List<Long> amenityIds,
+            List<String> amenitySlugs,
+            User currentUser
+    ) {
         boolean hasAmenityIds = amenityIds != null && !amenityIds.isEmpty();
         List<String> normalizedSlugs = normalizeSlugs(amenitySlugs);
         boolean hasAmenitySlugs = !normalizedSlugs.isEmpty();
@@ -299,6 +306,14 @@ public class PropertyServiceImpl implements PropertyService {
                 throw new EntityNotFoundException("One or more amenity slugs provided in the request do not exist.");
             }
             amenities.addAll(foundBySlugs);
+        }
+
+        if (!isAdmin(currentUser)) {
+            Set<Amenity> existingVerificationAmenities = property.getAmenities().stream()
+                    .filter(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION)
+                    .collect(Collectors.toSet());
+            amenities.removeIf(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION);
+            amenities.addAll(existingVerificationAmenities);
         }
 
         property.setAmenities(amenities);
@@ -399,7 +414,10 @@ public class PropertyServiceImpl implements PropertyService {
         property.getRules().setAdditionalRules(request.rules().additionalRules());
     }
 
-    private void applyListingFlags(Property property, PropertyCreateRequestDto request) {
+    private void applyListingFlags(Property property, PropertyCreateRequestDto request, User currentUser) {
+        if (!isAdmin(currentUser)) {
+            return;
+        }
         property.setIsVerifiedProperty(Boolean.TRUE.equals(request.isVerifiedProperty()));
         property.setIsVerifiedRealtor(Boolean.TRUE.equals(request.isVerifiedRealtor()));
         property.setIsDuplicate(Boolean.TRUE.equals(request.isDuplicate()));

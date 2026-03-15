@@ -1,7 +1,13 @@
 package com.rentify.core.enums;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+@Schema(
+        description = "Top-promotion package option with duration and price.",
+        example = "TOP_7_DAYS",
+        allowableValues = {"TOP_7_DAYS", "TOP_14_DAYS", "TOP_30_DAYS"}
+)
 public enum TopPromotionPackageType
 {
     TOP_7_DAYS(7, new BigDecimal("99.00")),

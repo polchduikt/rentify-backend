@@ -48,9 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/payments/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/v1/wallet/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/v1/promotions/**").hasAnyRole("USER", "ADMIN")
-
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
