@@ -36,7 +36,7 @@ public class Property {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PropertyStatus status = PropertyStatus.ACTIVE;
+    private PropertyStatus status = PropertyStatus.DRAFT;
 
     @Column(name = "property_type", length = 60)
     private String propertyType;

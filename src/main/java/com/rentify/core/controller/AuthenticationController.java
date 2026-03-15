@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,12 +38,12 @@ public class AuthenticationController {
             description = "Registers a new account and returns JWT tokens for immediate authorized usage."
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "201",
             description = "User registered and authenticated",
             content = @Content(schema = @Schema(implementation = AuthenticationResponseDto.class))
     )
     public ResponseEntity<AuthenticationResponseDto> register(@Valid @RequestBody RegisterRequestDto request) {
-        return ResponseEntity.ok(authenticationService.register(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.register(request));
     }
 
     @PostMapping("/login")

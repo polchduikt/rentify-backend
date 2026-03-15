@@ -154,7 +154,7 @@ class PropertyServiceImplTest {
             assertThat(result).isNotNull();
             verify(propertyRepository).save(newProperty);
             assertThat(newProperty.getHost()).isEqualTo(hostUser);
-            assertThat(newProperty.getStatus()).isEqualTo(PropertyStatus.ACTIVE);
+            assertThat(newProperty.getStatus()).isEqualTo(PropertyStatus.DRAFT);
         }
 
         @Test

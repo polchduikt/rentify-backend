@@ -131,7 +131,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setMarketType(request.marketType());
         applyListingFlags(property, request, host);
         property.setHost(host);
-        property.setStatus(PropertyStatus.ACTIVE);
+        property.setStatus(PropertyStatus.DRAFT);
         if (property.getPricing() != null) {
             property.getPricing().setProperty(property);
         }
