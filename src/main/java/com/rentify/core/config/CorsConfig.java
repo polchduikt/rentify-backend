@@ -32,6 +32,7 @@ public class CorsConfig {
                 "X-Requested-With",
                 csrfHeaderName
         ));
+        configuration.setExposedHeaders(List.of("ETag", "Cache-Control", "Vary"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3_600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

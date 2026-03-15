@@ -1,0 +1,154 @@
+package com.rentify.core.config;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.filter.ShallowEtagHeaderFilter;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.List;
+import java.util.Locale;
+
+@Configuration
+public class HttpCacheConfig implements WebMvcConfigurer {
+
+    private static final String NO_STORE = "no-store";
+    private static final String PUBLIC_SHORT_CACHE = "public, max-age=60, stale-while-revalidate=300";
+    private static final String PUBLIC_MEDIUM_CACHE = "public, max-age=300, stale-while-revalidate=1800";
+
+    @Bean
+    public FilterRegistrationBean<ShallowEtagHeaderFilter> apiEtagFilter() {
+        ShallowEtagHeaderFilter filter = new ShallowEtagHeaderFilter();
+        filter.setWriteWeakETag(true);
+
+        FilterRegistrationBean<ShallowEtagHeaderFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setName("apiEtagFilter");
+        registration.addUrlPatterns(
+                "/api/v1/properties",
+                "/api/v1/properties/*",
+                "/api/v1/amenities",
+                "/api/v1/amenities/*",
+                "/api/v1/locations",
+                "/api/v1/locations/*",
+                "/api/v1/reviews/property/*"
+        );
+        return registration;
+    }
+
+    @Bean
+    public HandlerInterceptor apiCacheHeadersInterceptor() {
+        return new HandlerInterceptor() {
+            @Override
+            public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+                if (response.getHeader(HttpHeaders.CACHE_CONTROL) != null) {
+                    return true;
+                }
+
+                if (!isSafeMethod(request.getMethod())) {
+                    response.setHeader(HttpHeaders.CACHE_CONTROL, NO_STORE);
+                    appendVary(response, "Origin");
+                    return true;
+                }
+
+                String path = normalizePath(request);
+                response.setHeader(HttpHeaders.CACHE_CONTROL, resolveCacheControl(path));
+                appendVary(response, "Origin");
+                appendVary(response, "Accept-Encoding");
+                return true;
+            }
+        };
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(apiCacheHeadersInterceptor())
+                .addPathPatterns("/api/v1/**");
+    }
+
+    private static boolean isSafeMethod(String method) {
+        if (method == null) {
+            return false;
+        }
+
+        String normalized = method.toUpperCase(Locale.ROOT);
+        return "GET".equals(normalized) || "HEAD".equals(normalized);
+    }
+
+    private static String normalizePath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath == null || contextPath.isBlank()) {
+            return path;
+        }
+        return path.startsWith(contextPath) ? path.substring(contextPath.length()) : path;
+    }
+
+    private static String resolveCacheControl(String path) {
+        if (path.startsWith("/api/v1/amenities") || path.startsWith("/api/v1/locations")) {
+            return PUBLIC_MEDIUM_CACHE;
+        }
+
+        if (path.startsWith("/api/v1/reviews/property")) {
+            return PUBLIC_SHORT_CACHE;
+        }
+
+        if (path.startsWith("/api/v1/users/") && path.endsWith("/public")) {
+            return PUBLIC_SHORT_CACHE;
+        }
+
+        if (path.startsWith("/api/v1/properties/my")) {
+            return NO_STORE;
+        }
+
+        if (path.startsWith("/api/v1/properties")) {
+            return PUBLIC_SHORT_CACHE;
+        }
+
+        if (isPrivatePath(path)) {
+            return NO_STORE;
+        }
+
+        return PUBLIC_SHORT_CACHE;
+    }
+
+    private static boolean isPrivatePath(String path) {
+        List<String> privatePrefixes = List.of(
+                "/api/v1/auth",
+                "/api/v1/users",
+                "/api/v1/bookings",
+                "/api/v1/conversations",
+                "/api/v1/favorites",
+                "/api/v1/payments",
+                "/api/v1/wallet",
+                "/api/v1/promotions",
+                "/api/v1/admin"
+        );
+
+        return privatePrefixes.stream().anyMatch(path::startsWith);
+    }
+
+    private static void appendVary(HttpServletResponse response, String value) {
+        String current = response.getHeader(HttpHeaders.VARY);
+        if (current == null || current.isBlank()) {
+            response.setHeader(HttpHeaders.VARY, value);
+            return;
+        }
+
+        if (!containsVaryToken(current, value)) {
+            response.setHeader(HttpHeaders.VARY, current + ", " + value);
+        }
+    }
+
+    private static boolean containsVaryToken(String current, String token) {
+        String target = token.toLowerCase(Locale.ROOT);
+        return List.of(current.split(",")).stream()
+                .map(String::trim)
+                .map(value -> value.toLowerCase(Locale.ROOT))
+                .anyMatch(target::equals);
+    }
+}

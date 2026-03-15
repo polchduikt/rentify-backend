@@ -40,6 +40,7 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .headers(headers -> headers
+                        .cacheControl(cache -> cache.disable())
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .maxAgeInSeconds(63_072_000)
                                 .includeSubDomains(true)
