@@ -1,5 +1,6 @@
 package com.rentify.core.controller;
 
+import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final AuthCookieService authCookieService;
 
     @PostMapping("/register")
     @Operation(
@@ -42,8 +45,12 @@ public class AuthenticationController {
             description = "User registered and authenticated",
             content = @Content(schema = @Schema(implementation = AuthenticationResponseDto.class))
     )
-    public ResponseEntity<AuthenticationResponseDto> register(@Valid @RequestBody RegisterRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.register(request));
+    public ResponseEntity<AuthenticationResponseDto> register(
+            @Valid @RequestBody RegisterRequestDto request,
+            HttpServletResponse response
+    ) {
+        AuthenticationResponseDto authResponse = authenticationService.register(request);
+        return buildAuthResponse(authResponse, response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
@@ -56,8 +63,12 @@ public class AuthenticationController {
             description = "Authentication succeeded",
             content = @Content(schema = @Schema(implementation = AuthenticationResponseDto.class))
     )
-    public ResponseEntity<AuthenticationResponseDto> authenticate(@Valid @RequestBody AuthenticationRequestDto request) {
-        return ResponseEntity.ok(authenticationService.authenticate(request));
+    public ResponseEntity<AuthenticationResponseDto> authenticate(
+            @Valid @RequestBody AuthenticationRequestDto request,
+            HttpServletResponse response
+    ) {
+        AuthenticationResponseDto authResponse = authenticationService.authenticate(request);
+        return buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
     @PostMapping("/google")
@@ -71,7 +82,34 @@ public class AuthenticationController {
             content = @Content(schema = @Schema(implementation = AuthenticationResponseDto.class))
     )
     public ResponseEntity<AuthenticationResponseDto> authenticateWithGoogle(
-            @Valid @RequestBody GoogleOAuthRequestDto request) {
-        return ResponseEntity.ok(authenticationService.authenticateWithGoogle(request));
+            @Valid @RequestBody GoogleOAuthRequestDto request,
+            HttpServletResponse response
+    ) {
+        AuthenticationResponseDto authResponse = authenticationService.authenticateWithGoogle(request);
+        return buildAuthResponse(authResponse, response, HttpStatus.OK);
+    }
+
+    @PostMapping("/logout")
+    @Operation(
+            summary = "Logout from current browser session",
+            description = "Clears authentication cookie in cookie strategy mode."
+    )
+    @ApiResponse(responseCode = "204", description = "Session cookie cleared")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        authCookieService.clearAccessTokenCookie(response);
+        return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<AuthenticationResponseDto> buildAuthResponse(
+            AuthenticationResponseDto authResponse,
+            HttpServletResponse response,
+            HttpStatus status
+    ) {
+        if (authCookieService.isCookieStrategyEnabled()) {
+            authCookieService.writeAccessTokenCookie(response, authResponse.token());
+            return ResponseEntity.status(status).body(new AuthenticationResponseDto(null));
+        }
+
+        return ResponseEntity.status(status).body(authResponse);
     }
 }

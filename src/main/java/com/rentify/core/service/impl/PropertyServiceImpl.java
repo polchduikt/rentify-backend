@@ -309,7 +309,8 @@ public class PropertyServiceImpl implements PropertyService {
         }
 
         if (!isAdmin(currentUser)) {
-            Set<Amenity> existingVerificationAmenities = property.getAmenities().stream()
+            Set<Amenity> currentAmenities = property.getAmenities() != null ? property.getAmenities() : Set.of();
+            Set<Amenity> existingVerificationAmenities = currentAmenities.stream()
                     .filter(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION)
                     .collect(Collectors.toSet());
             amenities.removeIf(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION);

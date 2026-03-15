@@ -6,6 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Authentication response payload")
 public record AuthenticationResponseDto(
         @JsonProperty("token")
-        @Schema(description = "Token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+        @Schema(description = "Token (empty in cookie auth mode)", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", nullable = true)
         String token
 ) {}
