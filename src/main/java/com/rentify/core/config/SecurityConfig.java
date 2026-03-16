@@ -107,6 +107,13 @@ public class SecurityConfig {
                 .csrfTokenRepository(csrfTokenRepository)
                 .ignoringRequestMatchers(
                         "/api/v1/auth/**",
+                        "/api/v1/users/**",
+                        "/api/v1/properties/**",
+                        "/api/v1/bookings/**",
+                        "/api/v1/favorites/**",
+                        "/api/v1/payments/**",
+                        "/api/v1/wallet/**",
+                        "/api/v1/promotions/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html"
