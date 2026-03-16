@@ -1,0 +1,33 @@
+package com.rentify.core.dto.review;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Review request payload")
+public record ReviewRequestDto(
+        @NotNull(message = "Property id is required")
+        @JsonProperty("propertyId")
+        @Schema(description = "Property id", example = "42")
+        Long propertyId,
+
+        @NotNull(message = "Booking id is required")
+        @JsonProperty("bookingId")
+        @Schema(description = "Booking id", example = "42")
+        Long bookingId,
+
+        @NotNull(message = "Rating is required")
+        @Min(value = 1, message = "Rating must be from 1 to 5")
+        @Max(value = 5, message = "Rating must be from 1 to 5")
+        @JsonProperty("rating")
+        @Schema(description = "Rating", example = "1")
+        Short rating,
+
+        @Size(max = 2000, message = "Comment is too long")
+        @JsonProperty("comment")
+        @Schema(description = "Comment", example = "Sample value")
+        String comment
+) {}
