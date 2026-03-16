@@ -112,7 +112,7 @@ Core source layout:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-org/rentify-backend.git
+   git clone https://github.com/polchduikt/rentify-backend.git
    cd rentify-backend
    ```
 
