@@ -57,7 +57,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PropertyServiceImpl unit tests")
 class PropertyServiceImplTest {
 
     @Mock private PropertyRepository propertyRepository;

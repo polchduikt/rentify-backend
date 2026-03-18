@@ -5,12 +5,10 @@ import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.integration.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @DisplayName("Search properties integration tests")
 class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
 
