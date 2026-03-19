@@ -1,5 +1,7 @@
 package com.rentify.core.config;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +17,15 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.util.StringUtils;
+
+import java.util.function.Supplier;
 
 @Configuration
 @EnableWebSecurity
@@ -97,6 +107,7 @@ public class SecurityConfig {
             return;
         }
 
+        SpaCsrfTokenRequestHandler csrfTokenRequestHandler = new SpaCsrfTokenRequestHandler();
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokenRepository.setCookieName(csrfCookieName);
         csrfTokenRepository.setHeaderName(csrfHeaderName);
@@ -105,19 +116,39 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf
                 .csrfTokenRepository(csrfTokenRepository)
+                .csrfTokenRequestHandler(csrfTokenRequestHandler)
                 .ignoringRequestMatchers(
-                        "/api/v1/auth/**",
-                        "/api/v1/users/**",
-                        "/api/v1/properties/**",
-                        "/api/v1/bookings/**",
-                        "/api/v1/favorites/**",
-                        "/api/v1/payments/**",
-                        "/api/v1/wallet/**",
-                        "/api/v1/promotions/**",
-                        "/v3/api-docs/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html"
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/register"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/login"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/google"),
+                        AntPathRequestMatcher.antMatcher("/v3/api-docs/**"),
+                        AntPathRequestMatcher.antMatcher("/swagger-ui/**"),
+                        AntPathRequestMatcher.antMatcher("/swagger-ui.html")
                 )
         );
+    }
+
+    private static final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
+        private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
+        private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
+
+        @Override
+        public void handle(
+                HttpServletRequest request,
+                HttpServletResponse response,
+                Supplier<CsrfToken> csrfToken
+        ) {
+            this.xor.handle(request, response, csrfToken);
+            csrfToken.get();
+        }
+
+        @Override
+        public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+            String csrfHeaderValue = request.getHeader(csrfToken.getHeaderName());
+            if (StringUtils.hasText(csrfHeaderValue)) {
+                return this.plain.resolveCsrfTokenValue(request, csrfToken);
+            }
+            return this.xor.resolveCsrfTokenValue(request, csrfToken);
+        }
     }
 }
