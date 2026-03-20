@@ -2,6 +2,7 @@ package com.rentify.core.repository;
 
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.SubscriptionPlan;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+    @EntityGraph(attributePaths = "roles")
     Optional<User> findByEmail(String email);
     Optional<User> findByOauthProviderAndOauthSubject(String oauthProvider, String oauthSubject);
     Optional<User> findByIdAndIsActiveTrue(Long id);

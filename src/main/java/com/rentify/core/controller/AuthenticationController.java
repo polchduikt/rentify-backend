@@ -7,12 +7,14 @@ import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.service.AuthResponseService;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.security.TokenRevocationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final AuthCookieService authCookieService;
     private final AuthResponseService authResponseService;
+    private final TokenRevocationService tokenRevocationService;
 
     @PostMapping("/register")
     @Operation(
@@ -97,8 +100,23 @@ public class AuthenticationController {
             description = "Clears authentication cookie in cookie strategy mode."
     )
     @ApiResponse(responseCode = "204", description = "Session cookie cleared")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        tokenRevocationService.revoke(resolveAccessToken(request));
         authCookieService.clearAccessTokenCookie(response);
         return ResponseEntity.noContent().build();
+    }
+
+    private String resolveAccessToken(HttpServletRequest request) {
+        if (authCookieService.isCookieStrategyEnabled()) {
+            return authCookieService.extractTokenFromCookie(request);
+        }
+
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        return token.isBlank() ? null : token;
     }
 }
