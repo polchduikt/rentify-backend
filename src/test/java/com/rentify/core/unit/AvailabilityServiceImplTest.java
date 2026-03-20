@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -239,9 +240,9 @@ class AvailabilityServiceImplTest {
             when(propertyRepository.existsById(10L)).thenReturn(true);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(10L, to, from))
                     .thenReturn(List.of(block));
-            when(bookingRepository.findAllByPropertyIdAndStatusNotInAndDateFromLessThanAndDateToGreaterThan(
-                    eq(10L), anyList(), eq(to), eq(from)
-            )).thenReturn(List.of(booking));
+            when(bookingRepository.findOverlappingByPropertyIdAndStatusNotIn(
+                    eq(10L), anyList(), eq(from), eq(to), any()
+            )).thenReturn(new PageImpl<>(List.of(booking)));
 
             List<UnavailableDateRangeDto> result = availabilityService.getUnavailableRangesByProperty(10L, from, to);
 
@@ -264,7 +265,9 @@ class AvailabilityServiceImplTest {
 
             when(propertyRepository.existsById(10L)).thenReturn(true);
             when(availabilityRepository.findAllByPropertyId(10L)).thenReturn(List.of(block));
-            when(bookingRepository.findAllByPropertyIdAndStatusNotIn(eq(10L), anyList())).thenReturn(List.of(booking));
+            when(bookingRepository.findAllByPropertyIdAndStatusNotIn(
+                    eq(10L), anyList(), any()
+            )).thenReturn(new PageImpl<>(List.of(booking)));
 
             List<UnavailableDateRangeDto> result = availabilityService.getUnavailableRangesByProperty(10L, null, null);
 

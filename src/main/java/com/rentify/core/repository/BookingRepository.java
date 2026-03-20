@@ -21,20 +21,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) > 0 FROM Booking b " +
             "WHERE b.property.id = :propertyId " +
             "AND b.status NOT IN :excludedStatuses " +
-            "AND b.dateFrom < :endDate " +
-            "AND b.dateTo > :startDate")
+            "AND b.dateFrom < :dateTo " +
+            "AND b.dateTo > :dateFrom")
 
     boolean hasOverlappingBookings(@Param("propertyId") Long propertyId,
-                                   @Param("startDate") LocalDate startDate,
-                                   @Param("endDate") LocalDate endDate,
+                                   @Param("dateFrom") LocalDate dateFrom,
+                                   @Param("dateTo") LocalDate dateTo,
                                    @Param("excludedStatuses") List<BookingStatus> excludedStatuses);
-
-    boolean existsByTenantIdAndPropertyIdAndStatusAndDateToBefore(
-            Long tenantId,
-            Long propertyId,
-            BookingStatus status,
-            LocalDate dateTo
-    );
 
     @Modifying
     @Query("UPDATE Booking b SET b.status = :newStatus WHERE b.status = :oldStatus AND b.dateFrom <= :currentDate")
@@ -50,15 +43,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("newStatus") BookingStatus newStatus,
             @Param("currentDate") LocalDate currentDate);
 
-    boolean existsByTenantIdAndPropertyIdAndStatus(Long tenantId, Long propertyId, BookingStatus status);
     boolean existsByPropertyId(Long propertyId);
 
-    List<Booking> findAllByPropertyIdAndStatusNotIn(Long propertyId, List<BookingStatus> excludedStatuses);
-
-    List<Booking> findAllByPropertyIdAndStatusNotInAndDateFromLessThanAndDateToGreaterThan(
+    Page<Booking> findAllByPropertyIdAndStatusNotIn(
             Long propertyId,
             List<BookingStatus> excludedStatuses,
-            LocalDate endDate,
-            LocalDate startDate
+            Pageable pageable
+    );
+
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.property.id = :propertyId " +
+            "AND b.status NOT IN :excludedStatuses " +
+            "AND b.dateFrom < :dateTo " +
+            "AND b.dateTo > :dateFrom")
+    Page<Booking> findOverlappingByPropertyIdAndStatusNotIn(
+            @Param("propertyId") Long propertyId,
+            @Param("excludedStatuses") List<BookingStatus> excludedStatuses,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
+            Pageable pageable
     );
 }

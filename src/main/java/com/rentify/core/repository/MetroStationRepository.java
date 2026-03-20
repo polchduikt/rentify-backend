@@ -11,12 +11,11 @@ import java.util.List;
 
 @Repository
 public interface MetroStationRepository extends JpaRepository<MetroStation, Long> {
-
     @Query("""
             SELECT m FROM MetroStation m
             WHERE (:cityId IS NULL OR m.city.id = :cityId)
-              AND (lower(m.name) LIKE concat(:query, '%')
-                OR lower(m.normalizedName) LIKE concat(:query, '%'))
+              AND (lower(m.name) LIKE concat(:query, '%') ESCAPE '\\'
+                OR lower(m.normalizedName) LIKE concat(:query, '%') ESCAPE '\\')
             ORDER BY m.name ASC
             """)
     List<MetroStation> searchByPrefix(

@@ -100,7 +100,7 @@ class ReviewServiceImplTest {
             when(reviewRepository.existsByBookingId(20L)).thenReturn(false);
             when(reviewRepository.save(org.mockito.ArgumentMatchers.any(Review.class))).thenReturn(savedReview);
             when(reviewRepository.countByPropertyId(10L)).thenReturn(3L);
-            when(reviewRepository.findAverageRatingByPropertyId(10L)).thenReturn(4.666d);
+            when(reviewRepository.findAverageRatingByPropertyId(10L)).thenReturn(new BigDecimal("4.666"));
             when(reviewMapper.toDto(savedReview)).thenReturn(reviewDto);
 
             ReviewDto result = reviewService.createReview(request);

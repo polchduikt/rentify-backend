@@ -35,7 +35,7 @@ public class LocationDirectoryServiceImpl implements LocationDirectoryService {
         if (query == null || query.isBlank()) {
             return List.of();
         }
-        String normalizedQuery = query.trim().toLowerCase(Locale.ROOT);
+        String normalizedQuery = escapeLikePattern(query.trim().toLowerCase(Locale.ROOT));
         int finalLimit = resolveLimit(limit);
 
         EnumSet<LocationSuggestionType> requestedTypes = resolveTypes(types);
@@ -126,5 +126,12 @@ public class LocationDirectoryServiceImpl implements LocationDirectoryService {
             return DEFAULT_LIMIT;
         }
         return Math.min(limit, MAX_LIMIT);
+    }
+
+    private String escapeLikePattern(String input) {
+        return input
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 }

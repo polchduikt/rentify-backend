@@ -71,9 +71,9 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         long reviewCount = reviewRepository.countByPropertyId(property.getId());
-        Double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
+        BigDecimal averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
         property.setReviewCount(reviewCount);
-        property.setAverageRating(BigDecimal.valueOf(averageRating == null ? 0d : averageRating)
+        property.setAverageRating((averageRating == null ? BigDecimal.ZERO : averageRating)
                 .setScale(2, RoundingMode.HALF_UP));
         propertyRepository.save(property);
 

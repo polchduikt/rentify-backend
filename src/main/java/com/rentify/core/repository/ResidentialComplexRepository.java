@@ -11,12 +11,11 @@ import java.util.List;
 
 @Repository
 public interface ResidentialComplexRepository extends JpaRepository<ResidentialComplex, Long> {
-
     @Query("""
             SELECT rc FROM ResidentialComplex rc
             WHERE (:cityId IS NULL OR rc.city.id = :cityId)
-              AND (lower(rc.name) LIKE concat(:query, '%')
-                OR lower(rc.normalizedName) LIKE concat(:query, '%'))
+              AND (lower(rc.name) LIKE concat(:query, '%') ESCAPE '\\'
+                OR lower(rc.normalizedName) LIKE concat(:query, '%') ESCAPE '\\')
             ORDER BY rc.name ASC
             """)
     List<ResidentialComplex> searchByPrefix(

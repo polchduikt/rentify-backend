@@ -125,5 +125,15 @@ class LocationDirectoryServiceImplTest {
             assertThat(result.get(0).type()).isEqualTo(LocationSuggestionType.CITY);
             assertThat(result.get(1).type()).isEqualTo(LocationSuggestionType.CITY);
         }
+
+        @Test
+        void shouldEscapeLikeWildcards_beforeRepositorySearch() {
+            when(cityRepository.searchByPrefix("k\\%y\\_v", PageRequest.of(0, 2))).thenReturn(List.of());
+
+            List<LocationSuggestionDto> result = locationDirectoryService.suggest("k%y_v", null, List.of("city"), 2);
+
+            assertThat(result).isEmpty();
+            verify(cityRepository).searchByPrefix("k\\%y\\_v", PageRequest.of(0, 2));
+        }
     }
 }

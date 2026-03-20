@@ -12,11 +12,10 @@ import java.util.Optional;
 
 @Repository
 public interface CityRepository extends JpaRepository<City, Long> {
-
     @Query("""
             SELECT c FROM City c
-            WHERE lower(c.name) LIKE concat(:query, '%')
-               OR lower(c.normalizedName) LIKE concat(:query, '%')
+            WHERE lower(c.name) LIKE concat(:query, '%') ESCAPE '\\'
+               OR lower(c.normalizedName) LIKE concat(:query, '%') ESCAPE '\\'
             ORDER BY c.name ASC
             """)
     List<City> searchByPrefix(@Param("query") String query, Pageable pageable);

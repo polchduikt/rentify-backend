@@ -18,6 +18,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "roles")
     Optional<User> findByEmail(String email);
+    @EntityGraph(attributePaths = "roles")
     Optional<User> findByOauthProviderAndOauthSubject(String oauthProvider, String oauthSubject);
     Optional<User> findByIdAndIsActiveTrue(Long id);
     @Lock(LockModeType.PESSIMISTIC_WRITE)

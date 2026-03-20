@@ -16,6 +16,9 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.AvailabilityService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AvailabilityServiceImpl implements AvailabilityService {
+
+    private static final int BOOKING_FETCH_PAGE_SIZE = 500;
 
     private final AvailabilityBlockRepository availabilityRepository;
     private final PropertyRepository propertyRepository;
@@ -101,12 +106,10 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             blocks = availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     propertyId, dateTo, dateFrom
             );
-            bookings = bookingRepository.findAllByPropertyIdAndStatusNotInAndDateFromLessThanAndDateToGreaterThan(
-                    propertyId, excludedStatuses, dateTo, dateFrom
-            );
+            bookings = fetchAllOverlappingBookings(propertyId, excludedStatuses, dateFrom, dateTo);
         } else {
             blocks = availabilityRepository.findAllByPropertyId(propertyId);
-            bookings = bookingRepository.findAllByPropertyIdAndStatusNotIn(propertyId, excludedStatuses);
+            bookings = fetchAllBookingsByPropertyExcludingStatuses(propertyId, excludedStatuses);
         }
 
         List<UnavailableDateRangeDto> unavailableRanges = new ArrayList<>();
@@ -157,5 +160,47 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         if (dateFrom != null && !dateFrom.isBefore(dateTo)) {
             throw new IllegalArgumentException("dateFrom must be before dateTo.");
         }
+    }
+
+    private List<Booking> fetchAllOverlappingBookings(
+            Long propertyId,
+            List<BookingStatus> excludedStatuses,
+            LocalDate dateFrom,
+            LocalDate dateTo
+    ) {
+        List<Booking> result = new ArrayList<>();
+        Page<Booking> page;
+        int pageNumber = 0;
+        do {
+            page = bookingRepository.findOverlappingByPropertyIdAndStatusNotIn(
+                    propertyId,
+                    excludedStatuses,
+                    dateFrom,
+                    dateTo,
+                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+            );
+            result.addAll(page.getContent());
+            pageNumber++;
+        } while (page.hasNext());
+        return result;
+    }
+
+    private List<Booking> fetchAllBookingsByPropertyExcludingStatuses(
+            Long propertyId,
+            List<BookingStatus> excludedStatuses
+    ) {
+        List<Booking> result = new ArrayList<>();
+        Page<Booking> page;
+        int pageNumber = 0;
+        do {
+            page = bookingRepository.findAllByPropertyIdAndStatusNotIn(
+                    propertyId,
+                    excludedStatuses,
+                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+            );
+            result.addAll(page.getContent());
+            pageNumber++;
+        } while (page.hasNext());
+        return result;
     }
 }

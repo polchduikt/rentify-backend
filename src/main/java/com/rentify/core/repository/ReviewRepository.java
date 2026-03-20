@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     Page<Review> findAllByPropertyId(Long propertyId, Pageable pageable);
@@ -16,5 +18,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     long countByPropertyId(Long propertyId);
 
     @Query("SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.property.id = :propertyId")
-    Double findAverageRatingByPropertyId(@Param("propertyId") Long propertyId);
+    BigDecimal findAverageRatingByPropertyId(@Param("propertyId") Long propertyId);
 }

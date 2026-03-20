@@ -96,11 +96,10 @@ public class PropertyServiceImpl implements PropertyService {
     public Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable, List<PropertyStatus> statuses) {
         User currentUser = authenticationService.getCurrentUser();
         Pageable sortedPageable = withTopPrioritySort(pageable);
-        if (statuses == null || statuses.isEmpty()) {
-            return propertyRepository.findAllByHostId(currentUser.getId(), sortedPageable)
-                    .map(propertyMapper::toDto);
-        }
-        return propertyRepository.findAllByHostIdAndStatusIn(currentUser.getId(), statuses, sortedPageable)
+        List<PropertyStatus> effectiveStatuses = (statuses == null || statuses.isEmpty())
+                ? List.of(PropertyStatus.values())
+                : statuses;
+        return propertyRepository.findAllByHostIdAndStatusIn(currentUser.getId(), effectiveStatuses, sortedPageable)
                 .map(propertyMapper::toDto);
     }
 

@@ -18,7 +18,6 @@ import java.time.ZonedDateTime;
 
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
-    Page<Property> findAllByHostId(Long hostId, Pageable pageable);
     Page<Property> findAllByHostIdAndStatusIn(Long hostId, List<PropertyStatus> statuses, Pageable pageable);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Property p WHERE p.id = :id")
