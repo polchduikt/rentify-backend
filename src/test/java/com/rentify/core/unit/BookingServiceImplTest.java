@@ -206,6 +206,17 @@ class BookingServiceImplTest {
         }
 
         @Test
+        void shouldThrowIllegalArgument_whenStayHasNoNights() {
+            BookingRequestDto zeroNightsRequest = new BookingRequestDto(10L, request.dateFrom(), request.dateFrom(), (short) 2);
+            when(authService.getCurrentUser()).thenReturn(tenantUser);
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+
+            assertThatThrownBy(() -> bookingService.createBooking(zeroNightsRequest))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Check-out date must be after check-in date.");
+        }
+
+        @Test
         void shouldThrowIllegalState_whenMaxGuestsNotConfigured() {
             property.setMaxGuests(null);
             when(authService.getCurrentUser()).thenReturn(tenantUser);

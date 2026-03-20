@@ -40,7 +40,7 @@ public class ReviewServiceImpl implements ReviewService {
         User author = authService.getCurrentUser();
         Booking booking = bookingRepository.findById(request.bookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
-        Property property = propertyRepository.findById(request.propertyId())
+        Property property = propertyRepository.findByIdForUpdate(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
 
         if (!booking.getTenant().getId().equals(author.getId())) {
@@ -71,9 +71,10 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         long reviewCount = reviewRepository.countByPropertyId(property.getId());
-        double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
+        Double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
         property.setReviewCount(reviewCount);
-        property.setAverageRating(BigDecimal.valueOf(averageRating).setScale(2, RoundingMode.HALF_UP));
+        property.setAverageRating(BigDecimal.valueOf(averageRating == null ? 0d : averageRating)
+                .setScale(2, RoundingMode.HALF_UP));
         propertyRepository.save(property);
 
         return reviewMapper.toDto(savedReview);

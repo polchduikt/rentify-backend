@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -80,11 +81,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteCurrentAccount() {
+    public void deleteCurrentAccount(String currentPassword) {
         User user = authenticationService.getCurrentUser();
         if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new IllegalStateException("Account is already deactivated");
         }
+        validateDeletePassword(user, currentPassword);
 
         user.setIsActive(false);
         user.setEmail(buildDeletedEmail(user.getId()));
@@ -106,7 +108,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public String uploadAvatar(MultipartFile file) {
         User user = authenticationService.getCurrentUser();
+        String previousAvatarUrl = user.getAvatarUrl();
         String imageUrl = cloudinaryService.uploadFile(file);
+        deleteOldAvatarIfNeeded(previousAvatarUrl, imageUrl);
         user.setAvatarUrl(imageUrl);
         userRepository.save(user);
         return imageUrl;
@@ -126,5 +130,39 @@ public class UserServiceImpl implements UserService {
     private String buildDeletedEmail(Long userId) {
         long epochSeconds = Instant.now().getEpochSecond();
         return "deleted_" + userId + "_" + epochSeconds + "@deleted.local";
+    }
+
+    private void validateDeletePassword(User user, String currentPassword) {
+        if (user.getOauthProvider() != null && !user.getOauthProvider().isBlank()) {
+            return;
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            throw new IllegalArgumentException("Current password is required to delete account");
+        }
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+    }
+
+    private void deleteOldAvatarIfNeeded(String previousAvatarUrl, String newAvatarUrl) {
+        if (previousAvatarUrl == null || previousAvatarUrl.isBlank()) {
+            return;
+        }
+        if (previousAvatarUrl.equals(newAvatarUrl)) {
+            return;
+        }
+        if (!isCloudinaryUrl(previousAvatarUrl)) {
+            return;
+        }
+        cloudinaryService.deleteFile(previousAvatarUrl);
+    }
+
+    private boolean isCloudinaryUrl(String url) {
+        try {
+            URI uri = URI.create(url);
+            return uri.getHost() != null && uri.getHost().contains("res.cloudinary.com");
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 }

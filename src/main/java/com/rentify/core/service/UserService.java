@@ -11,7 +11,7 @@ public interface UserService {
     PublicUserProfileDto getPublicProfile(Long userId);
     UserResponseDto updateProfile(UpdateUserRequestDto request);
     void changePassword(ChangePasswordRequestDto request);
-    void deleteCurrentAccount();
+    void deleteCurrentAccount(String currentPassword);
     String uploadAvatar(MultipartFile file);
     void deleteAvatar();
 }

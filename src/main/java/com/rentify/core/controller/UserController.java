@@ -104,8 +104,9 @@ public class UserController {
             description = "Deactivates account, logs user out effectively by invalidating account activity status."
     )
     @ApiResponse(responseCode = "204", description = "Account deactivated")
-    public ResponseEntity<Void> deleteProfile() {
-        userService.deleteCurrentAccount();
+    public ResponseEntity<Void> deleteProfile(
+            @RequestHeader(value = "X-Current-Password", required = false) String currentPassword) {
+        userService.deleteCurrentAccount(currentPassword);
         return ResponseEntity.noContent().build();
     }
 

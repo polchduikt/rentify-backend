@@ -179,7 +179,7 @@ class AuthenticationServiceImplTest {
 
             assertThatThrownBy(() -> authenticationService.authenticateWithGoogle(request))
                     .isInstanceOf(InvalidGoogleTokenException.class)
-                    .hasMessage("Invalid Google token");
+                    .hasMessage("Google token is invalid or expired");
         }
 
         @Test
@@ -190,7 +190,7 @@ class AuthenticationServiceImplTest {
 
             assertThatThrownBy(() -> authenticationService.authenticateWithGoogle(request))
                     .isInstanceOf(InvalidGoogleTokenException.class)
-                    .hasMessage("Invalid Google token");
+                    .hasMessage("Google account email is not verified");
         }
 
         @Test

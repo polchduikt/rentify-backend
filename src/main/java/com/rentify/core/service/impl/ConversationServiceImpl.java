@@ -35,7 +35,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
-    public ConversationDto createConversation(Long propertyId) {
+    public ConversationDto getOrCreateConversation(Long propertyId) {
         User currentUser = authService.getCurrentUser();
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -46,6 +46,13 @@ public class ConversationServiceImpl implements ConversationService {
 
         Conversation conversation = findOrCreateConversation(property, currentUser);
         return chatMapper.toConversationDto(conversation);
+    }
+
+    @Override
+    @Transactional
+    public MessageDto sendMessageToProperty(Long propertyId, SendMessageRequestDto request) {
+        ConversationDto conversation = getOrCreateConversation(propertyId);
+        return sendMessage(conversation.id(), request);
     }
 
     @Override

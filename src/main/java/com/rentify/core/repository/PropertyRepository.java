@@ -2,9 +2,11 @@ package com.rentify.core.repository;
 
 import com.rentify.core.entity.Property;
 import com.rentify.core.enums.PropertyStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,6 +20,9 @@ import java.time.ZonedDateTime;
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
     Page<Property> findAllByHostId(Long hostId, Pageable pageable);
     Page<Property> findAllByHostIdAndStatusIn(Long hostId, List<PropertyStatus> statuses, Pageable pageable);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Property p WHERE p.id = :id")
+    java.util.Optional<Property> findByIdForUpdate(@Param("id") Long id);
 
     @Modifying
     @Query("UPDATE Property p SET p.isTopPromoted = false, p.topPromotedUntil = null " +

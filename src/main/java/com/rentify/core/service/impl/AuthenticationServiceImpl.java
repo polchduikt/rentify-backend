@@ -39,6 +39,7 @@ import java.util.UUID;
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private static final String GOOGLE_PROVIDER = "GOOGLE";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -47,7 +48,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final RoleRepository roleRepository;
     @Qualifier("googleJwtDecoder")
     private final JwtDecoder googleJwtDecoder;
-    private final Logger logger = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
 
     @Value("${application.security.oauth.google.client-id:}")
     private String googleClientId;
@@ -55,7 +55,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public AuthenticationResponseDto register(RegisterRequestDto request) {
-        logger.info("Registering new user with email: {}", request.email());
+        LOGGER.info("Registering new user with email: {}", request.email());
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email already taken");
         }
@@ -78,7 +78,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticationResponseDto authenticate(AuthenticationRequestDto request) {
-        logger.info("Authenticating user: {}", request.email());
+        LOGGER.info("Authenticating user: {}", request.email());
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
@@ -91,7 +91,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public AuthenticationResponseDto authenticateWithGoogle(GoogleOAuthRequestDto request) {
-        logger.info("Authenticating via Google OAuth");
+        LOGGER.info("Authenticating via Google OAuth");
         if (googleClientId == null || googleClientId.isBlank()) {
             throw new IllegalStateException("Google OAuth is not configured on server");
         }
@@ -122,7 +122,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         try {
             jwt = googleJwtDecoder.decode(idToken);
         } catch (JwtException ex) {
-            throw new InvalidGoogleTokenException("Invalid Google token");
+            throw new InvalidGoogleTokenException("Google token is invalid or expired");
         }
 
         String subject = jwt.getSubject();
@@ -130,13 +130,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Boolean emailVerified = jwt.getClaimAsBoolean("email_verified");
 
         if (subject == null || subject.isBlank()) {
-            throw new InvalidGoogleTokenException("Invalid Google token");
+            throw new InvalidGoogleTokenException("Google token subject is missing");
         }
         if (email == null || email.isBlank()) {
-            throw new InvalidGoogleTokenException("Invalid Google token");
+            throw new InvalidGoogleTokenException("Google token email is missing");
         }
         if (!Boolean.TRUE.equals(emailVerified)) {
-            throw new InvalidGoogleTokenException("Invalid Google token");
+            throw new InvalidGoogleTokenException("Google account email is not verified");
         }
 
         return new GoogleUserInfo(

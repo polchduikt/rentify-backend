@@ -117,7 +117,7 @@ class CloudinaryServiceImplTest {
 
             cloudinaryService.deleteFile(url);
 
-            verify(uploader).destroy("v123/rentify/properties/pic", Map.of("resource_type", "image"));
+            verify(uploader).destroy("rentify/properties/pic", Map.of("resource_type", "image"));
         }
 
         @Test

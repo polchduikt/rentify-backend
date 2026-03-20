@@ -63,7 +63,7 @@ class UserServiceImplTest {
                 .firstName("Illia")
                 .lastName("Koval")
                 .phone("+380991112233")
-                .avatarUrl("https://old/avatar.jpg")
+                .avatarUrl("https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg")
                 .isActive(true)
                 .balance(BigDecimal.valueOf(123.45))
                 .subscriptionPlan(SubscriptionPlan.PREMIUM)
@@ -76,7 +76,7 @@ class UserServiceImplTest {
                 "Koval",
                 "user@rentify.com",
                 "+380991112233",
-                "https://old/avatar.jpg",
+                "https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg",
                 true,
                 BigDecimal.valueOf(123.45),
                 SubscriptionPlan.PREMIUM,
@@ -91,7 +91,7 @@ class UserServiceImplTest {
                 "Illia",
                 "Koval",
                 "+380991112233",
-                "https://old/avatar.jpg",
+                "https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg",
                 ZonedDateTime.now()
         );
     }
@@ -196,11 +196,12 @@ class UserServiceImplTest {
     class DeleteCurrentAccountTests {
 
         @Test
-        void shouldAnonymizeAndDeactivateAccount_whenAccountIsActive() {
+        void shouldAnonymizeAndDeactivateAccount_whenPasswordIsValid() {
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
+            when(passwordEncoder.matches("old-pass", "hashed-password")).thenReturn(true);
             when(passwordEncoder.encode(anyString())).thenReturn("random-hash");
 
-            userService.deleteCurrentAccount();
+            userService.deleteCurrentAccount("old-pass");
 
             verifyNoInteractions(userValidator);
             assertThat(currentUser.getIsActive()).isFalse();
@@ -219,11 +220,32 @@ class UserServiceImplTest {
         }
 
         @Test
+        void shouldThrowIllegalArgument_whenPasswordMissingForLocalAccount() {
+            when(authenticationService.getCurrentUser()).thenReturn(currentUser);
+
+            assertThatThrownBy(() -> userService.deleteCurrentAccount(null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Current password is required to delete account");
+        }
+
+        @Test
+        void shouldSkipPasswordValidationForOauthAccount() {
+            currentUser.setOauthProvider("GOOGLE");
+            when(authenticationService.getCurrentUser()).thenReturn(currentUser);
+            when(passwordEncoder.encode(anyString())).thenReturn("random-hash");
+
+            userService.deleteCurrentAccount(null);
+
+            verify(passwordEncoder, never()).matches(anyString(), anyString());
+            verify(userRepository).save(currentUser);
+        }
+
+        @Test
         void shouldThrowIllegalState_whenAccountAlreadyDeactivated() {
             currentUser.setIsActive(false);
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
 
-            assertThatThrownBy(() -> userService.deleteCurrentAccount())
+            assertThatThrownBy(() -> userService.deleteCurrentAccount("any-pass"))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("Account is already deactivated");
         }
@@ -234,7 +256,7 @@ class UserServiceImplTest {
     class UploadAvatarTests {
 
         @Test
-        void shouldUploadAvatarAndPersistUser() {
+        void shouldUploadAvatarDeletePreviousCloudinaryFileAndPersistUser() {
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
             when(cloudinaryService.uploadFile(multipartFile)).thenReturn("https://cdn/new-avatar.jpg");
 
@@ -242,6 +264,7 @@ class UserServiceImplTest {
 
             assertThat(result).isEqualTo("https://cdn/new-avatar.jpg");
             assertThat(currentUser.getAvatarUrl()).isEqualTo("https://cdn/new-avatar.jpg");
+            verify(cloudinaryService).deleteFile("https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg");
             verify(userRepository).save(currentUser);
         }
     }
@@ -256,7 +279,7 @@ class UserServiceImplTest {
 
             userService.deleteAvatar();
 
-            verify(cloudinaryService).deleteFile("https://old/avatar.jpg");
+            verify(cloudinaryService).deleteFile("https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg");
             assertThat(currentUser.getAvatarUrl()).isNull();
             verify(userRepository).save(currentUser);
         }

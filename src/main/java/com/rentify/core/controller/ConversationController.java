@@ -54,7 +54,29 @@ public class ConversationController {
     public ResponseEntity<ConversationDto> createConversation(
             @Valid @RequestBody CreateConversationRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.createConversation(request.propertyId()));
+                .body(conversationService.getOrCreateConversation(request.propertyId()));
+    }
+
+    @Deprecated(forRemoval = false)
+    @PostMapping("/property/{propertyId}")
+    @Operation(
+            summary = "Create conversation and send first message (deprecated alias)",
+            description = "Deprecated alias for create-or-reuse conversation and send first message in one request."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Message sent",
+                    content = @Content(schema = @Schema(implementation = MessageDto.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "Property not found")
+    })
+    public ResponseEntity<MessageDto> sendFirstMessageToProperty(
+            @Parameter(description = "Property ID", example = "42")
+            @PathVariable @Positive Long propertyId,
+            @Valid @RequestBody SendMessageRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(conversationService.sendMessageToProperty(propertyId, request));
     }
 
     @PostMapping("/{conversationId}/messages")

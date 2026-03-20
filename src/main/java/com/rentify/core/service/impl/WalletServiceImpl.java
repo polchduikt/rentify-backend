@@ -1,5 +1,6 @@
 package com.rentify.core.service.impl;
 
+import com.rentify.core.config.WalletProperties;
 import com.rentify.core.dto.wallet.WalletBalanceDto;
 import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
@@ -24,26 +25,20 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class WalletServiceImpl implements WalletService {
-
-    private static final String UAH = "UAH";
-    private static final List<BigDecimal> TOP_UP_OPTIONS = List.of(
-            new BigDecimal("300.00"),
-            new BigDecimal("500.00"),
-            new BigDecimal("1000.00")
-    );
 
     private final AuthenticationService authenticationService;
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletTransactionMapper walletTransactionMapper;
     private final WalletNormalizationService walletNormalizationService;
+    private final WalletProperties walletProperties;
 
     @Override
-    // Not readOnly because we may persist lazy wallet/subscription normalization for legacy users.
     @Transactional
     public WalletBalanceDto getMyWallet() {
         User user = authenticationService.getCurrentUser();
@@ -72,7 +67,7 @@ public class WalletServiceImpl implements WalletService {
                 .direction(WalletTransactionDirection.CREDIT)
                 .type(WalletTransactionType.TOP_UP)
                 .amount(amount)
-                .currency(UAH)
+                .currency(resolveCurrency())
                 .description("Mock wallet top-up")
                 .referenceType("WALLET")
                 .build();
@@ -91,15 +86,16 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public List<TopUpOptionDto> getTopUpOptions() {
-        return TOP_UP_OPTIONS.stream()
-                .map(amount -> new TopUpOptionDto(amount, UAH))
+        String currency = resolveCurrency();
+        return resolveAllowedTopUpAmounts().stream()
+                .map(amount -> new TopUpOptionDto(amount, currency))
                 .toList();
     }
 
     private WalletBalanceDto toWalletBalanceDto(User user) {
         return new WalletBalanceDto(
                 user.getBalance(),
-                UAH,
+                resolveCurrency(),
                 user.getSubscriptionPlan(),
                 user.getSubscriptionActiveUntil()
         );
@@ -113,6 +109,37 @@ public class WalletServiceImpl implements WalletService {
         if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Top-up amount must be greater than zero");
         }
+        if (!resolveAllowedTopUpAmounts().contains(normalizedAmount)) {
+            throw new IllegalArgumentException("Top-up amount is not allowed");
+        }
         return normalizedAmount;
+    }
+
+    private List<BigDecimal> resolveAllowedTopUpAmounts() {
+        List<BigDecimal> configured = walletProperties.getTopUpOptions();
+        if (configured == null || configured.isEmpty()) {
+            throw new IllegalStateException("Wallet top-up options are not configured");
+        }
+        return configured.stream()
+                .filter(Objects::nonNull)
+                .map(this::normalizeConfiguredAmount)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    private BigDecimal normalizeConfiguredAmount(BigDecimal value) {
+        if (value.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Wallet top-up options must be positive values");
+        }
+        return value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String resolveCurrency() {
+        String currency = walletProperties.getCurrency();
+        if (currency == null || currency.isBlank()) {
+            throw new IllegalStateException("Wallet currency is not configured");
+        }
+        return currency.trim();
     }
 }

@@ -96,7 +96,7 @@ class ReviewServiceImplTest {
 
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(reviewRepository.existsByBookingId(20L)).thenReturn(false);
             when(reviewRepository.save(org.mockito.ArgumentMatchers.any(Review.class))).thenReturn(savedReview);
             when(reviewRepository.countByPropertyId(10L)).thenReturn(3L);
@@ -125,7 +125,7 @@ class ReviewServiceImplTest {
         void shouldThrowEntityNotFound_whenPropertyIsMissing() {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.empty());
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> reviewService.createReview(request))
                     .isInstanceOf(EntityNotFoundException.class)
@@ -137,7 +137,7 @@ class ReviewServiceImplTest {
             booking.setTenant(otherUser);
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> reviewService.createReview(request))
                     .isInstanceOf(AccessDeniedException.class)
@@ -150,7 +150,7 @@ class ReviewServiceImplTest {
             booking.setProperty(otherProperty);
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> reviewService.createReview(request))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -162,7 +162,7 @@ class ReviewServiceImplTest {
             booking.setStatus(BookingStatus.CONFIRMED);
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> reviewService.createReview(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -173,7 +173,7 @@ class ReviewServiceImplTest {
         void shouldThrowIllegalState_whenBookingIsAlreadyReviewed() {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(reviewRepository.existsByBookingId(20L)).thenReturn(true);
 
             assertThatThrownBy(() -> reviewService.createReview(request))

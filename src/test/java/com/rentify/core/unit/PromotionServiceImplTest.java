@@ -101,6 +101,7 @@ class PromotionServiceImplTest {
         void shouldThrowAccessDenied_whenUserNotPropertyHost() {
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(otherUser);
+            when(userRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(otherUser));
 
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS))
                     .isInstanceOf(AccessDeniedException.class)
@@ -112,6 +113,7 @@ class PromotionServiceImplTest {
             property.setStatus(PropertyStatus.INACTIVE);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(host);
+            when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS))
                     .isInstanceOf(IllegalStateException.class)
@@ -123,6 +125,7 @@ class PromotionServiceImplTest {
             host.setBalance(new BigDecimal("50.00"));
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(host);
+            when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS))
                     .isInstanceOf(IllegalStateException.class)
@@ -136,6 +139,7 @@ class PromotionServiceImplTest {
             property.setIsTopPromoted(false);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(host);
+            when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(propertyRepository.save(any(Property.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -173,6 +177,7 @@ class PromotionServiceImplTest {
         void shouldThrowIllegalState_whenBalanceInsufficient() {
             host.setBalance(new BigDecimal("100.00"));
             when(authenticationService.getCurrentUser()).thenReturn(host);
+            when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseSubscription(SubscriptionPackageType.BASIC_30_DAYS))
                     .isInstanceOf(IllegalStateException.class)
@@ -185,6 +190,7 @@ class PromotionServiceImplTest {
             host.setSubscriptionPlan(SubscriptionPlan.BASIC);
             host.setSubscriptionActiveUntil(currentUntil);
             when(authenticationService.getCurrentUser()).thenReturn(host);
+            when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             SubscriptionPurchaseResponseDto result =

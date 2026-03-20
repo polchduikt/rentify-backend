@@ -9,15 +9,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class CloudinaryServiceImpl implements CloudinaryService {
 
     private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
+    private static final Pattern VERSION_SEGMENT_PATTERN = Pattern.compile("(?:^|/)v\\d+/(.+)$");
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
             "image/jpeg",
             "image/jpg",
@@ -80,18 +84,47 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     }
 
     private String extractPublicIdFromUrl(String imageUrl) {
-        if (imageUrl == null || !imageUrl.contains("/upload/")) {
+        if (imageUrl == null || imageUrl.isBlank()) {
             throw new IllegalArgumentException("Invalid Cloudinary URL");
         }
-        
-        String[] parts = imageUrl.split("/upload/");
-        if (parts.length < 2) {
+        URI uri;
+        try {
+            uri = URI.create(imageUrl.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL");
+        }
+
+        if (uri.getHost() == null || !uri.getHost().contains("res.cloudinary.com")) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL");
+        }
+
+        String path = uri.getPath();
+        if (path == null) {
             throw new IllegalArgumentException("Invalid Cloudinary URL format");
         }
-        
-        String pathPart = parts[1];
-        String publicId = pathPart.substring(0, pathPart.lastIndexOf("."));
-        return publicId;
+
+        String marker = "/upload/";
+        int uploadIndex = path.indexOf(marker);
+        if (uploadIndex < 0) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+        }
+
+        String afterUpload = path.substring(uploadIndex + marker.length());
+        if (afterUpload.isBlank()) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+        }
+
+        String candidate = afterUpload;
+        Matcher matcher = VERSION_SEGMENT_PATTERN.matcher(afterUpload);
+        if (matcher.find()) {
+            candidate = matcher.group(1);
+        }
+
+        int dotIndex = candidate.lastIndexOf('.');
+        if (dotIndex <= 0) {
+            return candidate;
+        }
+        return candidate.substring(0, dotIndex);
     }
 
     private void validateFile(MultipartFile file) {
