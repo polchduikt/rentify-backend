@@ -5,6 +5,7 @@ import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
+import com.rentify.core.service.AuthResponseService;
 import com.rentify.core.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -34,6 +35,7 @@ public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
     private final AuthCookieService authCookieService;
+    private final AuthResponseService authResponseService;
 
     @PostMapping("/register")
     @Operation(
@@ -50,7 +52,7 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.register(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.CREATED);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
@@ -68,7 +70,7 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.authenticate(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.OK);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
     @PostMapping("/google")
@@ -86,7 +88,7 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.authenticateWithGoogle(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.OK);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
     @PostMapping("/logout")
@@ -98,18 +100,5 @@ public class AuthenticationController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         authCookieService.clearAccessTokenCookie(response);
         return ResponseEntity.noContent().build();
-    }
-
-    private ResponseEntity<AuthenticationResponseDto> buildAuthResponse(
-            AuthenticationResponseDto authResponse,
-            HttpServletResponse response,
-            HttpStatus status
-    ) {
-        if (authCookieService.isCookieStrategyEnabled()) {
-            authCookieService.writeAccessTokenCookie(response, authResponse.token());
-            return ResponseEntity.status(status).body(new AuthenticationResponseDto(null));
-        }
-
-        return ResponseEntity.status(status).body(authResponse);
     }
 }

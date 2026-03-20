@@ -1,6 +1,7 @@
 package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.wallet.WalletBalanceDto;
+import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
@@ -89,8 +90,10 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
-    public List<BigDecimal> getTopUpOptions() {
-        return TOP_UP_OPTIONS;
+    public List<TopUpOptionDto> getTopUpOptions() {
+        return TOP_UP_OPTIONS.stream()
+                .map(amount -> new TopUpOptionDto(amount, UAH))
+                .toList();
     }
 
     private WalletBalanceDto toWalletBalanceDto(User user) {

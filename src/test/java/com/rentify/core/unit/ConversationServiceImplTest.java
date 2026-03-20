@@ -25,9 +25,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,15 +76,15 @@ class ConversationServiceImplTest {
     }
 
     @Nested
-    @DisplayName("sendMessage()")
-    class SendMessageTests {
+    @DisplayName("createConversation()")
+    class CreateConversationTests {
 
         @Test
         void shouldThrowEntityNotFound_whenPropertyMissing() {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(propertyRepository.findById(10L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> conversationService.sendMessage(10L, sendRequest))
+            assertThatThrownBy(() -> conversationService.createConversation(10L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessage("Property not found");
         }
@@ -92,68 +94,46 @@ class ConversationServiceImplTest {
             when(authService.getCurrentUser()).thenReturn(host);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
 
-            assertThatThrownBy(() -> conversationService.sendMessage(10L, sendRequest))
+            assertThatThrownBy(() -> conversationService.createConversation(10L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Host cannot initiate a conversation for their own property");
         }
 
         @Test
-        void shouldSendMessageInExistingConversation() {
-            Message savedMessage = Message.builder()
-                    .id(200L)
-                    .conversation(conversation)
-                    .sender(tenant)
-                    .type(MessageType.TEXT)
-                    .text("Hello!")
-                    .isRead(false)
-                    .build();
-            MessageDto dto = new MessageDto(
-                    200L, 100L, 2L, MessageType.TEXT, "Hello!", false, null, ZonedDateTime.now()
-            );
+        void shouldReturnExistingConversation_whenAlreadyPresent() {
+            ConversationDto dto = new ConversationDto(100L, 10L, 1L, 2L, ZonedDateTime.now());
 
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(conversationRepository.findByPropertyIdAndTenantId(10L, 2L)).thenReturn(Optional.of(conversation));
-            when(messageRepository.save(any(Message.class))).thenReturn(savedMessage);
-            when(chatMapper.toMessageDto(savedMessage)).thenReturn(dto);
+            when(chatMapper.toConversationDto(conversation)).thenReturn(dto);
 
-            MessageDto result = conversationService.sendMessage(10L, sendRequest);
+            ConversationDto result = conversationService.createConversation(10L);
 
-            assertThat(result.id()).isEqualTo(200L);
+            assertThat(result.id()).isEqualTo(100L);
             verify(conversationRepository, never()).save(any(Conversation.class));
         }
 
         @Test
-        void shouldCreateConversationAndSendMessage_whenConversationMissing() {
+        void shouldCreateConversation_whenMissing() {
             Conversation savedConversation = Conversation.builder()
                     .id(101L)
                     .property(property)
                     .host(host)
                     .tenant(tenant)
                     .build();
-            Message savedMessage = Message.builder()
-                    .id(201L)
-                    .conversation(savedConversation)
-                    .sender(tenant)
-                    .type(MessageType.TEXT)
-                    .text("Hello!")
-                    .isRead(false)
-                    .build();
-            MessageDto dto = new MessageDto(
-                    201L, 101L, 2L, MessageType.TEXT, "Hello!", false, null, ZonedDateTime.now()
-            );
+            ConversationDto dto = new ConversationDto(101L, 10L, 1L, 2L, ZonedDateTime.now());
 
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(conversationRepository.findByPropertyIdAndTenantId(10L, 2L)).thenReturn(Optional.empty());
             when(conversationRepository.save(any(Conversation.class))).thenReturn(savedConversation);
-            when(messageRepository.save(any(Message.class))).thenReturn(savedMessage);
-            when(chatMapper.toMessageDto(savedMessage)).thenReturn(dto);
+            when(chatMapper.toConversationDto(savedConversation)).thenReturn(dto);
 
-            MessageDto result = conversationService.sendMessage(10L, sendRequest);
+            ConversationDto result = conversationService.createConversation(10L);
             ArgumentCaptor<Conversation> conversationCaptor = ArgumentCaptor.forClass(Conversation.class);
 
-            assertThat(result.id()).isEqualTo(201L);
+            assertThat(result.id()).isEqualTo(101L);
             verify(conversationRepository).save(conversationCaptor.capture());
             assertThat(conversationCaptor.getValue().getHost()).isEqualTo(host);
             assertThat(conversationCaptor.getValue().getTenant()).isEqualTo(tenant);
@@ -161,15 +141,15 @@ class ConversationServiceImplTest {
     }
 
     @Nested
-    @DisplayName("replyToConversation()")
-    class ReplyToConversationTests {
+    @DisplayName("sendMessage()")
+    class SendMessageTests {
 
         @Test
         void shouldThrowEntityNotFound_whenConversationMissing() {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(conversationRepository.findById(100L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> conversationService.replyToConversation(100L, sendRequest))
+            assertThatThrownBy(() -> conversationService.sendMessage(100L, sendRequest))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessage("Conversation not found");
         }
@@ -179,13 +159,13 @@ class ConversationServiceImplTest {
             when(authService.getCurrentUser()).thenReturn(outsider);
             when(conversationRepository.findById(100L)).thenReturn(Optional.of(conversation));
 
-            assertThatThrownBy(() -> conversationService.replyToConversation(100L, sendRequest))
+            assertThatThrownBy(() -> conversationService.sendMessage(100L, sendRequest))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessage("You do not have permission to access this conversation");
         }
 
         @Test
-        void shouldReplyToConversation_whenSenderIsParticipant() {
+        void shouldSendMessage_whenSenderIsParticipant() {
             Message savedMessage = Message.builder()
                     .id(300L)
                     .conversation(conversation)
@@ -203,7 +183,7 @@ class ConversationServiceImplTest {
             when(messageRepository.save(any(Message.class))).thenReturn(savedMessage);
             when(chatMapper.toMessageDto(savedMessage)).thenReturn(dto);
 
-            MessageDto result = conversationService.replyToConversation(100L, new SendMessageRequestDto("Reply"));
+            MessageDto result = conversationService.sendMessage(100L, new SendMessageRequestDto("Reply"));
 
             assertThat(result.id()).isEqualTo(300L);
         }

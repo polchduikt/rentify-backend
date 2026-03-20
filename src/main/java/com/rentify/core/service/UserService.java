@@ -1,7 +1,6 @@
 package com.rentify.core.service;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
-import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
@@ -12,7 +11,7 @@ public interface UserService {
     PublicUserProfileDto getPublicProfile(Long userId);
     UserResponseDto updateProfile(UpdateUserRequestDto request);
     void changePassword(ChangePasswordRequestDto request);
-    void deleteCurrentAccount(DeleteAccountRequestDto request);
+    void deleteCurrentAccount();
     String uploadAvatar(MultipartFile file);
     void deleteAvatar();
 }

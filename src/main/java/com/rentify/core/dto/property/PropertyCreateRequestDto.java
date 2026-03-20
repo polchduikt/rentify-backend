@@ -18,7 +18,7 @@ public record PropertyCreateRequestDto(
         @Valid
         @NotNull(message = "Address is required")
         @JsonProperty("address")
-        @Schema(description = "Address", example = "Sample value")
+        @Schema(description = "Address")
         AddressDto address,
 
         @NotBlank(message = "Title is required")
@@ -80,28 +80,28 @@ public record PropertyCreateRequestDto(
         Short maxGuests,
 
         @JsonProperty("checkInTime")
-        @Schema(description = "Check in time", example = "14:00:00")
+        @Schema(description = "Check in time", example = "10:00:00")
         LocalTime checkInTime,
 
         @JsonProperty("checkOutTime")
-        @Schema(description = "Check out time", example = "14:00:00")
+        @Schema(description = "Check out time", example = "12:00:00")
         LocalTime checkOutTime,
 
         @JsonProperty("amenityIds")
-        @Schema(description = "Amenity ids", example = "[...]")
+        @Schema(description = "Amenity ids", example = "[1, 2]")
         List<Long> amenityIds,
 
         @JsonProperty("amenitySlugs")
-        @Schema(description = "Amenity slugs", example = "[...]")
+        @Schema(description = "Amenity slugs", example = "[\"internet\", \"air_conditioning\"]")
         List<String> amenitySlugs,
 
         @Valid
         @JsonProperty("pricing")
-        @Schema(description = "Pricing", example = "Sample value")
+        @Schema(description = "Pricing")
         PropertyPricingDto pricing,
 
         @Valid
         @JsonProperty("rules")
-        @Schema(description = "Rules", example = "Sample value")
+        @Schema(description = "Rules")
         PropertyRuleDto rules
 ) {}

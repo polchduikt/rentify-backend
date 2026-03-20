@@ -16,8 +16,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +34,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Promotions", description = "Top promotion and subscription purchase endpoints")
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -85,7 +88,7 @@ public class PromotionController {
     })
     public ResponseEntity<TopPromotionPurchaseResponseDto> purchaseTopPromotion(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @Valid @RequestBody PurchaseTopPromotionRequestDto request) {
         return ResponseEntity.ok(promotionService.purchaseTopPromotion(propertyId, request.packageType()));
     }

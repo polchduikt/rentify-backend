@@ -1,6 +1,7 @@
 package com.rentify.core.unit;
 
 import com.rentify.core.dto.wallet.WalletBalanceDto;
+import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
@@ -161,12 +162,12 @@ class WalletServiceImplTest {
 
         @Test
         void shouldReturnConfiguredTopUpOptions() {
-            List<BigDecimal> options = walletService.getTopUpOptions();
+            List<TopUpOptionDto> options = walletService.getTopUpOptions();
 
             assertThat(options).containsExactly(
-                    new BigDecimal("300.00"),
-                    new BigDecimal("500.00"),
-                    new BigDecimal("1000.00")
+                    new TopUpOptionDto(new BigDecimal("300.00"), "UAH"),
+                    new TopUpOptionDto(new BigDecimal("500.00"), "UAH"),
+                    new TopUpOptionDto(new BigDecimal("1000.00"), "UAH")
             );
         }
     }

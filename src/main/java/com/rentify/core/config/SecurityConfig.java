@@ -67,7 +67,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/properties/my").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/properties/my", "/api/v1/properties/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/amenities/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/locations/**").permitAll()

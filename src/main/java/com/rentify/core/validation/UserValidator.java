@@ -1,7 +1,6 @@
 package com.rentify.core.validation;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
-import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.exception.ApiValidationException;
 import jakarta.validation.ConstraintViolation;
@@ -41,10 +40,6 @@ public class UserValidator {
         }
 
         throwIfAny(errors);
-    }
-
-    public void validateDeleteAccount(DeleteAccountRequestDto request) {
-        throwIfAny(collectBeanErrors(request));
     }
 
     private <T> Set<String> collectBeanErrors(T target) {

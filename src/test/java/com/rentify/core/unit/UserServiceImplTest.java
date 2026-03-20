@@ -1,7 +1,6 @@
 package com.rentify.core.unit;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
-import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
@@ -34,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -197,13 +197,12 @@ class UserServiceImplTest {
 
         @Test
         void shouldAnonymizeAndDeactivateAccount_whenAccountIsActive() {
-            DeleteAccountRequestDto request = new DeleteAccountRequestDto("current-pass");
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
             when(passwordEncoder.encode(anyString())).thenReturn("random-hash");
 
-            userService.deleteCurrentAccount(request);
+            userService.deleteCurrentAccount();
 
-            verify(userValidator).validateDeleteAccount(request);
+            verifyNoInteractions(userValidator);
             assertThat(currentUser.getIsActive()).isFalse();
             assertThat(currentUser.getEmail()).startsWith("deleted_1_").endsWith("@deleted.local");
             assertThat(currentUser.getPassword()).isEqualTo("random-hash");
@@ -221,11 +220,10 @@ class UserServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenAccountAlreadyDeactivated() {
-            DeleteAccountRequestDto request = new DeleteAccountRequestDto("current-pass");
             currentUser.setIsActive(false);
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
 
-            assertThatThrownBy(() -> userService.deleteCurrentAccount(request))
+            assertThatThrownBy(() -> userService.deleteCurrentAccount())
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("Account is already deactivated");
         }

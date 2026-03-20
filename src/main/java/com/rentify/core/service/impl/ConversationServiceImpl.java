@@ -34,35 +34,22 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
-    public MessageDto sendMessage(Long propertyId, SendMessageRequestDto request) {
-        User sender = authService.getCurrentUser();
+    public ConversationDto createConversation(Long propertyId) {
+        User currentUser = authService.getCurrentUser();
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        if (property.getHost().getId().equals(sender.getId())) {
+
+        if (property.getHost().getId().equals(currentUser.getId())) {
             throw new IllegalArgumentException("Host cannot initiate a conversation for their own property");
         }
-        Conversation conversation = conversationRepository.findByPropertyIdAndTenantId(propertyId, sender.getId())
-                .orElseGet(() -> {
-                    Conversation newConversation = Conversation.builder()
-                            .property(property)
-                            .host(property.getHost())
-                            .tenant(sender)
-                            .build();
-                    return conversationRepository.save(newConversation);
-                });
-        Message message = Message.builder()
-                .conversation(conversation)
-                .sender(sender)
-                .type(MessageType.TEXT)
-                .text(request.text())
-                .isRead(false)
-                .build();
-        return chatMapper.toMessageDto(messageRepository.save(message));
+
+        Conversation conversation = findOrCreateConversation(property, currentUser);
+        return chatMapper.toConversationDto(conversation);
     }
 
     @Override
     @Transactional
-    public MessageDto replyToConversation(Long conversationId, SendMessageRequestDto request) {
+    public MessageDto sendMessage(Long conversationId, SendMessageRequestDto request) {
         User sender = authService.getCurrentUser();
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
@@ -106,5 +93,17 @@ public class ConversationServiceImpl implements ConversationService {
                 !conversation.getTenant().getId().equals(user.getId())) {
             throw new AccessDeniedException("You do not have permission to access this conversation");
         }
+    }
+
+    private Conversation findOrCreateConversation(Property property, User tenant) {
+        return conversationRepository.findByPropertyIdAndTenantId(property.getId(), tenant.getId())
+                .orElseGet(() -> {
+                    Conversation newConversation = Conversation.builder()
+                            .property(property)
+                            .host(property.getHost())
+                            .tenant(tenant)
+                            .build();
+                    return conversationRepository.save(newConversation);
+                });
     }
 }

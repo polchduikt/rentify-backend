@@ -1,7 +1,6 @@
 package com.rentify.core.controller;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
-import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
@@ -105,9 +104,8 @@ public class UserController {
             description = "Deactivates account, logs user out effectively by invalidating account activity status."
     )
     @ApiResponse(responseCode = "204", description = "Account deactivated")
-    public ResponseEntity<Void> deleteProfile(
-            @Valid @RequestBody DeleteAccountRequestDto request) {
-        userService.deleteCurrentAccount(request);
+    public ResponseEntity<Void> deleteProfile() {
+        userService.deleteCurrentAccount();
         return ResponseEntity.noContent().build();
     }
 

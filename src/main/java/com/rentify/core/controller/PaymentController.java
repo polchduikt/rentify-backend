@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Payments", description = "Payment endpoints")
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -51,11 +54,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponseDto> mockPayBooking(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long bookingId) {
+            @PathVariable @Positive Long bookingId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.payBooking(bookingId));
     }
 
-    @GetMapping("/my")
+    @GetMapping({"/my", "/me"})
     @Operation(
             summary = "Get current user payments",
             description = "Returns all payments that belong to the authenticated user account."
@@ -84,7 +87,7 @@ public class PaymentController {
     })
     public ResponseEntity<List<PaymentResponseDto>> getPaymentsByBooking(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long bookingId) {
+            @PathVariable @Positive Long bookingId) {
         return ResponseEntity.ok(paymentService.getPaymentsByBooking(bookingId));
     }
 }

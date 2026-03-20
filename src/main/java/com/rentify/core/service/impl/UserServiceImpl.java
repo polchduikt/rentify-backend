@@ -1,7 +1,6 @@
 package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
-import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
@@ -81,8 +80,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteCurrentAccount(DeleteAccountRequestDto request) {
-        userValidator.validateDeleteAccount(request);
+    public void deleteCurrentAccount() {
         User user = authenticationService.getCurrentUser();
         if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new IllegalStateException("Account is already deactivated");

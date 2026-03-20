@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +42,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Properties", description = "Property listing, search, photos and availability endpoints")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -67,7 +70,7 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.getAllProperties(pageable));
     }
 
-    @GetMapping("/my")
+    @GetMapping({"/my", "/me"})
     @Operation(
             summary = "Get current user properties",
             description = "Returns paginated properties owned by the current user. Optional statuses filter supports repeated values."
@@ -103,7 +106,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> getPropertyById(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(propertyService.getPropertyById(id));
     }
 
@@ -145,7 +148,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> updateProperty(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody PropertyCreateRequestDto request) {
         return ResponseEntity.ok(propertyService.updateProperty(id, request));
     }
@@ -164,7 +167,7 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deleteProperty(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         propertyService.deleteProperty(id);
         return ResponseEntity.noContent().build();
     }
@@ -187,7 +190,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyPhotoDto> uploadPhoto(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Parameter(description = "Image file to upload")
             @RequestPart("file") MultipartFile file) {
         PropertyPhotoDto uploadedPhoto = propertyService.uploadPhoto(id, file);
@@ -208,9 +211,9 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deletePhoto(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Parameter(description = "Photo ID", example = "101")
-            @PathVariable Long photoId) {
+            @PathVariable @Positive Long photoId) {
         propertyService.deletePhoto(id, photoId);
         return ResponseEntity.noContent().build();
     }
@@ -267,7 +270,7 @@ public class PropertyController {
     })
     public ResponseEntity<AvailabilityBlockDto> createBlock(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody AvailabilityBlockRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(availabilityService.createBlock(id, request));
@@ -285,7 +288,7 @@ public class PropertyController {
     )
     public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId) {
+            @PathVariable @Positive Long propertyId) {
         return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
     }
 
@@ -301,7 +304,7 @@ public class PropertyController {
     )
     public ResponseEntity<List<UnavailableDateRangeDto>> getUnavailableRanges(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @Parameter(description = "Start date filter (ISO yyyy-MM-dd)", example = "2026-03-20")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @Parameter(description = "End date filter (ISO yyyy-MM-dd)", example = "2026-03-30")
@@ -327,7 +330,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> changeStatus(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody PropertyStatusUpdateRequestDto request) {
         return ResponseEntity.ok(propertyService.changePropertyStatus(id, request.status()));
     }
@@ -346,9 +349,9 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deleteBlock(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @Parameter(description = "Availability block ID", example = "77")
-            @PathVariable Long blockId) {
+            @PathVariable @Positive Long blockId) {
         availabilityService.deleteBlock(propertyId, blockId);
         return ResponseEntity.noContent().build();
     }

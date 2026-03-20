@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "Bookings", description = "Booking lifecycle endpoints for guests and hosts")
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -51,7 +54,7 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(request));
     }
 
-    @GetMapping("/my")
+    @GetMapping({"/my", "/me"})
     @Operation(
             summary = "Get my bookings",
             description = "Returns paginated bookings for the current user. Pagination params: page, size, sort."
@@ -83,7 +86,7 @@ public class BookingController {
     })
     public ResponseEntity<BookingDto> getById(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
@@ -102,7 +105,7 @@ public class BookingController {
     })
     public ResponseEntity<BookingDto> cancel(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(bookingService.cancelBooking(id));
     }
 
@@ -138,7 +141,7 @@ public class BookingController {
     })
     public ResponseEntity<BookingDto> confirmBooking(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(bookingService.confirmBooking(id));
     }
 
@@ -157,7 +160,7 @@ public class BookingController {
     })
     public ResponseEntity<BookingDto> rejectBooking(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(bookingService.rejectBooking(id));
     }
 }
