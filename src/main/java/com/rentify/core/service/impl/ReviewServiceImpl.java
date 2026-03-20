@@ -15,6 +15,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.ReviewService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -62,7 +63,12 @@ public class ReviewServiceImpl implements ReviewService {
                 .rating(request.rating())
                 .comment(request.comment())
                 .build();
-        Review savedReview = reviewRepository.save(review);
+        Review savedReview;
+        try {
+            savedReview = reviewRepository.save(review);
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalStateException("You have already reviewed this booking");
+        }
 
         long reviewCount = reviewRepository.countByPropertyId(property.getId());
         double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());

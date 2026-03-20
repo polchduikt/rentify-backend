@@ -16,6 +16,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.ConversationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +104,12 @@ public class ConversationServiceImpl implements ConversationService {
                             .host(property.getHost())
                             .tenant(tenant)
                             .build();
-                    return conversationRepository.save(newConversation);
+                    try {
+                        return conversationRepository.save(newConversation);
+                    } catch (DataIntegrityViolationException ex) {
+                        return conversationRepository.findByPropertyIdAndTenantId(property.getId(), tenant.getId())
+                                .orElseThrow(() -> ex);
+                    }
                 });
     }
 }

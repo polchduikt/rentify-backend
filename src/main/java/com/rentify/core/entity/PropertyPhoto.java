@@ -2,13 +2,11 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "property_photos")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class PropertyPhoto {
+public class PropertyPhoto extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,10 +18,10 @@ public class PropertyPhoto {
     @Column(nullable = false, length = 800)
     private String url;
 
+    @Column(name = "cloudinary_public_id", length = 255)
+    private String cloudinaryPublicId;
+
+    @Builder.Default
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
 }

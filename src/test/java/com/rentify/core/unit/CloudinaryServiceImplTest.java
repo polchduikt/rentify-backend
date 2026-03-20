@@ -46,7 +46,10 @@ class CloudinaryServiceImplTest {
             when(file.getContentType()).thenReturn("image/jpeg");
             when(file.getSize()).thenReturn(1024L);
             when(file.getBytes()).thenReturn(new byte[]{1, 2, 3});
-            when(uploader.upload(any(byte[].class), anyMap())).thenReturn(Map.of("secure_url", "https://img.example/pic.jpg"));
+            when(uploader.upload(any(byte[].class), anyMap())).thenReturn(Map.of(
+                    "secure_url", "https://img.example/pic.jpg",
+                    "public_id", "rentify/properties/pic"
+            ));
 
             String result = cloudinaryService.uploadFile(file);
 

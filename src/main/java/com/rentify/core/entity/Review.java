@@ -2,13 +2,17 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "reviews")
+@Table(
+        name = "reviews",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_reviews_booking_author",
+                columnNames = {"booking_id", "author_id"}
+        )
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Review {
+public class Review extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,7 +35,4 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
 }

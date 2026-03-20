@@ -3,6 +3,7 @@ package com.rentify.core.service.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
+import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
 import com.rentify.core.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     private final Cloudinary cloudinary;
 
     @Override
-    public String uploadFile(MultipartFile file) {
+    public CloudinaryUploadResult uploadFileWithMetadata(MultipartFile file) {
         validateFile(file);
         try {
             Map<String, Object> options = ObjectUtils.asMap(
@@ -37,10 +38,20 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             );
 
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), options);
-            return uploadResult.get("secure_url").toString();
+            Object secureUrl = uploadResult.get("secure_url");
+            Object publicId = uploadResult.get("public_id");
+            if (secureUrl == null || publicId == null) {
+                throw new RuntimeException("Cloudinary upload response is missing secure_url or public_id");
+            }
+            return new CloudinaryUploadResult(secureUrl.toString(), publicId.toString());
         } catch (Exception e) {
             throw new RuntimeException("Image upload failed: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String uploadFile(MultipartFile file) {
+        return uploadFileWithMetadata(file).secureUrl();
     }
 
     @Override
@@ -50,6 +61,18 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
+        } catch (Exception e) {
+            throw new RuntimeException("Image deletion failed: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteFileByPublicId(String publicId) {
+        if (publicId == null || publicId.isBlank()) {
+            return;
+        }
+        try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
         } catch (Exception e) {
             throw new RuntimeException("Image deletion failed: " + e.getMessage());

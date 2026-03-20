@@ -5,17 +5,24 @@ import com.rentify.core.enums.PropertyMarketType;
 import com.rentify.core.enums.RentalType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "properties")
+@Table(
+        name = "properties",
+        indexes = {
+                @Index(name = "idx_properties_host_created_at", columnList = "host_id, created_at"),
+                @Index(name = "idx_properties_host_status", columnList = "host_id, status"),
+                @Index(name = "idx_properties_status_created_at", columnList = "status, created_at"),
+                @Index(name = "idx_properties_rental_type", columnList = "rental_type"),
+                @Index(name = "idx_properties_top_promoted_until", columnList = "is_top_promoted, top_promoted_until")
+        }
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Property {
+public class Property extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,6 +41,7 @@ public class Property {
     @Column(name = "rental_type", nullable = false)
     private RentalType rentalType;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyStatus status = PropertyStatus.DRAFT;
@@ -89,6 +97,7 @@ public class Property {
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
+    @Builder.Default
     private java.util.List<PropertyPhoto> photos = new java.util.ArrayList<>();
 
     @Column(name = "check_in_time")
@@ -96,14 +105,6 @@ public class Property {
 
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private ZonedDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")
@@ -115,6 +116,7 @@ public class Property {
             joinColumns = @JoinColumn(name = "property_id"),
             inverseJoinColumns = @JoinColumn(name = "amenity_id")
     )
+    @Builder.Default
     private Set<Amenity> amenities = new java.util.HashSet<>();
 
     @OneToOne(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

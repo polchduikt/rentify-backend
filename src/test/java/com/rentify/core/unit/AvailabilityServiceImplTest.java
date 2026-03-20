@@ -138,6 +138,7 @@ class AvailabilityServiceImplTest {
 
         @Test
         void shouldCreateBlock_whenRequestIsValid() {
+            ZonedDateTime createdAt = ZonedDateTime.now();
             AvailabilityBlock saved = AvailabilityBlock.builder()
                     .id(50L)
                     .property(property)
@@ -145,10 +146,10 @@ class AvailabilityServiceImplTest {
                     .dateTo(request.dateTo())
                     .reason(request.reason())
                     .createdBy(host)
-                    .createdAt(ZonedDateTime.now())
                     .build();
+            saved.setCreatedAt(createdAt);
             AvailabilityBlockDto dto = new AvailabilityBlockDto(
-                    50L, 10L, request.dateFrom(), request.dateTo(), request.reason(), 1L, ZonedDateTime.now()
+                    50L, 10L, request.dateFrom(), request.dateTo(), request.reason(), 1L, createdAt
             );
 
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));

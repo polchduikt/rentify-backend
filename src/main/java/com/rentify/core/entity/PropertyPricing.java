@@ -24,6 +24,7 @@ public class PropertyPricing {
     @Column(name = "price_per_month", precision = 12, scale = 2)
     private BigDecimal pricePerMonth;
 
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "UAH";
 

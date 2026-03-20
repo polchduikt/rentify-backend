@@ -15,12 +15,15 @@ public class PropertyRule {
     @JoinColumn(name = "property_id", nullable = false, unique = true)
     private Property property;
 
+    @Builder.Default
     @Column(name = "pets_allowed", nullable = false)
     private Boolean petsAllowed = false;
 
+    @Builder.Default
     @Column(name = "smoking_allowed", nullable = false)
     private Boolean smokingAllowed = false;
 
+    @Builder.Default
     @Column(name = "parties_allowed", nullable = false)
     private Boolean partiesAllowed = false;
 
