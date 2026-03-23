@@ -26,6 +26,10 @@ public class BookingStatusScheduler {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void syncBookingStatusesOnStartup() {
+        int normalizedVersions = bookingRepository.normalizeNullVersions();
+        if (normalizedVersions > 0) {
+            logger.info("Normalized NULL booking versions to 0 for {} records", normalizedVersions);
+        }
         updateStatuses("startup");
     }
 

@@ -7,9 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
-
 import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,7 +24,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
         String rawPassword = "StrongPass123!";
         registerUserAndGetToken(email, rawPassword, "Login", "User");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+        MvcResult result = mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginPayload(email, rawPassword))))
                 .andExpect(status().isOk())
@@ -43,7 +41,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
         String email = randomEmail("wrong-pass");
         registerUserAndGetToken(email, "StrongPass123!", "Wrong", "Pass");
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginPayload(email, "WrongPass999!"))))
                 .andExpect(status().isUnauthorized())
@@ -67,7 +65,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
                 .build();
         userRepository.save(inactiveUser);
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginPayload(email, rawPassword))))
                 .andExpect(status().isForbidden())
@@ -77,7 +75,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Negative: non-existent email returns 401")
     void shouldRejectNonExistentEmail() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 loginPayload("nobody@example.com", "StrongPass123!"))))

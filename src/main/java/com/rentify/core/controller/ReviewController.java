@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -20,12 +21,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/reviews")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Reviews", description = "Property review endpoints")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
@@ -34,7 +37,7 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    @PostMapping
+    @PostMapping("/reviews")
     @Operation(
             summary = "Create review",
             description = "Creates a property review from a completed booking authored by the authenticated user."
@@ -54,7 +57,7 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.createReview(request));
     }
 
-    @GetMapping("/property/{propertyId}")
+    @GetMapping("/properties/{propertyId}/reviews")
     @Operation(
             summary = "Get property reviews",
             description = "Returns paginated reviews for a property."
@@ -69,7 +72,7 @@ public class ReviewController {
     })
     public ResponseEntity<Page<ReviewDto>> getPropertyReviews(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {

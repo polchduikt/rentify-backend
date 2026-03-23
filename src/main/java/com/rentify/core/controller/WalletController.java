@@ -1,6 +1,7 @@
 package com.rentify.core.controller;
 
 import com.rentify.core.dto.wallet.WalletBalanceDto;
+import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.service.WalletService;
@@ -25,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -57,7 +57,7 @@ public class WalletController {
         return ResponseEntity.ok(walletService.getMyWallet());
     }
 
-    @PostMapping("/top-up")
+    @PostMapping("/transactions")
     @Operation(
             summary = "Top up wallet balance",
             description = "Adds funds to user wallet by selected supported amount."
@@ -88,7 +88,7 @@ public class WalletController {
         return ResponseEntity.ok(walletService.getMyTransactions(pageable));
     }
 
-    @GetMapping("/top-up-options")
+    @GetMapping("/transaction-amount-options")
     @Operation(
             summary = "Get allowed top-up amounts",
             description = "Returns fixed list of amounts that can be used for wallet top-up."
@@ -96,9 +96,9 @@ public class WalletController {
     @ApiResponse(
             responseCode = "200",
             description = "Top-up options retrieved",
-            content = @Content(schema = @Schema(implementation = BigDecimal.class))
+            content = @Content(schema = @Schema(implementation = TopUpOptionDto.class))
     )
-    public ResponseEntity<List<BigDecimal>> getTopUpOptions() {
+    public ResponseEntity<List<TopUpOptionDto>> getTopUpOptions() {
         return ResponseEntity.ok(walletService.getTopUpOptions());
     }
 }

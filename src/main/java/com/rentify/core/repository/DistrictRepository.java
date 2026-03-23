@@ -11,12 +11,11 @@ import java.util.List;
 
 @Repository
 public interface DistrictRepository extends JpaRepository<District, Long> {
-
     @Query("""
             SELECT d FROM District d
             WHERE (:cityId IS NULL OR d.city.id = :cityId)
-              AND (lower(d.name) LIKE concat(:query, '%')
-                OR lower(d.normalizedName) LIKE concat(:query, '%'))
+              AND (lower(d.name) LIKE concat(:query, '%') ESCAPE '\\'
+                OR lower(d.normalizedName) LIKE concat(:query, '%') ESCAPE '\\')
             ORDER BY d.name ASC
             """)
     List<District> searchByPrefix(

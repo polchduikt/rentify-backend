@@ -2,13 +2,10 @@ package com.rentify.core.repository.specification;
 
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.entity.AvailabilityBlock;
-import com.rentify.core.entity.Amenity;
 import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.RentalType;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
@@ -16,6 +13,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class PropertySpecifications {
+
+    private static final double EARTH_RADIUS_KM = 6371.0;
+    private static final double KM_PER_LAT_DEGREE = 111.32;
 
     public static Specification<Property> withFilters(PropertySearchCriteriaDto criteria) {
         return (root, query, cb) -> {
@@ -48,6 +48,34 @@ public class PropertySpecifications {
             if (criteria.lat() != null && criteria.lng() != null && criteria.radiusKm() != null) {
                 predicates.add(cb.isNotNull(root.get("address").get("lat")));
                 predicates.add(cb.isNotNull(root.get("address").get("lng")));
+                double latDelta = criteria.radiusKm() / KM_PER_LAT_DEGREE;
+                double cosLat = Math.cos(Math.toRadians(criteria.lat()));
+                double lngDelta = Math.abs(cosLat) < 1e-6
+                        ? 180.0
+                        : Math.min(180.0, criteria.radiusKm() / (KM_PER_LAT_DEGREE * Math.abs(cosLat)));
+                double minLat = Math.max(-90.0, criteria.lat() - latDelta);
+                double maxLat = Math.min(90.0, criteria.lat() + latDelta);
+                double minLng = criteria.lng() - lngDelta;
+                double maxLng = criteria.lng() + lngDelta;
+                predicates.add(cb.between(
+                        root.get("address").get("lat").as(Double.class),
+                        minLat,
+                        maxLat
+                ));
+                if (minLng >= -180.0 && maxLng <= 180.0) {
+                    predicates.add(cb.between(
+                            root.get("address").get("lng").as(Double.class),
+                            minLng,
+                            maxLng
+                    ));
+                } else {
+                    double normalizedMinLng = minLng < -180.0 ? minLng + 360.0 : minLng;
+                    double normalizedMaxLng = maxLng > 180.0 ? maxLng - 360.0 : maxLng;
+                    predicates.add(cb.or(
+                            cb.greaterThanOrEqualTo(root.get("address").get("lng").as(Double.class), normalizedMinLng),
+                            cb.lessThanOrEqualTo(root.get("address").get("lng").as(Double.class), normalizedMaxLng)
+                    ));
+                }
                 var lat1 = cb.function("radians", Double.class, cb.literal(criteria.lat()));
                 var lng1 = cb.function("radians", Double.class, cb.literal(criteria.lng()));
                 var lat2 = cb.function("radians", Double.class, root.get("address").get("lat").as(Double.class));
@@ -64,7 +92,7 @@ public class PropertySpecifications {
                         cb.function("cos", Double.class, cb.diff(lng2, lng1))
                 );
                 var distance = cb.prod(
-                        cb.literal(6371.0),
+                        cb.literal(EARTH_RADIUS_KM),
                         cb.function("acos", Double.class, cb.sum(sinPart, cosPart))
                 );
                 predicates.add(cb.le(distance, criteria.radiusKm()));
@@ -198,9 +226,15 @@ public class PropertySpecifications {
                 predicates.add(cb.equal(root.get("rules").get("petsAllowed"), criteria.petsAllowed()));
             }
             if (criteria.amenityIds() != null && !criteria.amenityIds().isEmpty()) {
-                Join<Property, Amenity> amenitiesByIdJoin = root.join("amenities", JoinType.INNER);
-                predicates.add(amenitiesByIdJoin.get("id").in(criteria.amenityIds()));
-                query.distinct(true);
+                var amenityByIdSubquery = query.subquery(Long.class);
+                var amenityByIdRoot = amenityByIdSubquery.from(Property.class);
+                var amenityByIdJoin = amenityByIdRoot.join("amenities");
+                amenityByIdSubquery.select(cb.literal(1L));
+                amenityByIdSubquery.where(
+                        cb.equal(amenityByIdRoot.get("id"), root.get("id")),
+                        amenityByIdJoin.get("id").in(criteria.amenityIds())
+                );
+                predicates.add(cb.exists(amenityByIdSubquery));
             }
             if (criteria.amenitySlugs() != null && !criteria.amenitySlugs().isEmpty()) {
                 List<String> normalizedSlugs = criteria.amenitySlugs().stream()
@@ -208,15 +242,27 @@ public class PropertySpecifications {
                         .map(slug -> slug.toLowerCase(Locale.ROOT))
                         .toList();
                 if (!normalizedSlugs.isEmpty()) {
-                    Join<Property, Amenity> amenitiesBySlugJoin = root.join("amenities", JoinType.INNER);
-                    predicates.add(cb.lower(amenitiesBySlugJoin.get("slug")).in(normalizedSlugs));
-                    query.distinct(true);
+                    var amenityBySlugSubquery = query.subquery(Long.class);
+                    var amenityBySlugRoot = amenityBySlugSubquery.from(Property.class);
+                    var amenityBySlugJoin = amenityBySlugRoot.join("amenities");
+                    amenityBySlugSubquery.select(cb.literal(1L));
+                    amenityBySlugSubquery.where(
+                            cb.equal(amenityBySlugRoot.get("id"), root.get("id")),
+                            cb.lower(amenityBySlugJoin.get("slug")).in(normalizedSlugs)
+                    );
+                    predicates.add(cb.exists(amenityBySlugSubquery));
                 }
             }
             if (criteria.amenityCategories() != null && !criteria.amenityCategories().isEmpty()) {
-                Join<Property, Amenity> amenitiesByCategoryJoin = root.join("amenities", JoinType.INNER);
-                predicates.add(amenitiesByCategoryJoin.get("category").in(criteria.amenityCategories()));
-                query.distinct(true);
+                var amenityByCategorySubquery = query.subquery(Long.class);
+                var amenityByCategoryRoot = amenityByCategorySubquery.from(Property.class);
+                var amenityByCategoryJoin = amenityByCategoryRoot.join("amenities");
+                amenityByCategorySubquery.select(cb.literal(1L));
+                amenityByCategorySubquery.where(
+                        cb.equal(amenityByCategoryRoot.get("id"), root.get("id")),
+                        amenityByCategoryJoin.get("category").in(criteria.amenityCategories())
+                );
+                predicates.add(cb.exists(amenityByCategorySubquery));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

@@ -2,14 +2,12 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "availability_blocks")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class AvailabilityBlock {
+public class AvailabilityBlock extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,8 +28,4 @@ public class AvailabilityBlock {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
 }

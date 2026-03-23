@@ -3,16 +3,22 @@ package com.rentify.core.entity;
 import com.rentify.core.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "bookings")
+@Table(
+        name = "bookings",
+        indexes = {
+                @Index(name = "idx_bookings_tenant_created_at", columnList = "tenant_id, created_at"),
+                @Index(name = "idx_bookings_tenant_property_status", columnList = "tenant_id, property_id, status"),
+                @Index(name = "idx_bookings_property_status_dates", columnList = "property_id, status, date_from, date_to"),
+                @Index(name = "idx_bookings_status_date_from", columnList = "status, date_from"),
+                @Index(name = "idx_bookings_status_date_to", columnList = "status, date_to")
+        }
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Booking {
+public class Booking extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,21 +37,20 @@ public class Booking {
     @Column(name = "date_to", nullable = false)
     private LocalDate dateTo;
 
+    @Builder.Default
     @Column(nullable = false)
     private Short guests = 1;
 
     @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status = BookingStatus.CREATED;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private ZonedDateTime updatedAt;
+    @Builder.Default
+    @Version
+    @Column(name = "version")
+    private long version = 0L;
 }

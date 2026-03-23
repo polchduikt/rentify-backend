@@ -5,25 +5,29 @@ import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
+import com.rentify.core.service.AuthResponseService;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.security.TokenRevocationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Registration and login endpoints")
 @ApiResponses(value = {
@@ -34,8 +38,10 @@ public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
     private final AuthCookieService authCookieService;
+    private final AuthResponseService authResponseService;
+    private final TokenRevocationService tokenRevocationService;
 
-    @PostMapping("/register")
+    @PostMapping("/users")
     @Operation(
             summary = "Register user",
             description = "Registers a new account and returns JWT tokens for immediate authorized usage."
@@ -50,10 +56,10 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.register(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.CREATED);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.CREATED);
     }
 
-    @PostMapping("/login")
+    @PostMapping("/sessions")
     @Operation(
             summary = "Login with email and password",
             description = "Authenticates user credentials and returns an access token for protected endpoints."
@@ -68,10 +74,10 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.authenticate(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.OK);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
-    @PostMapping("/google")
+    @PostMapping("/sessions/google")
     @Operation(
             summary = "Login with Google OAuth token",
             description = "Authenticates user using Google ID token and returns Rentify access token."
@@ -86,30 +92,32 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         AuthenticationResponseDto authResponse = authenticationService.authenticateWithGoogle(request);
-        return buildAuthResponse(authResponse, response, HttpStatus.OK);
+        return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
-    @PostMapping("/logout")
+    @DeleteMapping("/sessions/current")
     @Operation(
             summary = "Logout from current browser session",
             description = "Clears authentication cookie in cookie strategy mode."
     )
     @ApiResponse(responseCode = "204", description = "Session cookie cleared")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        tokenRevocationService.revoke(resolveAccessToken(request));
         authCookieService.clearAccessTokenCookie(response);
         return ResponseEntity.noContent().build();
     }
 
-    private ResponseEntity<AuthenticationResponseDto> buildAuthResponse(
-            AuthenticationResponseDto authResponse,
-            HttpServletResponse response,
-            HttpStatus status
-    ) {
+    private String resolveAccessToken(HttpServletRequest request) {
         if (authCookieService.isCookieStrategyEnabled()) {
-            authCookieService.writeAccessTokenCookie(response, authResponse.token());
-            return ResponseEntity.status(status).body(new AuthenticationResponseDto(null));
+            return authCookieService.extractTokenFromCookie(request);
         }
 
-        return ResponseEntity.status(status).body(authResponse);
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        return token.isBlank() ? null : token;
     }
 }

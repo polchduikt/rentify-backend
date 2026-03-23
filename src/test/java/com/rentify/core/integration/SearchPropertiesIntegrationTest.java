@@ -5,12 +5,10 @@ import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.integration.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @DisplayName("Search properties integration tests")
 class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
 
@@ -25,7 +23,7 @@ class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
         inactive.setStatus(PropertyStatus.INACTIVE);
         propertyRepository.save(inactive);
 
-        mockMvc.perform(get("/api/v1/properties/search")
+        mockMvc.perform(get("/api/v1/properties")
                         .param("city", "Kyiv"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
@@ -39,7 +37,7 @@ class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
         createActiveShortTermProperty(token, "Listing A", "Kyiv");
         createActiveShortTermProperty(token, "Listing B", "Kyiv");
 
-        mockMvc.perform(get("/api/v1/properties/search")
+        mockMvc.perform(get("/api/v1/properties")
                         .param("city", "Kyiv")
                         .param("page", "0")
                         .param("size", "1")
@@ -51,7 +49,7 @@ class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Positive: empty result returns HTTP 200 with empty content")
     void shouldReturnEmptyListWhenNothingFound() throws Exception {
-        mockMvc.perform(get("/api/v1/properties/search")
+        mockMvc.perform(get("/api/v1/properties")
                         .param("city", "NoSuchCity"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));
@@ -60,7 +58,7 @@ class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Negative: invalid date range filter returns 400")
     void shouldReturnBadRequestForInvalidSearchCriteria() throws Exception {
-        mockMvc.perform(get("/api/v1/properties/search")
+        mockMvc.perform(get("/api/v1/properties")
                         .param("dateFrom", "2026-04-10")
                         .param("dateTo", "2026-04-10"))
                 .andExpect(status().isBadRequest())

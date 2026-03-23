@@ -18,6 +18,7 @@ import com.rentify.core.repository.PaymentRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.BookingService;
+import com.rentify.core.security.UserRoleUtils;
 import com.rentify.core.validation.BookingValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,9 @@ public class BookingServiceImpl implements BookingService {
         }
 
         long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
+        if (nights <= 0) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date.");
+        }
         if (property.getMaxGuests() == null) {
             throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
         }
@@ -125,7 +129,7 @@ public class BookingServiceImpl implements BookingService {
         User currentUser = authService.getCurrentUser();
         boolean isTenant = booking.getTenant().getId().equals(currentUser.getId());
         boolean isHost = booking.getProperty().getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = isAdmin(currentUser);
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
         if (!isTenant && !isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to view this booking");
         }
@@ -203,11 +207,6 @@ public class BookingServiceImpl implements BookingService {
         }
         booking.setStatus(newStatus);
         return bookingRepository.save(booking);
-    }
-
-    private boolean isAdmin(User user) {
-        return user.getRoles().stream()
-                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
     }
 
     private void refundIfPaid(Booking booking) {

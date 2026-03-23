@@ -6,6 +6,7 @@ import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
+import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
 import com.rentify.core.entity.Address;
 import com.rentify.core.entity.Amenity;
 import com.rentify.core.entity.City;
@@ -95,11 +96,10 @@ public class PropertyServiceImpl implements PropertyService {
     public Page<PropertyResponseDto> getCurrentUserProperties(Pageable pageable, List<PropertyStatus> statuses) {
         User currentUser = authenticationService.getCurrentUser();
         Pageable sortedPageable = withTopPrioritySort(pageable);
-        if (statuses == null || statuses.isEmpty()) {
-            return propertyRepository.findAllByHostId(currentUser.getId(), sortedPageable)
-                    .map(propertyMapper::toDto);
-        }
-        return propertyRepository.findAllByHostIdAndStatusIn(currentUser.getId(), statuses, sortedPageable)
+        List<PropertyStatus> effectiveStatuses = (statuses == null || statuses.isEmpty())
+                ? List.of(PropertyStatus.values())
+                : statuses;
+        return propertyRepository.findAllByHostIdAndStatusIn(currentUser.getId(), effectiveStatuses, sortedPageable)
                 .map(propertyMapper::toDto);
     }
 
@@ -202,10 +202,11 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         assertCanManageProperty(property, currentUser);
-        String imageUrl = cloudinaryService.uploadFile(file);
+        CloudinaryUploadResult uploadResult = cloudinaryService.uploadFileWithMetadata(file);
         PropertyPhoto photo = PropertyPhoto.builder()
                 .property(property)
-                .url(imageUrl)
+                .url(uploadResult.secureUrl())
+                .cloudinaryPublicId(uploadResult.publicId())
                 .sortOrder(0)
                 .build();
         PropertyPhoto savedPhoto = propertyPhotoRepository.save(photo);
@@ -227,6 +228,11 @@ public class PropertyServiceImpl implements PropertyService {
 
         PropertyPhoto photo = propertyPhotoRepository.findByIdAndPropertyId(photoId, propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Photo not found for the property"));
+        if (photo.getCloudinaryPublicId() != null && !photo.getCloudinaryPublicId().isBlank()) {
+            cloudinaryService.deleteFileByPublicId(photo.getCloudinaryPublicId());
+        } else {
+            cloudinaryService.deleteFile(photo.getUrl());
+        }
         propertyPhotoRepository.delete(photo);
     }
 

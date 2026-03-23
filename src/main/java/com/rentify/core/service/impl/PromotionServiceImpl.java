@@ -49,7 +49,7 @@ public class PromotionServiceImpl implements PromotionService {
         }
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        User user = authenticationService.getCurrentUser();
+        User user = loadCurrentUserForUpdate();
         walletNormalizationService.normalizeWalletDefaults(user);
 
         if (!property.getHost().getId().equals(user.getId())) {
@@ -102,7 +102,7 @@ public class PromotionServiceImpl implements PromotionService {
         if (packageType == null) {
             throw new IllegalArgumentException("Subscription package is required");
         }
-        User user = authenticationService.getCurrentUser();
+        User user = loadCurrentUserForUpdate();
         walletNormalizationService.normalizeWalletDefaults(user);
         BigDecimal price = packageType.getPrice();
         ensureSufficientBalance(user, price);
@@ -167,5 +167,11 @@ public class PromotionServiceImpl implements PromotionService {
         if (user.getBalance().compareTo(price) < 0) {
             throw new IllegalStateException("Insufficient balance. Please top up your wallet.");
         }
+    }
+
+    private User loadCurrentUserForUpdate() {
+        User currentUser = authenticationService.getCurrentUser();
+        return userRepository.findByIdForUpdate(currentUser.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 }

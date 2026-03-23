@@ -10,23 +10,25 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/favorites")
+@RequestMapping("/api/v1/users/me/favorites")
 @RequiredArgsConstructor
 @Tag(name = "Favorites", description = "Current user favorite properties")
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -37,14 +39,14 @@ public class FavoriteController {
 
     private final FavoriteService favoriteService;
 
-    @PostMapping("/{propertyId}")
+    @PutMapping("/{propertyId}")
     @Operation(
             summary = "Add property to favorites",
             description = "Adds property to authenticated user favorites list if it is not already in favorites."
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "201",
+                    responseCode = "200",
                     description = "Property added to favorites",
                     content = @Content(schema = @Schema(implementation = FavoriteResponseDto.class))
             ),
@@ -52,8 +54,8 @@ public class FavoriteController {
     })
     public ResponseEntity<FavoriteResponseDto> addToFavorites(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(favoriteService.addToFavorites(propertyId));
+            @PathVariable @Positive Long propertyId) {
+        return ResponseEntity.ok(favoriteService.addToFavorites(propertyId));
     }
 
     @DeleteMapping("/{propertyId}")
@@ -67,7 +69,7 @@ public class FavoriteController {
     })
     public ResponseEntity<Void> removeFromFavorites(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId) {
+            @PathVariable @Positive Long propertyId) {
         favoriteService.removeFromFavorites(propertyId);
         return ResponseEntity.noContent().build();
     }

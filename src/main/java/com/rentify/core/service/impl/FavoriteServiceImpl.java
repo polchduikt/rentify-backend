@@ -32,8 +32,9 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Transactional
     public FavoriteResponseDto addToFavorites(Long propertyId) {
         Long userId = authenticationService.getCurrentUser().getId();
-        if (favoriteRepository.existsByUser_IdAndProperty_Id(userId, propertyId)) {
-            throw new IllegalArgumentException("Property is already in favorites");
+        Favorite existingFavorite = favoriteRepository.findByUser_IdAndProperty_Id(userId, propertyId).orElse(null);
+        if (existingFavorite != null) {
+            return favoriteMapper.toDto(existingFavorite);
         }
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -46,7 +47,9 @@ public class FavoriteServiceImpl implements FavoriteService {
         try {
             savedFavorite = favoriteRepository.saveAndFlush(favorite);
         } catch (DataIntegrityViolationException ex) {
-            throw new IllegalArgumentException("Property is already in favorites");
+            Favorite favoriteAfterRace = favoriteRepository.findByUser_IdAndProperty_Id(userId, propertyId)
+                    .orElseThrow(() -> new IllegalStateException("Failed to create favorite entry"));
+            return favoriteMapper.toDto(favoriteAfterRace);
         }
         return favoriteMapper.toDto(savedFavorite);
     }

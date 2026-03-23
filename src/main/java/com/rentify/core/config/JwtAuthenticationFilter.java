@@ -1,6 +1,7 @@
 package com.rentify.core.config;
 
 import com.rentify.core.security.JwtService;
+import com.rentify.core.security.TokenRevocationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final AuthCookieService authCookieService;
+    private final TokenRevocationService tokenRevocationService;
 
     @Override
     protected void doFilterInternal(
@@ -32,6 +34,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         final String jwt = resolveToken(request);
         if (jwt == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (tokenRevocationService.isRevoked(jwt)) {
+            SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;
         }
@@ -58,16 +65,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String resolveToken(HttpServletRequest request) {
+        if (authCookieService.isCookieStrategyEnabled()) {
+            return authCookieService.extractTokenFromCookie(request);
+        }
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             return token.isBlank() ? null : token;
         }
-
-        if (!authCookieService.isCookieStrategyEnabled()) {
-            return null;
-        }
-
-        return authCookieService.extractTokenFromCookie(request);
+        return null;
     }
 }

@@ -21,6 +21,7 @@ import com.rentify.core.repository.FavoriteRepository;
 import com.rentify.core.repository.PropertyPhotoRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.ReviewRepository;
+import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.impl.PropertyServiceImpl;
@@ -57,7 +58,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PropertyServiceImpl unit tests")
 class PropertyServiceImplTest {
 
     @Mock private PropertyRepository propertyRepository;
@@ -299,16 +299,19 @@ class PropertyServiceImplTest {
         @Test
         void shouldUploadPhoto_whenUserCanManageProperty() {
             String imageUrl = "https://cloudinary.com/test/photo.jpg";
+            String publicId = "rentify/properties/photo-id";
             PropertyPhoto savedPhoto = PropertyPhoto.builder()
                     .id(1L)
                     .property(property)
                     .url(imageUrl)
+                    .cloudinaryPublicId(publicId)
                     .sortOrder(0)
                     .build();
 
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(hostUser);
-            when(cloudinaryService.uploadFile(mockFile)).thenReturn(imageUrl);
+            when(cloudinaryService.uploadFileWithMetadata(mockFile))
+                    .thenReturn(new CloudinaryUploadResult(imageUrl, publicId));
             when(propertyPhotoRepository.save(any(PropertyPhoto.class))).thenReturn(savedPhoto);
 
             PropertyPhotoDto result = propertyService.uploadPhoto(10L, mockFile);
@@ -316,7 +319,7 @@ class PropertyServiceImplTest {
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.url()).isEqualTo(imageUrl);
             assertThat(result.sortOrder()).isEqualTo(0);
-            verify(cloudinaryService).uploadFile(mockFile);
+            verify(cloudinaryService).uploadFileWithMetadata(mockFile);
         }
 
         @Test
@@ -328,7 +331,7 @@ class PropertyServiceImplTest {
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("permission to manage this property");
 
-            verify(cloudinaryService, never()).uploadFile(any());
+            verify(cloudinaryService, never()).uploadFileWithMetadata(any());
         }
     }
 

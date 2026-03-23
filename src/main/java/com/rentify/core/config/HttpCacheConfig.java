@@ -34,8 +34,7 @@ public class HttpCacheConfig implements WebMvcConfigurer {
                 "/api/v1/amenities",
                 "/api/v1/amenities/*",
                 "/api/v1/locations",
-                "/api/v1/locations/*",
-                "/api/v1/reviews/property/*"
+                "/api/v1/locations/*"
         );
         return registration;
     }
@@ -93,15 +92,15 @@ public class HttpCacheConfig implements WebMvcConfigurer {
             return PUBLIC_MEDIUM_CACHE;
         }
 
-        if (path.startsWith("/api/v1/reviews/property")) {
+        if (path.startsWith("/api/v1/properties/") && path.endsWith("/reviews")) {
             return PUBLIC_SHORT_CACHE;
         }
 
-        if (path.startsWith("/api/v1/users/") && path.endsWith("/public")) {
+        if (path.matches("^/api/v1/users/\\d+$")) {
             return PUBLIC_SHORT_CACHE;
         }
 
-        if (path.startsWith("/api/v1/properties/my")) {
+        if (path.startsWith("/api/v1/properties/my") || path.startsWith("/api/v1/properties/me")) {
             return NO_STORE;
         }
 
@@ -118,14 +117,15 @@ public class HttpCacheConfig implements WebMvcConfigurer {
 
     private static boolean isPrivatePath(String path) {
         List<String> privatePrefixes = List.of(
-                "/api/v1/auth",
+                "/api/v1/sessions",
                 "/api/v1/users",
                 "/api/v1/bookings",
                 "/api/v1/conversations",
                 "/api/v1/favorites",
                 "/api/v1/payments",
                 "/api/v1/wallet",
-                "/api/v1/promotions",
+                "/api/v1/promotion-packages",
+                "/api/v1/subscription-purchases",
                 "/api/v1/admin"
         );
 

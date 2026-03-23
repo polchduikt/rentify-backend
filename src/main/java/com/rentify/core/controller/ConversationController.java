@@ -1,6 +1,7 @@
 package com.rentify.core.controller;
 
 import com.rentify.core.dto.conversation.ConversationDto;
+import com.rentify.core.dto.conversation.CreateConversationRequestDto;
 import com.rentify.core.dto.conversation.MessageDto;
 import com.rentify.core.dto.conversation.SendMessageRequestDto;
 import com.rentify.core.service.ConversationService;
@@ -13,9 +14,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -24,6 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Conversations", description = "Messaging between guests and hosts")
 @SecurityRequirement(name = "bearerAuth")
+@Validated
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -34,31 +38,29 @@ public class ConversationController {
 
     private final ConversationService conversationService;
 
-    @PostMapping("/property/{propertyId}")
+    @PostMapping
     @Operation(
-            summary = "Send first message for property",
-            description = "Creates or reuses conversation for property and sends first message from authenticated user."
+            summary = "Create conversation for property",
+            description = "Creates or reuses conversation for selected property between current tenant and property host."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
-                    description = "Message sent",
-                    content = @Content(schema = @Schema(implementation = MessageDto.class))
+                    description = "Conversation created",
+                    content = @Content(schema = @Schema(implementation = ConversationDto.class))
             ),
             @ApiResponse(responseCode = "404", description = "Property not found")
     })
-    public ResponseEntity<MessageDto> sendMessage(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
-            @Valid @RequestBody SendMessageRequestDto request) {
+    public ResponseEntity<ConversationDto> createConversation(
+            @Valid @RequestBody CreateConversationRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.sendMessage(propertyId, request));
+                .body(conversationService.getOrCreateConversation(request.propertyId()));
     }
 
-    @PostMapping("/{conversationId}/reply")
+    @PostMapping("/{conversationId}/messages")
     @Operation(
-            summary = "Reply in existing conversation",
-            description = "Sends reply message to an existing conversation available for authenticated user."
+            summary = "Send message in existing conversation",
+            description = "Sends message to an existing conversation available for authenticated user."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -68,12 +70,12 @@ public class ConversationController {
             ),
             @ApiResponse(responseCode = "404", description = "Conversation not found")
     })
-    public ResponseEntity<MessageDto> replyToConversation(
+    public ResponseEntity<MessageDto> sendMessage(
             @Parameter(description = "Conversation ID", example = "10")
-            @PathVariable Long conversationId,
+            @PathVariable @Positive Long conversationId,
             @Valid @RequestBody SendMessageRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.replyToConversation(conversationId, request));
+                .body(conversationService.sendMessage(conversationId, request));
     }
 
     @GetMapping
@@ -105,7 +107,7 @@ public class ConversationController {
     })
     public ResponseEntity<List<MessageDto>> getConversationMessages(
             @Parameter(description = "Conversation ID", example = "10")
-            @PathVariable Long conversationId) {
+            @PathVariable @Positive Long conversationId) {
         return ResponseEntity.ok(conversationService.getConversationMessages(conversationId));
     }
 }

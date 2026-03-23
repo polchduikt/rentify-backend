@@ -9,6 +9,5 @@ import java.util.Optional;
 
 @Repository
 public interface PropertyPhotoRepository extends JpaRepository<PropertyPhoto, Long> {
-    List<PropertyPhoto> findAllByPropertyIdOrderBySortOrderAsc(Long propertyId);
     Optional<PropertyPhoto> findByIdAndPropertyId(Long id, Long propertyId);
 }

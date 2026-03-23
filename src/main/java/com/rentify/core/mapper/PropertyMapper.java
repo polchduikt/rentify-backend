@@ -21,8 +21,6 @@ public interface PropertyMapper {
     PropertyPhotoDto toPhotoDto(PropertyPhoto photo);
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "host", ignore = true)
     Property toEntity(PropertyCreateRequestDto request);
     @Mapping(target = "id", ignore = true)

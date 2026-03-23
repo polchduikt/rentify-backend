@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +42,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Properties", description = "Property listing, search, photos and availability endpoints")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -52,22 +55,23 @@ public class PropertyController {
 
     @GetMapping
     @Operation(
-            summary = "Get all properties",
-            description = "Returns paginated public property listings sorted by newest first by default."
+            summary = "Get properties",
+            description = "Returns paginated public property listings with optional filters from query parameters."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Properties retrieved",
             content = @Content(schema = @Schema(implementation = PropertyResponseDto.class))
     )
-    public ResponseEntity<Page<PropertyResponseDto>> getAllProperties(
+    public ResponseEntity<Page<PropertyResponseDto>> getProperties(
+            @ParameterObject PropertySearchCriteriaDto criteria,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(propertyService.getAllProperties(pageable));
+        return ResponseEntity.ok(propertyService.search(criteria, pageable));
     }
 
-    @GetMapping("/my")
+    @GetMapping({"/my", "/me"})
     @Operation(
             summary = "Get current user properties",
             description = "Returns paginated properties owned by the current user. Optional statuses filter supports repeated values."
@@ -103,7 +107,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> getPropertyById(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         return ResponseEntity.ok(propertyService.getPropertyById(id));
     }
 
@@ -145,7 +149,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> updateProperty(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody PropertyCreateRequestDto request) {
         return ResponseEntity.ok(propertyService.updateProperty(id, request));
     }
@@ -164,7 +168,7 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deleteProperty(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         propertyService.deleteProperty(id);
         return ResponseEntity.noContent().build();
     }
@@ -187,7 +191,7 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyPhotoDto> uploadPhoto(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Parameter(description = "Image file to upload")
             @RequestPart("file") MultipartFile file) {
         PropertyPhotoDto uploadedPhoto = propertyService.uploadPhoto(id, file);
@@ -208,34 +212,17 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deletePhoto(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Parameter(description = "Photo ID", example = "101")
-            @PathVariable Long photoId) {
+            @PathVariable @Positive Long photoId) {
         propertyService.deletePhoto(id, photoId);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/search")
-    @Operation(
-            summary = "Search properties",
-            description = "Searches properties by optional filters. All filters are query parameters."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Properties matched by filters",
-            content = @Content(schema = @Schema(implementation = PropertyResponseDto.class))
-    )
-    public ResponseEntity<Page<PropertyResponseDto>> searchProperties(
-            @ParameterObject PropertySearchCriteriaDto criteria,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-            @ParameterObject Pageable pageable) {
-        return ResponseEntity.ok(propertyService.search(criteria, pageable));
-    }
-
-    @GetMapping("/search/map-pins")
+    @GetMapping("/map-pins")
     @Operation(
             summary = "Search map pins",
-            description = "Returns map pin data for properties using the same filters as /search."
+            description = "Returns map pin data for properties using the same filters as /properties."
     )
     @ApiResponse(
             responseCode = "200",
@@ -249,7 +236,7 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.searchMapPins(criteria, pageable));
     }
 
-    @PostMapping("/{id}/availability")
+    @PostMapping("/{id}/availability-blocks")
     @Operation(
             summary = "Create availability block",
             description = "Blocks a date range from booking for a property. Only owner can create blocks."
@@ -267,13 +254,13 @@ public class PropertyController {
     })
     public ResponseEntity<AvailabilityBlockDto> createBlock(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody AvailabilityBlockRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(availabilityService.createBlock(id, request));
     }
 
-    @GetMapping("/{propertyId}/availability")
+    @GetMapping("/{propertyId}/availability-blocks")
     @Operation(
             summary = "Get availability blocks by property",
             description = "Returns manually created availability blocks for the selected property."
@@ -285,11 +272,11 @@ public class PropertyController {
     )
     public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId) {
+            @PathVariable @Positive Long propertyId) {
         return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
     }
 
-    @GetMapping("/{propertyId}/availability/unavailable")
+    @GetMapping("/{propertyId}/unavailable-date-ranges")
     @Operation(
             summary = "Get unavailable date ranges",
             description = "Returns merged unavailable ranges from both manual blocks and active bookings."
@@ -301,7 +288,7 @@ public class PropertyController {
     )
     public ResponseEntity<List<UnavailableDateRangeDto>> getUnavailableRanges(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @Parameter(description = "Start date filter (ISO yyyy-MM-dd)", example = "2026-03-20")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @Parameter(description = "End date filter (ISO yyyy-MM-dd)", example = "2026-03-30")
@@ -309,7 +296,7 @@ public class PropertyController {
         return ResponseEntity.ok(availabilityService.getUnavailableRangesByProperty(propertyId, dateFrom, dateTo));
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}")
     @Operation(
             summary = "Change property status",
             description = "Changes property status (for example DRAFT/ACTIVE/INACTIVE/BLOCKED) for the listing owner."
@@ -327,12 +314,12 @@ public class PropertyController {
     })
     public ResponseEntity<PropertyResponseDto> changeStatus(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody PropertyStatusUpdateRequestDto request) {
         return ResponseEntity.ok(propertyService.changePropertyStatus(id, request.status()));
     }
 
-    @DeleteMapping("/{propertyId}/availability/{blockId}")
+    @DeleteMapping("/{propertyId}/availability-blocks/{blockId}")
     @Operation(
             summary = "Delete availability block",
             description = "Removes an existing manual availability block. Only listing owner can perform operation."
@@ -346,9 +333,9 @@ public class PropertyController {
     })
     public ResponseEntity<Void> deleteBlock(
             @Parameter(description = "Property ID", example = "42")
-            @PathVariable Long propertyId,
+            @PathVariable @Positive Long propertyId,
             @Parameter(description = "Availability block ID", example = "77")
-            @PathVariable Long blockId) {
+            @PathVariable @Positive Long blockId) {
         availabilityService.deleteBlock(propertyId, blockId);
         return ResponseEntity.noContent().build();
     }

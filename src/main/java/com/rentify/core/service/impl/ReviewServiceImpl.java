@@ -15,6 +15,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.ReviewService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,7 +40,7 @@ public class ReviewServiceImpl implements ReviewService {
         User author = authService.getCurrentUser();
         Booking booking = bookingRepository.findById(request.bookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
-        Property property = propertyRepository.findById(request.propertyId())
+        Property property = propertyRepository.findByIdForUpdate(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
 
         if (!booking.getTenant().getId().equals(author.getId())) {
@@ -62,12 +63,18 @@ public class ReviewServiceImpl implements ReviewService {
                 .rating(request.rating())
                 .comment(request.comment())
                 .build();
-        Review savedReview = reviewRepository.save(review);
+        Review savedReview;
+        try {
+            savedReview = reviewRepository.save(review);
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalStateException("You have already reviewed this booking");
+        }
 
         long reviewCount = reviewRepository.countByPropertyId(property.getId());
-        double averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
+        BigDecimal averageRating = reviewRepository.findAverageRatingByPropertyId(property.getId());
         property.setReviewCount(reviewCount);
-        property.setAverageRating(BigDecimal.valueOf(averageRating).setScale(2, RoundingMode.HALF_UP));
+        property.setAverageRating((averageRating == null ? BigDecimal.ZERO : averageRating)
+                .setScale(2, RoundingMode.HALF_UP));
         propertyRepository.save(property);
 
         return reviewMapper.toDto(savedReview);
