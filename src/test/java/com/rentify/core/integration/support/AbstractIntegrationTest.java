@@ -120,7 +120,7 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected String registerUserAndGetToken(String email, String password, String firstName, String lastName) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+        MvcResult result = mockMvc.perform(post("/api/v1/users")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerPayload(email, password, firstName, lastName))))
                 .andExpect(status().isCreated())
@@ -229,6 +229,12 @@ public abstract class AbstractIntegrationTest {
     protected Map<String, Object> messagePayload(String text) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("text", text);
+        return payload;
+    }
+
+    protected Map<String, Object> conversationPayload(long propertyId) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("propertyId", propertyId);
         return payload;
     }
 

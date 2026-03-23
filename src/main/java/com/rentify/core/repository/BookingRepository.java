@@ -43,6 +43,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("newStatus") BookingStatus newStatus,
             @Param("currentDate") LocalDate currentDate);
 
+    @Modifying
+    @Query(value = "UPDATE bookings SET version = 0 WHERE version IS NULL", nativeQuery = true)
+    int normalizeNullVersions();
+
     boolean existsByPropertyId(Long propertyId);
 
     Page<Booking> findAllByPropertyIdAndStatusNotIn(

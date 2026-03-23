@@ -25,7 +25,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/reviews")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Reviews", description = "Property review endpoints")
 @Validated
@@ -37,7 +37,7 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    @PostMapping
+    @PostMapping("/reviews")
     @Operation(
             summary = "Create review",
             description = "Creates a property review from a completed booking authored by the authenticated user."
@@ -57,7 +57,7 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.createReview(request));
     }
 
-    @GetMapping("/property/{propertyId}")
+    @GetMapping("/properties/{propertyId}/reviews")
     @Operation(
             summary = "Get property reviews",
             description = "Returns paginated reviews for a property."

@@ -14,6 +14,7 @@ import com.rentify.core.service.UserService;
 import com.rentify.core.validation.UserValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final AuthenticationService authenticationService;
@@ -120,11 +122,21 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteAvatar() {
         User user = authenticationService.getCurrentUser();
-        if (user.getAvatarUrl() != null) {
-            cloudinaryService.deleteFile(user.getAvatarUrl());
-            user.setAvatarUrl(null);
-            userRepository.save(user);
+        String avatarUrl = user.getAvatarUrl();
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return;
         }
+
+        if (isCloudinaryUrl(avatarUrl)) {
+            try {
+                cloudinaryService.deleteFile(avatarUrl);
+            } catch (RuntimeException ex) {
+                log.warn("Failed to delete avatar from Cloudinary for userId={}: {}", user.getId(), ex.getMessage());
+            }
+        }
+
+        user.setAvatarUrl(null);
+        userRepository.save(user);
     }
 
     private String buildDeletedEmail(Long userId) {

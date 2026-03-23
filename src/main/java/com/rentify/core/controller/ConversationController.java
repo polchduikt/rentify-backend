@@ -57,28 +57,6 @@ public class ConversationController {
                 .body(conversationService.getOrCreateConversation(request.propertyId()));
     }
 
-    @Deprecated(forRemoval = false)
-    @PostMapping("/property/{propertyId}")
-    @Operation(
-            summary = "Create conversation and send first message (deprecated alias)",
-            description = "Deprecated alias for create-or-reuse conversation and send first message in one request."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Message sent",
-                    content = @Content(schema = @Schema(implementation = MessageDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Property not found")
-    })
-    public ResponseEntity<MessageDto> sendFirstMessageToProperty(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long propertyId,
-            @Valid @RequestBody SendMessageRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.sendMessageToProperty(propertyId, request));
-    }
-
     @PostMapping("/{conversationId}/messages")
     @Operation(
             summary = "Send message in existing conversation",
@@ -93,28 +71,6 @@ public class ConversationController {
             @ApiResponse(responseCode = "404", description = "Conversation not found")
     })
     public ResponseEntity<MessageDto> sendMessage(
-            @Parameter(description = "Conversation ID", example = "10")
-            @PathVariable @Positive Long conversationId,
-            @Valid @RequestBody SendMessageRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.sendMessage(conversationId, request));
-    }
-
-    @Deprecated(forRemoval = false)
-    @PostMapping("/{conversationId}/reply")
-    @Operation(
-            summary = "Reply in existing conversation (deprecated alias)",
-            description = "Deprecated alias for POST /{conversationId}/messages kept for backward compatibility."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Reply sent",
-                    content = @Content(schema = @Schema(implementation = MessageDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Conversation not found")
-    })
-    public ResponseEntity<MessageDto> replyToConversation(
             @Parameter(description = "Conversation ID", example = "10")
             @PathVariable @Positive Long conversationId,
             @Valid @RequestBody SendMessageRequestDto request) {

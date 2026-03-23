@@ -55,19 +55,20 @@ public class PropertyController {
 
     @GetMapping
     @Operation(
-            summary = "Get all properties",
-            description = "Returns paginated public property listings sorted by newest first by default."
+            summary = "Get properties",
+            description = "Returns paginated public property listings with optional filters from query parameters."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Properties retrieved",
             content = @Content(schema = @Schema(implementation = PropertyResponseDto.class))
     )
-    public ResponseEntity<Page<PropertyResponseDto>> getAllProperties(
+    public ResponseEntity<Page<PropertyResponseDto>> getProperties(
+            @ParameterObject PropertySearchCriteriaDto criteria,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(propertyService.getAllProperties(pageable));
+        return ResponseEntity.ok(propertyService.search(criteria, pageable));
     }
 
     @GetMapping({"/my", "/me"})
@@ -218,27 +219,10 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/search")
-    @Operation(
-            summary = "Search properties",
-            description = "Searches properties by optional filters. All filters are query parameters."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Properties matched by filters",
-            content = @Content(schema = @Schema(implementation = PropertyResponseDto.class))
-    )
-    public ResponseEntity<Page<PropertyResponseDto>> searchProperties(
-            @ParameterObject PropertySearchCriteriaDto criteria,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-            @ParameterObject Pageable pageable) {
-        return ResponseEntity.ok(propertyService.search(criteria, pageable));
-    }
-
-    @GetMapping("/search/map-pins")
+    @GetMapping("/map-pins")
     @Operation(
             summary = "Search map pins",
-            description = "Returns map pin data for properties using the same filters as /search."
+            description = "Returns map pin data for properties using the same filters as /properties."
     )
     @ApiResponse(
             responseCode = "200",
@@ -252,7 +236,7 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.searchMapPins(criteria, pageable));
     }
 
-    @PostMapping("/{id}/availability")
+    @PostMapping("/{id}/availability-blocks")
     @Operation(
             summary = "Create availability block",
             description = "Blocks a date range from booking for a property. Only owner can create blocks."
@@ -276,7 +260,7 @@ public class PropertyController {
                 .body(availabilityService.createBlock(id, request));
     }
 
-    @GetMapping("/{propertyId}/availability")
+    @GetMapping("/{propertyId}/availability-blocks")
     @Operation(
             summary = "Get availability blocks by property",
             description = "Returns manually created availability blocks for the selected property."
@@ -292,7 +276,7 @@ public class PropertyController {
         return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
     }
 
-    @GetMapping("/{propertyId}/availability/unavailable")
+    @GetMapping("/{propertyId}/unavailable-date-ranges")
     @Operation(
             summary = "Get unavailable date ranges",
             description = "Returns merged unavailable ranges from both manual blocks and active bookings."
@@ -312,7 +296,7 @@ public class PropertyController {
         return ResponseEntity.ok(availabilityService.getUnavailableRangesByProperty(propertyId, dateFrom, dateTo));
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}")
     @Operation(
             summary = "Change property status",
             description = "Changes property status (for example DRAFT/ACTIVE/INACTIVE/BLOCKED) for the listing owner."
@@ -335,7 +319,7 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.changePropertyStatus(id, request.status()));
     }
 
-    @DeleteMapping("/{propertyId}/availability/{blockId}")
+    @DeleteMapping("/{propertyId}/availability-blocks/{blockId}")
     @Operation(
             summary = "Delete availability block",
             description = "Removes an existing manual availability block. Only listing owner can perform operation."

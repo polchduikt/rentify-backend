@@ -38,7 +38,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/profile")
+    @GetMapping("/me")
     @Operation(
             summary = "Get current user profile",
             description = "Returns full profile information for the authenticated user."
@@ -52,7 +52,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
     }
 
-    @GetMapping("/{userId}/public")
+    @GetMapping("/{userId}")
     @Operation(
             summary = "Get public profile by user id",
             description = "Returns public profile data that can be displayed in listing/review cards."
@@ -71,7 +71,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getPublicProfile(userId));
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/me")
     @Operation(
             summary = "Update current user profile",
             description = "Updates editable profile fields for the authenticated user."
@@ -86,7 +86,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(request));
     }
 
-    @PatchMapping("/profile/password")
+    @PatchMapping("/me/password")
     @Operation(
             summary = "Change current user password",
             description = "Changes account password after validating current password and strength rules."
@@ -98,7 +98,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/profile")
+    @DeleteMapping("/me")
     @Operation(
             summary = "Deactivate current user account",
             description = "Deactivates account, logs user out effectively by invalidating account activity status."
@@ -110,7 +110,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Upload user avatar",
             description = "Uploads and sets new avatar image for the authenticated user profile."
@@ -127,7 +127,7 @@ public class UserController {
         return ResponseEntity.ok(avatarUrl);
     }
 
-    @DeleteMapping("/profile/avatar")
+    @DeleteMapping("/me/avatar")
     @Operation(
             summary = "Delete current user avatar",
             description = "Removes current avatar and resets user profile image to empty state."

@@ -37,7 +37,7 @@ class LeaveReviewIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.bookingId").value(bookingId))
                 .andExpect(jsonPath("$.rating").value(5));
 
-        mockMvc.perform(get("/api/v1/reviews/property/{propertyId}", propertyId))
+        mockMvc.perform(get("/api/v1/properties/{propertyId}/reviews", propertyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
     }

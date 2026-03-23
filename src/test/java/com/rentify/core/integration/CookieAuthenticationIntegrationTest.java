@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -27,7 +28,7 @@ class CookieAuthenticationIntegrationTest extends AbstractIntegrationTest {
         String email = randomEmail("cookie-auth");
         String rawPassword = "StrongPass123!";
 
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerPayload(email, rawPassword, "Cookie", "User"))))
                 .andExpect(status().isCreated())
@@ -39,7 +40,7 @@ class CookieAuthenticationIntegrationTest extends AbstractIntegrationTest {
         assertThat(authCookie).isNotNull();
         assertThat(authCookie.isHttpOnly()).isTrue();
 
-        mockMvc.perform(get("/api/v1/users/profile").cookie(authCookie))
+        mockMvc.perform(get("/api/v1/users/me").cookie(authCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
     }
@@ -47,7 +48,7 @@ class CookieAuthenticationIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Positive: logout clears auth cookie in cookie mode")
     void shouldClearCookieOnLogout() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/logout"))
+        mockMvc.perform(delete("/api/v1/sessions/current"))
                 .andExpect(status().isNoContent())
                 .andExpect(cookie().maxAge("rentify_access_token", 0));
     }

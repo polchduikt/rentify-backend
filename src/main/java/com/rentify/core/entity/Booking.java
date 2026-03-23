@@ -49,7 +49,8 @@ public class Booking extends AuditableEntity {
     @Column(nullable = false)
     private BookingStatus status = BookingStatus.CREATED;
 
+    @Builder.Default
     @Version
     @Column(name = "version")
-    private Long version;
+    private long version = 0L;
 }

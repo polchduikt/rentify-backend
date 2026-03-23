@@ -23,7 +23,16 @@ class SendMessageIntegrationTest extends AbstractIntegrationTest {
         String tenantToken = registerUserAndGetToken(randomEmail("msg-tenant"), "StrongPass123!", "Message", "Tenant");
         long propertyId = createActiveShortTermProperty(hostToken, "Message listing", "Kyiv");
 
-        MvcResult sendResult = mockMvc.perform(post("/api/v1/conversations/property/{propertyId}", propertyId)
+        MvcResult conversationResult = mockMvc.perform(post("/api/v1/conversations")
+                        .header("Authorization", bearerToken(tenantToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(conversationPayload(propertyId))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long conversationId = readJson(conversationResult).get("id").asLong();
+
+        MvcResult sendResult = mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", conversationId)
                         .header("Authorization", bearerToken(tenantToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(messagePayload("Hello host!"))))
@@ -32,8 +41,9 @@ class SendMessageIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.text").value("Hello host!"))
                 .andReturn();
 
-        long conversationId = readJson(sendResult).get("conversationId").asLong();
+        long responseConversationId = readJson(sendResult).get("conversationId").asLong();
         assertThat(conversationRepository.count()).isEqualTo(1);
+        assertThat(responseConversationId).isEqualTo(conversationId);
 
         mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", conversationId)
                         .header("Authorization", bearerToken(tenantToken)))
@@ -48,10 +58,10 @@ class SendMessageIntegrationTest extends AbstractIntegrationTest {
         String hostToken = registerUserAndGetToken(randomEmail("self-msg-host"), "StrongPass123!", "Self", "Host");
         long propertyId = createActiveShortTermProperty(hostToken, "Self message listing", "Kyiv");
 
-        mockMvc.perform(post("/api/v1/conversations/property/{propertyId}", propertyId)
+        mockMvc.perform(post("/api/v1/conversations")
                         .header("Authorization", bearerToken(hostToken))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(messagePayload("Self message"))))
+                        .content(objectMapper.writeValueAsString(conversationPayload(propertyId))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("Host cannot initiate")));
     }
@@ -62,9 +72,9 @@ class SendMessageIntegrationTest extends AbstractIntegrationTest {
         String hostToken = registerUserAndGetToken(randomEmail("msg-noauth-host"), "StrongPass123!", "NoAuth", "Host");
         long propertyId = createActiveShortTermProperty(hostToken, "No auth listing", "Kyiv");
 
-        mockMvc.perform(post("/api/v1/conversations/property/{propertyId}", propertyId)
+        mockMvc.perform(post("/api/v1/conversations")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(messagePayload("Anonymous message"))))
+                        .content(objectMapper.writeValueAsString(conversationPayload(propertyId))))
                 .andExpect(status().isForbidden());
     }
 }

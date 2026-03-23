@@ -57,7 +57,7 @@ public class WalletController {
         return ResponseEntity.ok(walletService.getMyWallet());
     }
 
-    @PostMapping("/top-up")
+    @PostMapping("/transactions")
     @Operation(
             summary = "Top up wallet balance",
             description = "Adds funds to user wallet by selected supported amount."
@@ -88,7 +88,7 @@ public class WalletController {
         return ResponseEntity.ok(walletService.getMyTransactions(pageable));
     }
 
-    @GetMapping("/top-up-options")
+    @GetMapping("/transaction-amount-options")
     @Operation(
             summary = "Get allowed top-up amounts",
             description = "Returns fixed list of amounts that can be used for wallet top-up."

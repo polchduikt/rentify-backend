@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/promotions")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Promotions", description = "Top promotion and subscription purchase endpoints")
 @SecurityRequirement(name = "bearerAuth")
@@ -45,7 +45,7 @@ public class PromotionController {
 
     private final PromotionService promotionService;
 
-    @GetMapping("/top-packages")
+    @GetMapping("/promotion-packages/top")
     @Operation(
             summary = "Get top promotion packages",
             description = "Returns available top-promotion package options with duration and price."
@@ -59,7 +59,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getTopPromotionPackages());
     }
 
-    @GetMapping("/subscription-packages")
+    @GetMapping("/promotion-packages/subscriptions")
     @Operation(
             summary = "Get subscription packages",
             description = "Returns available subscription package options for host account upgrades."
@@ -73,7 +73,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getSubscriptionPackages());
     }
 
-    @PostMapping("/properties/{propertyId}/top")
+    @PostMapping("/properties/{propertyId}/top-promotions")
     @Operation(
             summary = "Purchase top promotion for property",
             description = "Purchases selected top-promotion package and applies promotion to chosen property."
@@ -93,7 +93,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.purchaseTopPromotion(propertyId, request.packageType()));
     }
 
-    @PostMapping("/subscription")
+    @PostMapping("/subscription-purchases")
     @Operation(
             summary = "Purchase subscription",
             description = "Purchases selected subscription package and updates current user subscription plan."

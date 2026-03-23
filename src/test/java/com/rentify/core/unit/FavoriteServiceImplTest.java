@@ -62,7 +62,7 @@ class FavoriteServiceImplTest {
         @Test
         void shouldAddPropertyToFavorites_whenNotAlreadyAdded() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
-            when(favoriteRepository.existsByUser_IdAndProperty_Id(1L, 10L)).thenReturn(false);
+            when(favoriteRepository.findByUser_IdAndProperty_Id(1L, 10L)).thenReturn(Optional.empty());
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(userRepository.getReferenceById(1L)).thenReturn(user);
             when(favoriteRepository.saveAndFlush(any(Favorite.class))).thenReturn(favorite);
@@ -75,13 +75,15 @@ class FavoriteServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenPropertyAlreadyInFavorites() {
+        void shouldReturnExistingFavorite_whenPropertyAlreadyInFavorites() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
-            when(favoriteRepository.existsByUser_IdAndProperty_Id(1L, 10L)).thenReturn(true);
+            when(favoriteRepository.findByUser_IdAndProperty_Id(1L, 10L)).thenReturn(Optional.of(favorite));
+            when(favoriteMapper.toDto(favorite)).thenReturn(favoriteDto);
 
-            assertThatThrownBy(() -> favoriteService.addToFavorites(10L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Property is already in favorites");
+            FavoriteResponseDto result = favoriteService.addToFavorites(10L);
+
+            assertThat(result.id()).isEqualTo(100L);
+            assertThat(result.propertyId()).isEqualTo(10L);
 
             verify(propertyRepository, never()).findById(10L);
         }
@@ -89,7 +91,7 @@ class FavoriteServiceImplTest {
         @Test
         void shouldThrowEntityNotFound_whenPropertyNotFound() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
-            when(favoriteRepository.existsByUser_IdAndProperty_Id(1L, 10L)).thenReturn(false);
+            when(favoriteRepository.findByUser_IdAndProperty_Id(1L, 10L)).thenReturn(Optional.empty());
             when(propertyRepository.findById(10L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> favoriteService.addToFavorites(10L))
@@ -98,17 +100,21 @@ class FavoriteServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenUniqueConstraintViolationOccurs() {
+        void shouldReturnExistingFavorite_whenUniqueConstraintViolationOccurs() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
-            when(favoriteRepository.existsByUser_IdAndProperty_Id(1L, 10L)).thenReturn(false);
+            when(favoriteRepository.findByUser_IdAndProperty_Id(1L, 10L))
+                    .thenReturn(Optional.empty())
+                    .thenReturn(Optional.of(favorite));
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(userRepository.getReferenceById(1L)).thenReturn(user);
             when(favoriteRepository.saveAndFlush(any(Favorite.class)))
                     .thenThrow(new DataIntegrityViolationException("duplicate"));
+            when(favoriteMapper.toDto(favorite)).thenReturn(favoriteDto);
 
-            assertThatThrownBy(() -> favoriteService.addToFavorites(10L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Property is already in favorites");
+            FavoriteResponseDto result = favoriteService.addToFavorites(10L);
+
+            assertThat(result.id()).isEqualTo(100L);
+            assertThat(result.propertyId()).isEqualTo(10L);
         }
     }
 

@@ -68,28 +68,32 @@ public class SecurityConfig {
                         ))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/sessions", "/api/v1/sessions/google").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sessions/current").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/my", "/api/v1/properties/me").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/amenities/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/locations/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/property/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/properties/*/reviews").permitAll()
                         .requestMatchers(
-                                "/api/v1/auth/**",
-                                "/api/v1/reviews/property/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/bookings/*/payments").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/subscription-purchases").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/top-promotions").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/promotion-packages/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/**").hasRole("USER")
                         .requestMatchers("/api/v1/bookings/**").hasRole("USER")
-                        .requestMatchers("/api/v1/favorites/**").hasRole("USER")
+                        .requestMatchers("/api/v1/users/me/favorites/**").hasRole("USER")
                         .requestMatchers("/api/v1/payments/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/v1/wallet/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/v1/promotions/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -125,9 +129,9 @@ public class SecurityConfig {
                 .csrfTokenRepository(csrfTokenRepository)
                 .csrfTokenRequestHandler(csrfTokenRequestHandler)
                 .ignoringRequestMatchers(
-                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/register"),
-                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/login"),
-                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/auth/google"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/users"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/sessions"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/sessions/google"),
                         AntPathRequestMatcher.antMatcher("/v3/api-docs/**"),
                         AntPathRequestMatcher.antMatcher("/swagger-ui/**"),
                         AntPathRequestMatcher.antMatcher("/swagger-ui.html")

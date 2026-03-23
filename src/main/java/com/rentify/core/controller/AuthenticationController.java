@@ -20,13 +20,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Registration and login endpoints")
 @ApiResponses(value = {
@@ -40,7 +41,7 @@ public class AuthenticationController {
     private final AuthResponseService authResponseService;
     private final TokenRevocationService tokenRevocationService;
 
-    @PostMapping("/register")
+    @PostMapping("/users")
     @Operation(
             summary = "Register user",
             description = "Registers a new account and returns JWT tokens for immediate authorized usage."
@@ -58,7 +59,7 @@ public class AuthenticationController {
         return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.CREATED);
     }
 
-    @PostMapping("/login")
+    @PostMapping("/sessions")
     @Operation(
             summary = "Login with email and password",
             description = "Authenticates user credentials and returns an access token for protected endpoints."
@@ -76,7 +77,7 @@ public class AuthenticationController {
         return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
-    @PostMapping("/google")
+    @PostMapping("/sessions/google")
     @Operation(
             summary = "Login with Google OAuth token",
             description = "Authenticates user using Google ID token and returns Rentify access token."
@@ -94,7 +95,7 @@ public class AuthenticationController {
         return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
-    @PostMapping("/logout")
+    @DeleteMapping("/sessions/current")
     @Operation(
             summary = "Logout from current browser session",
             description = "Clears authentication cookie in cookie strategy mode."

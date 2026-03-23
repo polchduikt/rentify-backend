@@ -1,5 +1,6 @@
 package com.rentify.core.controller;
 
+import com.rentify.core.dto.payment.PaymentCreateRequestDto;
 import com.rentify.core.dto.payment.PaymentResponseDto;
 import com.rentify.core.service.PaymentService;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,13 +20,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/payments")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Payments", description = "Payment endpoints")
 @SecurityRequirement(name = "bearerAuth")
@@ -39,10 +42,10 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping("/bookings/{bookingId}/mock-pay")
+    @PostMapping("/payments")
     @Operation(
-            summary = "Mock pay booking",
-            description = "Creates successful mock payment for booking in development/testing flow."
+            summary = "Create payment",
+            description = "Creates successful mock payment for confirmed booking in development/testing flow."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -52,13 +55,12 @@ public class PaymentController {
             ),
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
-    public ResponseEntity<PaymentResponseDto> mockPayBooking(
-            @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long bookingId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.payBooking(bookingId));
+    public ResponseEntity<PaymentResponseDto> createPayment(
+            @Valid @RequestBody PaymentCreateRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.payBooking(request.bookingId()));
     }
 
-    @GetMapping({"/my", "/me"})
+    @GetMapping("/payments")
     @Operation(
             summary = "Get current user payments",
             description = "Returns all payments that belong to the authenticated user account."
@@ -72,7 +74,7 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getMyPayments());
     }
 
-    @GetMapping("/bookings/{bookingId}")
+    @GetMapping("/bookings/{bookingId}/payments")
     @Operation(
             summary = "Get payments by booking id",
             description = "Returns payment history for a specific booking visible to booking participants."

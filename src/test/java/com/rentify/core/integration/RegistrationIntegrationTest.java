@@ -24,7 +24,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
         String email = randomEmail("register");
         String rawPassword = "StrongPass123!";
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+        MvcResult result = mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerPayload(email, rawPassword, "Illia", "Koval"))))
                 .andExpect(status().isCreated())
@@ -47,7 +47,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
         String rawPassword = "StrongPass123!";
         registerUserAndGetToken(email, rawPassword, "First", "User");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerPayload(email, rawPassword, "Second", "User"))))
                 .andExpect(status().isBadRequest())
@@ -59,7 +59,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
     void shouldReturnBadRequestForInvalidRegistrationPayload() throws Exception {
         Map<String, Object> payload = new LinkedHashMap<>(registerPayload(randomEmail("invalid"), "StrongPass123!", "", "User"));
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())
@@ -71,7 +71,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
     void shouldRejectEmailWithoutAtSign() throws Exception {
         Map<String, Object> payload = registerPayload("invalid-email.example.com", "StrongPass123!", "Valid", "User");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())
@@ -83,7 +83,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
     void shouldRejectFirstNameWithOneChar() throws Exception {
         Map<String, Object> payload = registerPayload(randomEmail("short-name"), "StrongPass123!", "I", "User");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())
@@ -95,7 +95,7 @@ class RegistrationIntegrationTest extends AbstractIntegrationTest {
     void shouldRejectPasswordWithout8Chars() throws Exception {
         Map<String, Object> payload = registerPayload(randomEmail("short-pass"), "Short1!", "Valid", "User");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())

@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -293,6 +294,19 @@ class UserServiceImplTest {
 
             verify(cloudinaryService, never()).deleteFile(anyString());
             verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void shouldClearAvatarEvenWhenCloudinaryDeletionFails() {
+            when(authenticationService.getCurrentUser()).thenReturn(currentUser);
+            doThrow(new RuntimeException("Image deletion failed: General Error"))
+                    .when(cloudinaryService)
+                    .deleteFile("https://res.cloudinary.com/demo/image/upload/v123/rentify/avatars/old-avatar.jpg");
+
+            userService.deleteAvatar();
+
+            assertThat(currentUser.getAvatarUrl()).isNull();
+            verify(userRepository).save(currentUser);
         }
     }
 }

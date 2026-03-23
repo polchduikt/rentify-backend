@@ -2,6 +2,8 @@ package com.rentify.core.controller;
 
 import com.rentify.core.dto.booking.BookingDto;
 import com.rentify.core.dto.booking.BookingRequestDto;
+import com.rentify.core.dto.booking.BookingStatusUpdateRequestDto;
+import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.service.BookingService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -54,21 +57,29 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(request));
     }
 
-    @GetMapping({"/my", "/me"})
+    @GetMapping
     @Operation(
-            summary = "Get my bookings",
-            description = "Returns paginated bookings for the current user. Pagination params: page, size, sort."
+            summary = "Get bookings",
+            description = "Returns paginated bookings for the current user by role scope: guest or host."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Bookings retrieved",
             content = @Content(schema = @Schema(implementation = BookingDto.class))
     )
-    public ResponseEntity<Page<BookingDto>> getMyBookings(
+    public ResponseEntity<Page<BookingDto>> getBookings(
+            @Parameter(description = "Scope of bookings: guest or host", example = "guest")
+            @RequestParam(defaultValue = "guest") String role,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(bookingService.getMyBookings(pageable));
+        if ("guest".equalsIgnoreCase(role)) {
+            return ResponseEntity.ok(bookingService.getMyBookings(pageable));
+        }
+        if ("host".equalsIgnoreCase(role)) {
+            return ResponseEntity.ok(bookingService.getIncomingBookings(pageable));
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported bookings role. Use guest or host.");
     }
 
     @GetMapping("/{id}")
@@ -90,10 +101,10 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
-    @PatchMapping("/{id}/cancel")
+    @PatchMapping("/{id}")
     @Operation(
-            summary = "Cancel booking",
-            description = "Cancels a booking according to current booking state and cancellation rules."
+            summary = "Update booking status",
+            description = "Updates booking status using allowed transitions for current user role."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -103,64 +114,22 @@ public class BookingController {
             ),
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
-    public ResponseEntity<BookingDto> cancel(
+    public ResponseEntity<BookingDto> updateStatus(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long id) {
-        return ResponseEntity.ok(bookingService.cancelBooking(id));
-    }
-
-    @GetMapping("/incoming")
-    @Operation(
-            summary = "Get incoming bookings",
-            description = "Returns paginated incoming bookings for host-owned properties."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Incoming bookings retrieved",
-            content = @Content(schema = @Schema(implementation = BookingDto.class))
-    )
-    public ResponseEntity<Page<BookingDto>> getIncomingBookings(
-            @ParameterObject
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-            Pageable pageable) {
-        return ResponseEntity.ok(bookingService.getIncomingBookings(pageable));
-    }
-
-    @PatchMapping("/{id}/confirm")
-    @Operation(
-            summary = "Confirm booking",
-            description = "Confirms a pending booking request. Available only for the property host."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Booking confirmed",
-                    content = @Content(schema = @Schema(implementation = BookingDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Booking not found")
-    })
-    public ResponseEntity<BookingDto> confirmBooking(
-            @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long id) {
-        return ResponseEntity.ok(bookingService.confirmBooking(id));
-    }
-
-    @PatchMapping("/{id}/reject")
-    @Operation(
-            summary = "Reject booking",
-            description = "Rejects a pending booking request. Available only for the property host."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Booking rejected",
-                    content = @Content(schema = @Schema(implementation = BookingDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Booking not found")
-    })
-    public ResponseEntity<BookingDto> rejectBooking(
-            @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long id) {
-        return ResponseEntity.ok(bookingService.rejectBooking(id));
+            @PathVariable @Positive Long id,
+            @Valid @RequestBody BookingStatusUpdateRequestDto request) {
+        if (request.status() == BookingStatus.CANCELLED) {
+            return ResponseEntity.ok(bookingService.cancelBooking(id));
+        }
+        if (request.status() == BookingStatus.CONFIRMED) {
+            return ResponseEntity.ok(bookingService.confirmBooking(id));
+        }
+        if (request.status() == BookingStatus.REJECTED) {
+            return ResponseEntity.ok(bookingService.rejectBooking(id));
+        }
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Unsupported status transition. Allowed statuses: CANCELLED, CONFIRMED, REJECTED."
+        );
     }
 }
