@@ -103,9 +103,10 @@ Core source layout:
 
 #### Prerequisites
 
-- **Java** 17+
+- **Java** 17+ (runtime)
 - **Maven** 3.9+ (or wrapper)
 - **PostgreSQL**
+- **Docker Desktop** (recommended for local DB and integration tests)
 
 #### Installation
 
@@ -120,25 +121,28 @@ Core source layout:
 
    The application reads secrets from environment variables (referenced in `application.properties`) or from `application-secret.properties` on the classpath.
 
-   Minimum recommended configuration:
+   Complete local configuration example (single block):
 
    ```bash
-   # Database
+   DB_URL=jdbc:postgresql://localhost:5432/rentify
+   DB_USERNAME=postgres
    DB_PASSWORD=your_db_password
-
-   # JWT
-   SECRET_KEY=your_hex_encoded_jwt_secret
-
-   # Google OAuth (optional)
+   SECRET_KEY=your_base64_jwt_secret
    GOOGLE_CLIENT_ID=your_google_client_id
-
-   # Auth strategy
-   AUTH_STRATEGY=bearer           # or cookie
-   AUTH_COOKIE_SECURE=true        # recommended in production
-   CSRF_COOKIE_SECURE=true        # recommended in production
-
-   # CORS
+   AUTH_STRATEGY=cookie
+   AUTH_COOKIE_NAME=rentify_access_token
+   AUTH_COOKIE_DOMAIN=
+   AUTH_COOKIE_SECURE=false
+   AUTH_COOKIE_SAME_SITE=Lax
+   CSRF_COOKIE_NAME=csrf_token
+   CSRF_HEADER_NAME=X-CSRF-Token
+   CSRF_COOKIE_SECURE=false
    ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+   WALLET_CURRENCY=UAH
+   WALLET_TOP_UP_OPTIONS=300.00,500.00,1000.00
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
    ```
 
    You can also create `src/main/resources/application-secret.properties` (not committed to VCS) and define the same keys there for local development.
@@ -164,6 +168,53 @@ Core source layout:
    ```
 
    By default the server runs on `http://localhost:8080`.
+
+
+5. **Run in Docker **
+
+
+   1. Create `.env` from `.env.example` and fill values.
+   2. Start containers:
+
+   ```bash
+   docker compose up --build -d db backend
+   ```
+
+   3. Stop:
+
+   ```bash
+   docker compose down
+   ```
+
+## Running Integration Tests
+
+#### Requirements
+- Java 21
+- Docker Desktop (https://docker.com/products/docker-desktop)
+
+#### Windows (one-time setup)
+1. Start Docker Desktop.
+2. Settings -> General -> enable `Expose daemon on tcp://localhost:2375 without TLS`.
+3. Run in PowerShell as Administrator:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("DOCKER_API_VERSION", "1.47", "Machine")
+New-Item -Path "$env:USERPROFILE\.testcontainers.properties" -ItemType File -Force
+Set-Content "$env:USERPROFILE\.testcontainers.properties" "docker.host=npipe:////./pipe/docker_engine_linux`ntestcontainers.reuse.enable=true"
+```
+
+4. Restart IntelliJ IDEA.
+
+#### Run
+```bash
+./mvnw test                                    # all tests
+./mvnw test -Dtest=RegistrationIntegrationTest # one class
+```
+
+### API Overview Diagram
+
+![Rentify API overview](docs/screenshots/api-overview.png)
+Іnfrastructure overview
 
 ### API Highlights
 
