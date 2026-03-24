@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 public interface AuthResponseService {
-
     ResponseEntity<AuthenticationResponseDto> buildAuthResponse(
             AuthenticationResponseDto authResponse,
             HttpServletResponse response,

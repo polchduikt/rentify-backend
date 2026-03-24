@@ -1,38 +1,28 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.promotion.PurchaseSubscriptionRequestDto;
-import com.rentify.core.dto.promotion.PurchaseTopPromotionRequestDto;
 import com.rentify.core.dto.promotion.SubscriptionPackageDto;
-import com.rentify.core.dto.promotion.SubscriptionPurchaseResponseDto;
 import com.rentify.core.dto.promotion.TopPromotionPackageDto;
-import com.rentify.core.dto.promotion.TopPromotionPurchaseResponseDto;
 import com.rentify.core.service.PromotionService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/promotion-packages")
 @RequiredArgsConstructor
-@Tag(name = "Promotions", description = "Top promotion and subscription purchase endpoints")
+@Tag(name = "Promotion Packages", description = "Top promotion and subscription package read endpoints")
 @SecurityRequirement(name = "bearerAuth")
 @Validated
 @ApiResponses(value = {
@@ -45,7 +35,7 @@ public class PromotionController {
 
     private final PromotionService promotionService;
 
-    @GetMapping("/promotion-packages/top")
+    @GetMapping("/top")
     @Operation(
             summary = "Get top promotion packages",
             description = "Returns available top-promotion package options with duration and price."
@@ -59,7 +49,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getTopPromotionPackages());
     }
 
-    @GetMapping("/promotion-packages/subscriptions")
+    @GetMapping("/subscriptions")
     @Operation(
             summary = "Get subscription packages",
             description = "Returns available subscription package options for host account upgrades."
@@ -73,38 +63,4 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getSubscriptionPackages());
     }
 
-    @PostMapping("/properties/{propertyId}/top-promotions")
-    @Operation(
-            summary = "Purchase top promotion for property",
-            description = "Purchases selected top-promotion package and applies promotion to chosen property."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Top promotion purchased",
-                    content = @Content(schema = @Schema(implementation = TopPromotionPurchaseResponseDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Property not found")
-    })
-    public ResponseEntity<TopPromotionPurchaseResponseDto> purchaseTopPromotion(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long propertyId,
-            @Valid @RequestBody PurchaseTopPromotionRequestDto request) {
-        return ResponseEntity.ok(promotionService.purchaseTopPromotion(propertyId, request.packageType()));
-    }
-
-    @PostMapping("/subscription-purchases")
-    @Operation(
-            summary = "Purchase subscription",
-            description = "Purchases selected subscription package and updates current user subscription plan."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Subscription purchased",
-            content = @Content(schema = @Schema(implementation = SubscriptionPurchaseResponseDto.class))
-    )
-    public ResponseEntity<SubscriptionPurchaseResponseDto> purchaseSubscription(
-            @Valid @RequestBody PurchaseSubscriptionRequestDto request) {
-        return ResponseEntity.ok(promotionService.purchaseSubscription(request.packageType()));
-    }
 }

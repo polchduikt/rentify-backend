@@ -8,6 +8,5 @@ import java.util.List;
 
 public interface AmenityService {
     List<AmenityDto> getAmenities(AmenityCategory category);
-
     List<AmenityCategoryGroupDto> getAmenitiesGrouped();
 }

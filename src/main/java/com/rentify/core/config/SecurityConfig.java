@@ -70,7 +70,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sessions", "/api/v1/sessions/google").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sessions/current").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sessions/me").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/my", "/api/v1/properties/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
@@ -86,8 +86,8 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/api/v1/reviews").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/bookings/*/payments").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/subscription-purchases").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/top-promotions").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/promotions").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/promotion-packages/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/**").hasRole("USER")
                         .requestMatchers("/api/v1/bookings/**").hasRole("USER")

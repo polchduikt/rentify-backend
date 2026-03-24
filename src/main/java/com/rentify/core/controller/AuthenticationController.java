@@ -95,7 +95,7 @@ public class AuthenticationController {
         return authResponseService.buildAuthResponse(authResponse, response, HttpStatus.OK);
     }
 
-    @DeleteMapping("/sessions/current")
+    @DeleteMapping("/sessions/me")
     @Operation(
             summary = "Logout from current browser session",
             description = "Clears authentication cookie in cookie strategy mode."

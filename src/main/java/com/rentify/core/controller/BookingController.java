@@ -2,9 +2,9 @@ package com.rentify.core.controller;
 
 import com.rentify.core.dto.booking.BookingDto;
 import com.rentify.core.dto.booking.BookingRequestDto;
-import com.rentify.core.dto.booking.BookingStatusUpdateRequestDto;
-import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.dto.payment.PaymentResponseDto;
 import com.rentify.core.service.BookingService;
+import com.rentify.core.service.PaymentService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +27,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/bookings")
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final PaymentService paymentService;
 
     @PostMapping
     @Operation(
@@ -101,10 +104,10 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
-    @PatchMapping("/{id}")
+    @PostMapping("/{id}/cancellation")
     @Operation(
-            summary = "Update booking status",
-            description = "Updates booking status using allowed transitions for current user role."
+            summary = "Cancel booking",
+            description = "Cancels booking in allowed state for current guest or host."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -114,22 +117,66 @@ public class BookingController {
             ),
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
-    public ResponseEntity<BookingDto> updateStatus(
+    public ResponseEntity<BookingDto> cancelBooking(
             @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long id,
-            @Valid @RequestBody BookingStatusUpdateRequestDto request) {
-        if (request.status() == BookingStatus.CANCELLED) {
-            return ResponseEntity.ok(bookingService.cancelBooking(id));
-        }
-        if (request.status() == BookingStatus.CONFIRMED) {
-            return ResponseEntity.ok(bookingService.confirmBooking(id));
-        }
-        if (request.status() == BookingStatus.REJECTED) {
-            return ResponseEntity.ok(bookingService.rejectBooking(id));
-        }
-        throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Unsupported status transition. Allowed statuses: CANCELLED, CONFIRMED, REJECTED."
-        );
+            @PathVariable @Positive Long id) {
+        return ResponseEntity.ok(bookingService.cancelBooking(id));
+    }
+
+    @PostMapping("/{id}/confirmation")
+    @Operation(
+            summary = "Confirm booking",
+            description = "Confirms booking request in allowed state for current host."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Booking confirmed",
+                    content = @Content(schema = @Schema(implementation = BookingDto.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "Booking not found")
+    })
+    public ResponseEntity<BookingDto> confirmBooking(
+            @Parameter(description = "Booking ID", example = "55")
+            @PathVariable @Positive Long id) {
+        return ResponseEntity.ok(bookingService.confirmBooking(id));
+    }
+
+    @PostMapping("/{id}/rejection")
+    @Operation(
+            summary = "Reject booking",
+            description = "Rejects booking request in allowed state for current host."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Booking rejected",
+                    content = @Content(schema = @Schema(implementation = BookingDto.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "Booking not found")
+    })
+    public ResponseEntity<BookingDto> rejectBooking(
+            @Parameter(description = "Booking ID", example = "55")
+            @PathVariable @Positive Long id) {
+        return ResponseEntity.ok(bookingService.rejectBooking(id));
+    }
+
+    @GetMapping("/{id}/payments")
+    @Operation(
+            summary = "Get payments by booking id",
+            description = "Returns payment history for a specific booking visible to booking participants."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Payments by booking retrieved",
+                    content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "Booking not found")
+    })
+    public ResponseEntity<List<PaymentResponseDto>> getPaymentsByBooking(
+            @Parameter(description = "Booking ID", example = "55")
+            @PathVariable("id") @Positive Long bookingId) {
+        return ResponseEntity.ok(paymentService.getPaymentsByBooking(bookingId));
     }
 }

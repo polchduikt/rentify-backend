@@ -6,19 +6,16 @@ import com.rentify.core.service.PaymentService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Tag(name = "Payments", description = "Payment endpoints")
 @SecurityRequirement(name = "bearerAuth")
@@ -42,7 +39,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping("/payments")
+    @PostMapping
     @Operation(
             summary = "Create payment",
             description = "Creates successful mock payment for confirmed booking in development/testing flow."
@@ -60,7 +57,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.payBooking(request.bookingId()));
     }
 
-    @GetMapping("/payments")
+    @GetMapping
     @Operation(
             summary = "Get current user payments",
             description = "Returns all payments that belong to the authenticated user account."
@@ -74,22 +71,4 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getMyPayments());
     }
 
-    @GetMapping("/bookings/{bookingId}/payments")
-    @Operation(
-            summary = "Get payments by booking id",
-            description = "Returns payment history for a specific booking visible to booking participants."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Payments by booking retrieved",
-                    content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Booking not found")
-    })
-    public ResponseEntity<List<PaymentResponseDto>> getPaymentsByBooking(
-            @Parameter(description = "Booking ID", example = "55")
-            @PathVariable @Positive Long bookingId) {
-        return ResponseEntity.ok(paymentService.getPaymentsByBooking(bookingId));
-    }
 }
