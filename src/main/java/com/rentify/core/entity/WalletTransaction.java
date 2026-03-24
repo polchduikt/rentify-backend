@@ -1,6 +1,7 @@
 package com.rentify.core.entity;
 
 import com.rentify.core.enums.WalletTransactionDirection;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +24,13 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "wallet_transactions")
+@Table(
+        name = "wallet_transactions",
+        indexes = {
+                @Index(name = "idx_wallet_transactions_user_id", columnList = "user_id"),
+                @Index(name = "idx_wallet_transactions_user_created_at", columnList = "user_id, created_at")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,10 +63,10 @@ public class WalletTransaction extends CreatedAtEntity {
     @Column(length = 200)
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reference_type", length = 40)
-    private String referenceType;
+    private WalletReferenceType referenceType;
 
     @Column(name = "reference_id")
     private Long referenceId;
-
 }

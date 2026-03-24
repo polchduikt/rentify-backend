@@ -10,6 +10,7 @@ import com.rentify.core.entity.WalletTransaction;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.SubscriptionPackageType;
 import com.rentify.core.enums.TopPromotionPackageType;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.PromotionMapper;
@@ -85,7 +86,7 @@ public class PromotionServiceImpl implements PromotionService {
                 .amount(price)
                 .currency(UAH)
                 .description("Top promotion for property #" + propertyId + " (" + packageType.name() + ")")
-                .referenceType("PROPERTY")
+                .referenceType(WalletReferenceType.PROPERTY)
                 .referenceId(propertyId)
                 .build();
         walletTransactionRepository.save(transaction);
@@ -129,7 +130,7 @@ public class PromotionServiceImpl implements PromotionService {
                 .amount(price)
                 .currency(UAH)
                 .description("Subscription purchase (" + packageType.name() + ")")
-                .referenceType("SUBSCRIPTION")
+                .referenceType(WalletReferenceType.SUBSCRIPTION)
                 .build();
         walletTransactionRepository.save(transaction);
         log.info("Subscription purchased: userId={}, packageType={}, amount={}, currency={}",

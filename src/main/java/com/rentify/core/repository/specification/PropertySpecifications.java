@@ -190,11 +190,8 @@ public class PropertySpecifications {
             if (criteria.marketType() != null) {
                 predicates.add(cb.equal(root.get("marketType"), criteria.marketType()));
             }
-            if (criteria.propertyType() != null && !criteria.propertyType().isBlank()) {
-                predicates.add(cb.equal(
-                        cb.lower(root.get("propertyType")),
-                        criteria.propertyType().toLowerCase(Locale.ROOT)
-                ));
+            if (criteria.propertyType() != null) {
+                predicates.add(cb.equal(root.get("propertyType"), criteria.propertyType()));
             }
             if (criteria.verifiedProperty() != null) {
                 if (criteria.verifiedProperty()) {

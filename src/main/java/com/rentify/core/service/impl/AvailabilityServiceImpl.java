@@ -46,7 +46,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         if (request.dateFrom().isAfter(request.dateTo())) {
             throw new IllegalArgumentException("dateFrom must be before or equal to dateTo");
         }
-        Property property = propertyRepository.findById(propertyId)
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authService.getCurrentUser();
         if (!property.getHost().getId().equals(currentUser.getId())) {

@@ -7,6 +7,7 @@ import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
 import com.rentify.core.enums.SubscriptionPlan;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.WalletTransactionMapper;
@@ -159,7 +160,7 @@ class WalletServiceImplTest {
             assertThat(transactionCaptor.getValue().getDirection()).isEqualTo(WalletTransactionDirection.CREDIT);
             assertThat(transactionCaptor.getValue().getType()).isEqualTo(WalletTransactionType.TOP_UP);
             assertThat(transactionCaptor.getValue().getAmount()).isEqualByComparingTo("300.00");
-            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo("WALLET");
+            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo(WalletReferenceType.WALLET);
         }
 
         @Test
@@ -182,7 +183,7 @@ class WalletServiceImplTest {
             WalletTransaction transaction = WalletTransaction.builder().id(1L).user(user).build();
             WalletTransactionDto dto = new WalletTransactionDto(
                     1L, 1L, WalletTransactionDirection.CREDIT, WalletTransactionType.TOP_UP,
-                    new BigDecimal("100.00"), "UAH", "Top up", "WALLET", null, ZonedDateTime.now()
+                    new BigDecimal("100.00"), "UAH", "Top up", WalletReferenceType.WALLET, null, ZonedDateTime.now()
             );
             Page<WalletTransaction> page = new PageImpl<>(List.of(transaction), pageable, 1);
 

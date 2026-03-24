@@ -6,6 +6,10 @@ import lombok.*;
 @Entity
 @Table(
         name = "reviews",
+        indexes = {
+                @Index(name = "idx_reviews_property_id", columnList = "property_id"),
+                @Index(name = "idx_reviews_author_id", columnList = "author_id")
+        },
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_reviews_booking_author",
                 columnNames = {"booking_id", "author_id"}

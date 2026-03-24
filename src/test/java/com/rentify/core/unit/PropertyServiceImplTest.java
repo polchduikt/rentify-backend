@@ -11,6 +11,7 @@ import com.rentify.core.entity.PropertyPricing;
 import com.rentify.core.entity.PropertyRule;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AmenityRepository;
@@ -128,7 +129,7 @@ class PropertyServiceImplTest {
                 "Test description",
                 null,
                 PropertyStatus.ACTIVE,
-                "apartment",
+                PropertyType.APARTMENT,
                 null,
                 null,
                 null,
@@ -466,7 +467,7 @@ class PropertyServiceImplTest {
                 "Title",
                 "Description",
                 null,
-                "apartment",
+                PropertyType.APARTMENT,
                 null,
                 null,
                 null,

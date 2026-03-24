@@ -11,6 +11,7 @@ import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.SubscriptionPackageType;
 import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.enums.TopPromotionPackageType;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.PromotionMapper;
@@ -175,7 +176,7 @@ class PromotionServiceImplTest {
             verify(walletTransactionRepository).save(transactionCaptor.capture());
             assertThat(transactionCaptor.getValue().getDirection()).isEqualTo(WalletTransactionDirection.DEBIT);
             assertThat(transactionCaptor.getValue().getType()).isEqualTo(WalletTransactionType.TOP_PROMOTION);
-            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo("PROPERTY");
+            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo(WalletReferenceType.PROPERTY);
             assertThat(transactionCaptor.getValue().getReferenceId()).isEqualTo(10L);
         }
     }
@@ -238,7 +239,7 @@ class PromotionServiceImplTest {
             verify(walletTransactionRepository).save(transactionCaptor.capture());
             assertThat(transactionCaptor.getValue().getDirection()).isEqualTo(WalletTransactionDirection.DEBIT);
             assertThat(transactionCaptor.getValue().getType()).isEqualTo(WalletTransactionType.SUBSCRIPTION);
-            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo("SUBSCRIPTION");
+            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo(WalletReferenceType.SUBSCRIPTION);
         }
     }
 

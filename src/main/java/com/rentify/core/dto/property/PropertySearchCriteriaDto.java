@@ -3,6 +3,7 @@ package com.rentify.core.dto.property;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentify.core.enums.AmenityCategory;
 import com.rentify.core.enums.PropertyMarketType;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
@@ -73,8 +74,8 @@ public record PropertySearchCriteriaDto(
         @JsonProperty("rentalType") RentalType rentalType,
         @Schema(description = "Market type", example = "SECONDARY")
         @JsonProperty("marketType") PropertyMarketType marketType,
-        @Schema(description = "Property type slug/name", example = "apartment")
-        @JsonProperty("propertyType") String propertyType,
+        @Schema(description = "Property type", example = "apartment")
+        @JsonProperty("propertyType") PropertyType propertyType,
         @Schema(description = "Filter verified property listings", example = "true")
         @JsonProperty("verifiedProperty") Boolean verifiedProperty,
         @Schema(description = "Filter verified realtor listings", example = "true")

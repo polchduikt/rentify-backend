@@ -76,7 +76,7 @@ public class PropertyAddressService {
         } else {
             throw new IllegalArgumentException("Either cityId or address.location must be provided");
         }
-        Location savedLocation = locationRepository.save(location);
+        Location savedLocation = resolveOrCreateLocation(location);
 
         address.setLocation(savedLocation);
         address.setCityRef(cityRef);
@@ -92,6 +92,31 @@ public class PropertyAddressService {
 
         Address savedAddress = addressRepository.save(address);
         property.setAddress(savedAddress);
+    }
+
+    private Location resolveOrCreateLocation(Location location) {
+        String country = normalizeRequiredLocationValue(location.getCountry(), "country");
+        String region = normalizeRegionValue(location.getRegion());
+        String city = normalizeRequiredLocationValue(location.getCity(), "city");
+        location.setCountry(country);
+        location.setRegion(region);
+        location.setCity(city);
+        return locationRepository.findByCityAndRegionAndCountry(city, region, country)
+                .orElseGet(() -> locationRepository.save(location));
+    }
+
+    private String normalizeRequiredLocationValue(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Location " + fieldName + " must not be blank");
+        }
+        return value.trim();
+    }
+
+    private String normalizeRegionValue(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim();
     }
 
     private City resolveCityReference(AddressDto addressDto) {

@@ -1,4 +1,4 @@
-package com.rentify.core.config;
+package com.rentify.core.converter;
 
 import com.rentify.core.enums.BookingScope;
 import org.springframework.core.convert.converter.Converter;

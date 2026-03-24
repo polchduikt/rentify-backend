@@ -6,6 +6,7 @@ import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.WalletTransactionMapper;
@@ -78,7 +79,7 @@ public class WalletServiceImpl implements WalletService {
                 .amount(amount)
                 .currency(resolveCurrency())
                 .description("Mock wallet top-up")
-                .referenceType("WALLET")
+                .referenceType(WalletReferenceType.WALLET)
                 .build();
         walletTransactionRepository.save(transaction);
         log.info("Wallet top-up completed: userId={}, amount={}, currency={}, newBalance={}",

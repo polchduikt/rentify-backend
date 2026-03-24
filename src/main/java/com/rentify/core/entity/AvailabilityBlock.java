@@ -2,10 +2,18 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Check;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "availability_blocks")
+@Table(
+        name = "availability_blocks",
+        indexes = {
+                @Index(name = "idx_availability_blocks_property_id", columnList = "property_id"),
+                @Index(name = "idx_availability_blocks_property_dates", columnList = "property_id, date_from, date_to")
+        }
+)
+@Check(name = "ck_availability_blocks_date_range", constraints = "date_from <= date_to")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AvailabilityBlock extends CreatedAtEntity {
     @Id

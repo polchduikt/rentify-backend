@@ -3,6 +3,7 @@ package com.rentify.core.entity;
 import com.rentify.core.enums.SubscriptionPlan;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -19,7 +20,7 @@ public class User extends AuditableEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String password;
 
     @Column(name = "oauth_provider", length = 50)
@@ -64,4 +65,20 @@ public class User extends AuditableEntity {
     )
     private Set<Role> roles;
 
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        User user = (User) o;
+        return id != null && id.equals(user.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }
