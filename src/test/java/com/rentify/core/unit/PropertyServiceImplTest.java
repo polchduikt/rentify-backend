@@ -25,6 +25,10 @@ import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.impl.PropertyServiceImpl;
+import com.rentify.core.service.impl.property.PropertyAddressService;
+import com.rentify.core.service.impl.property.PropertyCleanupService;
+import com.rentify.core.service.impl.property.PropertyPhotoService;
+import com.rentify.core.service.impl.property.PropertySearchService;
 import com.rentify.core.validation.PropertyValidator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +76,10 @@ class PropertyServiceImplTest {
     @Mock private ConversationRepository conversationRepository;
     @Mock private FavoriteRepository favoriteRepository;
     @Mock private PropertyValidator propertyValidator;
+    @Mock private PropertyAddressService propertyAddressService;
+    @Mock private PropertyPhotoService propertyPhotoService;
+    @Mock private PropertySearchService propertySearchService;
+    @Mock private PropertyCleanupService propertyCleanupService;
 
     @InjectMocks
     private PropertyServiceImpl propertyService;
@@ -299,40 +307,25 @@ class PropertyServiceImplTest {
         @Test
         void shouldUploadPhoto_whenUserCanManageProperty() {
             String imageUrl = "https://cloudinary.com/test/photo.jpg";
-            String publicId = "rentify/properties/photo-id";
-            PropertyPhoto savedPhoto = PropertyPhoto.builder()
-                    .id(1L)
-                    .property(property)
-                    .url(imageUrl)
-                    .cloudinaryPublicId(publicId)
-                    .sortOrder(0)
-                    .build();
-
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            when(authenticationService.getCurrentUser()).thenReturn(hostUser);
-            when(cloudinaryService.uploadFileWithMetadata(mockFile))
-                    .thenReturn(new CloudinaryUploadResult(imageUrl, publicId));
-            when(propertyPhotoRepository.save(any(PropertyPhoto.class))).thenReturn(savedPhoto);
-            when(propertyMapper.toPhotoDto(savedPhoto)).thenReturn(new PropertyPhotoDto(1L, imageUrl, 0, null));
+            when(propertyPhotoService.uploadPhoto(10L, mockFile))
+                    .thenReturn(new PropertyPhotoDto(1L, imageUrl, 0, null));
 
             PropertyPhotoDto result = propertyService.uploadPhoto(10L, mockFile);
 
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.url()).isEqualTo(imageUrl);
             assertThat(result.sortOrder()).isEqualTo(0);
-            verify(cloudinaryService).uploadFileWithMetadata(mockFile);
+            verify(propertyPhotoService).uploadPhoto(10L, mockFile);
         }
 
         @Test
         void shouldThrowAccessDenied_whenUserCannotManageProperty() {
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            when(authenticationService.getCurrentUser()).thenReturn(otherUser);
+            when(propertyPhotoService.uploadPhoto(10L, mockFile))
+                    .thenThrow(new AccessDeniedException("You do not have permission to manage this property"));
 
             assertThatThrownBy(() -> propertyService.uploadPhoto(10L, mockFile))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("permission to manage this property");
-
-            verify(cloudinaryService, never()).uploadFileWithMetadata(any());
         }
     }
 
@@ -419,14 +412,10 @@ class PropertyServiceImplTest {
         void shouldDeleteProperty_whenHostOwnsPropertyAndNoDependencies() {
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(hostUser);
-            when(bookingRepository.existsByPropertyId(10L)).thenReturn(false);
-            when(reviewRepository.existsByPropertyId(10L)).thenReturn(false);
-            when(conversationRepository.existsByPropertyId(10L)).thenReturn(false);
 
             propertyService.deleteProperty(10L);
 
-            verify(favoriteRepository).deleteByProperty_Id(10L);
-            verify(availabilityBlockRepository).deleteAllByPropertyId(10L);
+            verify(propertyCleanupService).cleanupBeforeDelete(10L);
             verify(propertyRepository).delete(property);
         }
 
@@ -434,7 +423,8 @@ class PropertyServiceImplTest {
         void shouldThrowIllegalState_whenPropertyHasBookings() {
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(hostUser);
-            when(bookingRepository.existsByPropertyId(10L)).thenReturn(true);
+            org.mockito.Mockito.doThrow(new IllegalStateException("Property cannot be deleted because it has bookings"))
+                    .when(propertyCleanupService).cleanupBeforeDelete(10L);
 
             assertThatThrownBy(() -> propertyService.deleteProperty(10L))
                     .isInstanceOf(IllegalStateException.class)
@@ -450,18 +440,14 @@ class PropertyServiceImplTest {
         void shouldReturnFilteredPageAndApplyTopPrioritySort_whenCriteriaProvided() {
             PropertySearchCriteriaDto criteria = emptyCriteria();
             Page<Property> entityPage = new PageImpl<>(List.of(property), pageable, 1);
-            when(propertyRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(entityPage);
-            when(propertyMapper.toDto(property)).thenReturn(responseDto);
+            Page<PropertyResponseDto> dtoPage = new PageImpl<>(List.of(responseDto), pageable, 1);
+            when(propertySearchService.search(criteria, pageable)).thenReturn(dtoPage);
 
             Page<PropertyResponseDto> result = propertyService.search(criteria, pageable);
-            ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
 
             assertThat(result.getTotalElements()).isEqualTo(1);
             assertThat(result.getContent().get(0).id()).isEqualTo(10L);
-            verify(propertyValidator).validateSearchCriteria(criteria);
-            verify(propertyRepository).findAll(any(Specification.class), pageableCaptor.capture());
-            assertTopPrioritySort(pageableCaptor.getValue());
-            assertThat(pageableCaptor.getValue().getSort().getOrderFor("id")).isNotNull();
+            verify(propertySearchService).search(criteria, pageable);
         }
     }
 

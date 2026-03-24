@@ -12,10 +12,11 @@ import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.WalletService;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class WalletServiceImpl implements WalletService {
 
@@ -36,11 +38,9 @@ public class WalletServiceImpl implements WalletService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletTransactionMapper walletTransactionMapper;
     private final WalletNormalizationService walletNormalizationService;
+    private final CurrencyResolver currencyResolver;
 
-    @Value("${application.wallet.currency:UAH}")
-    private String walletCurrency = "UAH";
-
-    @Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
+    @org.springframework.beans.factory.annotation.Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
     private List<BigDecimal> walletTopUpOptions = List.of(
             new BigDecimal("300.00"),
             new BigDecimal("500.00"),
@@ -81,6 +81,8 @@ public class WalletServiceImpl implements WalletService {
                 .referenceType("WALLET")
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Wallet top-up completed: userId={}, amount={}, currency={}, newBalance={}",
+                user.getId(), amount, resolveCurrency(), user.getBalance());
 
         return walletTransactionMapper.toWalletBalanceDto(user, resolveCurrency());
     }
@@ -89,6 +91,8 @@ public class WalletServiceImpl implements WalletService {
     @Transactional(readOnly = true)
     public Page<WalletTransactionDto> getMyTransactions(Pageable pageable) {
         User user = authenticationService.getCurrentUser();
+        walletNormalizationService.normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
         return walletTransactionRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId(), pageable)
                 .map(walletTransactionMapper::toDto);
     }
@@ -134,10 +138,6 @@ public class WalletServiceImpl implements WalletService {
     }
 
     private String resolveCurrency() {
-        String currency = walletCurrency;
-        if (currency == null || currency.isBlank()) {
-            throw new IllegalStateException("Wallet currency is not configured");
-        }
-        return currency.trim();
+        return currencyResolver.resolveDefaultCurrency();
     }
 }

@@ -1,12 +1,17 @@
 package com.rentify.core.validation;
 
 import com.rentify.core.dto.booking.BookingRequestDto;
+import com.rentify.core.entity.Property;
+import com.rentify.core.entity.User;
+import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.RentalType;
 import com.rentify.core.exception.ApiValidationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -27,6 +32,39 @@ public class BookingValidator {
         }
 
         throwIfAny(errors);
+    }
+
+    public void validateBookingEligibility(Property property, User tenant, BookingRequestDto request) {
+        if (property.getStatus() != PropertyStatus.ACTIVE) {
+            throw new IllegalStateException("Only active properties can be booked.");
+        }
+        if (property.getRentalType() != RentalType.SHORT_TERM) {
+            throw new IllegalStateException("Only short-term properties can be booked.");
+        }
+        if (property.getHost().getId().equals(tenant.getId())) {
+            throw new IllegalArgumentException("You cannot book your own property.");
+        }
+
+        long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
+        if (nights <= 0) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date.");
+        }
+        if (property.getMaxGuests() == null) {
+            throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
+        }
+        if (request.guests() > property.getMaxGuests()) {
+            throw new IllegalArgumentException(
+                    "Guest count exceeds the maximum capacity of " + property.getMaxGuests() + " for this property.");
+        }
+    }
+
+    public void validateAvailability(boolean hasBlockedDates, boolean isOccupied) {
+        if (hasBlockedDates) {
+            throw new IllegalStateException("The property is blocked by the host for the selected dates.");
+        }
+        if (isOccupied) {
+            throw new IllegalStateException("The property is already booked for the selected dates.");
+        }
     }
 
     private <T> Set<String> collectBeanErrors(T target) {

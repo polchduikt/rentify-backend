@@ -13,6 +13,7 @@ import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.impl.WalletServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +25,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +50,7 @@ class WalletServiceImplTest {
     @Mock private WalletTransactionRepository walletTransactionRepository;
     @Mock private WalletTransactionMapper walletTransactionMapper;
     @Mock private WalletNormalizationService walletNormalizationService;
+    @Mock private CurrencyResolver currencyResolver;
 
     @InjectMocks
     private WalletServiceImpl walletService;
@@ -64,12 +65,12 @@ class WalletServiceImplTest {
                 .subscriptionPlan(SubscriptionPlan.FREE)
                 .subscriptionActiveUntil(null)
                 .build();
-        ReflectionTestUtils.setField(walletService, "walletCurrency", "UAH");
-        ReflectionTestUtils.setField(walletService, "walletTopUpOptions", List.of(
+        org.springframework.test.util.ReflectionTestUtils.setField(walletService, "walletTopUpOptions", List.of(
                 new BigDecimal("300.00"),
                 new BigDecimal("500.00"),
                 new BigDecimal("1000.00")
         ));
+        lenient().when(currencyResolver.resolveDefaultCurrency()).thenReturn("UAH");
 
         lenient().when(walletTransactionMapper.toWalletBalanceDto(any(User.class), anyString()))
                 .thenAnswer(invocation -> {

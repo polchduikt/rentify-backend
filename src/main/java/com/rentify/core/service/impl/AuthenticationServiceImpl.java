@@ -204,7 +204,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private Role getUserRole() {
         return roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Error: ROLE_USER not found."));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Critical configuration error: ROLE_USER not found in database"));
     }
 
     private record GoogleUserInfo(

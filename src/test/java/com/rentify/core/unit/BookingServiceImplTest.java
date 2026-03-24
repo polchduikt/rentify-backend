@@ -19,6 +19,7 @@ import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PaymentRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.impl.BookingServiceImpl;
 import com.rentify.core.validation.BookingValidator;
 import jakarta.persistence.EntityNotFoundException;
@@ -36,9 +37,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -50,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +65,7 @@ class BookingServiceImplTest {
     @Mock private BookingMapper bookingMapper;
     @Mock private AvailabilityBlockRepository availabilityRepository;
     @Mock private BookingValidator bookingValidator;
+    @Mock private CurrencyResolver currencyResolver;
 
     @InjectMocks
     private BookingServiceImpl bookingService;
@@ -135,6 +137,7 @@ class BookingServiceImplTest {
         );
 
         pageable = PageRequest.of(0, 10);
+        lenient().when(currencyResolver.resolvePropertyCurrency(any(Property.class))).thenReturn("UAH");
     }
 
     @Nested
@@ -157,6 +160,7 @@ class BookingServiceImplTest {
 
             assertThat(result.id()).isEqualTo(50L);
             verify(bookingValidator).validateCreateBookingRequest(request);
+            verify(bookingValidator).validateBookingEligibility(property, tenantUser, request);
             verify(bookingRepository).saveAndFlush(bookingCaptor.capture());
             assertThat(bookingCaptor.getValue().getStatus()).isEqualTo(BookingStatus.CREATED);
             assertThat(bookingCaptor.getValue().getTotalPrice()).isEqualByComparingTo("4000");
@@ -174,9 +178,10 @@ class BookingServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenPropertyIsNotActive() {
-            property.setStatus(PropertyStatus.INACTIVE);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalStateException("Only active properties can be booked."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -185,9 +190,10 @@ class BookingServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenPropertyIsNotShortTerm() {
-            property.setRentalType(RentalType.LONG_TERM);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalStateException("Only short-term properties can be booked."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -196,9 +202,10 @@ class BookingServiceImplTest {
 
         @Test
         void shouldThrowIllegalArgument_whenTenantBooksOwnProperty() {
-            property.setHost(tenantUser);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalArgumentException("You cannot book your own property."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -210,6 +217,8 @@ class BookingServiceImplTest {
             BookingRequestDto zeroNightsRequest = new BookingRequestDto(10L, request.dateFrom(), request.dateFrom(), (short) 2);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalArgumentException("Check-out date must be after check-in date."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, zeroNightsRequest);
 
             assertThatThrownBy(() -> bookingService.createBooking(zeroNightsRequest))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -218,9 +227,10 @@ class BookingServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenMaxGuestsNotConfigured() {
-            property.setMaxGuests(null);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalStateException("Property configuration is invalid: maxGuests is not set."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -232,6 +242,9 @@ class BookingServiceImplTest {
             BookingRequestDto tooManyGuestsRequest = new BookingRequestDto(10L, request.dateFrom(), request.dateTo(), (short) 4);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            doThrow(new IllegalArgumentException(
+                    "Guest count exceeds the maximum capacity of " + property.getMaxGuests() + " for this property."))
+                    .when(bookingValidator).validateBookingEligibility(property, tenantUser, tooManyGuestsRequest);
 
             assertThatThrownBy(() -> bookingService.createBooking(tooManyGuestsRequest))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -245,6 +258,8 @@ class BookingServiceImplTest {
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom())).thenReturn(List.of(block));
+            doThrow(new IllegalStateException("The property is blocked by the host for the selected dates."))
+                    .when(bookingValidator).validateAvailability(true, false);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -259,6 +274,8 @@ class BookingServiceImplTest {
                     10L, request.dateTo(), request.dateFrom())).thenReturn(List.of());
             when(bookingRepository.hasOverlappingBookings(eq(10L), eq(request.dateFrom()), eq(request.dateTo()), anyList()))
                     .thenReturn(true);
+            doThrow(new IllegalStateException("The property is already booked for the selected dates."))
+                    .when(bookingValidator).validateAvailability(false, true);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(IllegalStateException.class)
@@ -425,6 +442,7 @@ class BookingServiceImplTest {
         @Test
         void shouldCancelBookingAndCreateRefund_whenPaidAndNotRefunded() {
             property.getPricing().setCurrency(" USD ");
+            when(currencyResolver.resolvePropertyCurrency(property)).thenReturn("USD");
             when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
             when(authService.getCurrentUser()).thenReturn(hostUser);
             when(bookingRepository.save(booking)).thenReturn(booking);
@@ -496,8 +514,8 @@ class BookingServiceImplTest {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
 
             assertThatThrownBy(() -> bookingService.confirmBooking(50L))
-                    .isInstanceOfSatisfying(ResponseStatusException.class,
-                            ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Access denied: you are not the host of this property");
         }
 
         @Test

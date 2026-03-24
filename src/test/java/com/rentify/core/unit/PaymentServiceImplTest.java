@@ -13,6 +13,7 @@ import com.rentify.core.mapper.PaymentMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PaymentRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.impl.PaymentServiceImpl;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +45,7 @@ class PaymentServiceImplTest {
     @Mock private BookingRepository bookingRepository;
     @Mock private AuthenticationService authenticationService;
     @Mock private PaymentMapper paymentMapper;
+    @Mock private CurrencyResolver currencyResolver;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
@@ -73,6 +76,7 @@ class PaymentServiceImplTest {
                 .status(BookingStatus.CONFIRMED)
                 .totalPrice(new BigDecimal("2500.00"))
                 .build();
+        lenient().when(currencyResolver.resolvePropertyCurrency(property)).thenReturn("UAH");
     }
 
     @Nested
@@ -136,6 +140,7 @@ class PaymentServiceImplTest {
         @Test
         void shouldCreatePaidPayment_whenBookingCanBePaid() {
             booking.getProperty().getPricing().setCurrency(" USD ");
+            when(currencyResolver.resolvePropertyCurrency(booking.getProperty())).thenReturn("USD");
             Payment savedPayment = Payment.builder()
                     .id(500L)
                     .booking(booking)

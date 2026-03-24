@@ -20,6 +20,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PromotionService;
 import com.rentify.core.service.WalletNormalizationService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PromotionServiceImpl implements PromotionService {
 
@@ -87,6 +89,8 @@ public class PromotionServiceImpl implements PromotionService {
                 .referenceId(propertyId)
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Top promotion purchased: propertyId={}, userId={}, packageType={}, amount={}, currency={}",
+                propertyId, user.getId(), packageType, price, UAH);
 
         return promotionMapper.toTopPromotionPurchaseResponse(
                 property,
@@ -128,6 +132,8 @@ public class PromotionServiceImpl implements PromotionService {
                 .referenceType("SUBSCRIPTION")
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Subscription purchased: userId={}, packageType={}, amount={}, currency={}",
+                user.getId(), packageType, price, UAH);
 
         return promotionMapper.toSubscriptionPurchaseResponse(
                 user,

@@ -129,8 +129,8 @@ class AuthenticationServiceImplTest {
             when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authenticationService.register(request))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessage("Error: ROLE_USER not found.");
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Critical configuration error: ROLE_USER not found in database");
         }
     }
 

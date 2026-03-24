@@ -9,9 +9,12 @@ import com.rentify.core.enums.PaymentStatus;
 import com.rentify.core.mapper.PaymentMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PaymentRepository;
+import com.rentify.core.security.UserRoleUtils;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.PaymentService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
@@ -30,6 +34,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final BookingRepository bookingRepository;
     private final AuthenticationService authenticationService;
     private final PaymentMapper paymentMapper;
+    private final CurrencyResolver currencyResolver;
 
     @Override
     @Transactional
@@ -51,12 +56,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalStateException("Booking has no calculated total price");
         }
 
-        String currency = "UAH";
-        if (booking.getProperty().getPricing() != null
-                && booking.getProperty().getPricing().getCurrency() != null
-                && !booking.getProperty().getPricing().getCurrency().isBlank()) {
-            currency = booking.getProperty().getPricing().getCurrency().trim();
-        }
+        String currency = currencyResolver.resolvePropertyCurrency(booking.getProperty());
 
         // TODO: Replace mock payment flow with a real payment gateway integration (LiqPay/Stripe/etc.).
         Payment payment = Payment.builder()
@@ -69,6 +69,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         Payment savedPayment = paymentRepository.save(payment);
+        log.info("Payment created: paymentId={}, bookingId={}, userId={}, amount={}, currency={}",
+                savedPayment.getId(), bookingId, currentUser.getId(), savedPayment.getAmount(), savedPayment.getCurrency());
         return paymentMapper.toDto(savedPayment);
     }
 
@@ -88,8 +90,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         boolean isTenant = booking.getTenant().getId().equals(currentUser.getId());
         boolean isHost = booking.getProperty().getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUser.getRoles().stream()
-                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
 
         if (!isTenant && !isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to view these payments");

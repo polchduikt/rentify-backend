@@ -1,46 +1,27 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.dto.property.AddressDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
 import com.rentify.core.dto.property.PropertyMapPinDto;
 import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
-import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
-import com.rentify.core.entity.Address;
 import com.rentify.core.entity.Amenity;
-import com.rentify.core.entity.City;
-import com.rentify.core.entity.District;
-import com.rentify.core.entity.Location;
-import com.rentify.core.entity.MetroStation;
 import com.rentify.core.entity.Property;
-import com.rentify.core.entity.PropertyPhoto;
 import com.rentify.core.entity.PropertyPricing;
 import com.rentify.core.entity.PropertyRule;
-import com.rentify.core.entity.ResidentialComplex;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.AmenityCategory;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.PropertyMapper;
-import com.rentify.core.repository.AddressRepository;
 import com.rentify.core.repository.AmenityRepository;
-import com.rentify.core.repository.AvailabilityBlockRepository;
-import com.rentify.core.repository.BookingRepository;
-import com.rentify.core.repository.CityRepository;
-import com.rentify.core.repository.ConversationRepository;
-import com.rentify.core.repository.DistrictRepository;
-import com.rentify.core.repository.FavoriteRepository;
-import com.rentify.core.repository.LocationRepository;
-import com.rentify.core.repository.MetroStationRepository;
-import com.rentify.core.repository.PropertyPhotoRepository;
 import com.rentify.core.repository.PropertyRepository;
-import com.rentify.core.repository.ResidentialComplexRepository;
-import com.rentify.core.repository.ReviewRepository;
-import com.rentify.core.repository.specification.PropertySpecifications;
 import com.rentify.core.service.AuthenticationService;
-import com.rentify.core.service.CloudinaryService;
 import com.rentify.core.service.PropertyService;
+import com.rentify.core.service.impl.property.PropertyAddressService;
+import com.rentify.core.service.impl.property.PropertyCleanupService;
+import com.rentify.core.service.impl.property.PropertyPhotoService;
+import com.rentify.core.service.impl.property.PropertySearchService;
 import com.rentify.core.validation.PropertyValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -48,11 +29,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -68,21 +49,12 @@ public class PropertyServiceImpl implements PropertyService {
     private final PropertyRepository propertyRepository;
     private final AmenityRepository amenityRepository;
     private final PropertyMapper propertyMapper;
-    private final AddressRepository addressRepository;
-    private final CityRepository cityRepository;
-    private final DistrictRepository districtRepository;
-    private final MetroStationRepository metroStationRepository;
-    private final ResidentialComplexRepository residentialComplexRepository;
-    private final LocationRepository locationRepository;
     private final AuthenticationService authenticationService;
-    private final CloudinaryService cloudinaryService;
-    private final PropertyPhotoRepository propertyPhotoRepository;
-    private final AvailabilityBlockRepository availabilityBlockRepository;
-    private final BookingRepository bookingRepository;
-    private final ReviewRepository reviewRepository;
-    private final ConversationRepository conversationRepository;
-    private final FavoriteRepository favoriteRepository;
     private final PropertyValidator propertyValidator;
+    private final PropertyAddressService propertyAddressService;
+    private final PropertyPhotoService propertyPhotoService;
+    private final PropertySearchService propertySearchService;
+    private final PropertyCleanupService propertyCleanupService;
 
     @Override
     @Transactional(readOnly = true)
@@ -139,7 +111,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.getRules().setProperty(property);
         }
         updateAmenities(property, request.amenityIds(), request.amenitySlugs(), host);
-        updateAddress(property, request);
+        propertyAddressService.updateAddress(property, request);
         Property savedProperty = propertyRepository.save(property);
         return propertyMapper.toDto(savedProperty);
     }
@@ -156,7 +128,7 @@ public class PropertyServiceImpl implements PropertyService {
         propertyMapper.updateEntity(request, property);
         applyListingFlags(property, request, currentUser);
         updateAmenities(property, request.amenityIds(), request.amenitySlugs(), currentUser);
-        updateAddress(property, request);
+        propertyAddressService.updateAddress(property, request);
         updatePricing(property, request);
         updateRules(property, request);
         Property updatedProperty = propertyRepository.save(property);
@@ -170,54 +142,20 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         assertCanManageProperty(property, currentUser);
-        if (bookingRepository.existsByPropertyId(id)) {
-            throw new IllegalStateException("Property cannot be deleted because it has bookings");
-        }
-        if (reviewRepository.existsByPropertyId(id)) {
-            throw new IllegalStateException("Property cannot be deleted because it has reviews");
-        }
-        if (conversationRepository.existsByPropertyId(id)) {
-            throw new IllegalStateException("Property cannot be deleted because it has conversations");
-        }
-        favoriteRepository.deleteByProperty_Id(id);
-        availabilityBlockRepository.deleteAllByPropertyId(id);
+        propertyCleanupService.cleanupBeforeDelete(id);
         propertyRepository.delete(property);
     }
 
     @Override
     @Transactional
     public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file) {
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        User currentUser = authenticationService.getCurrentUser();
-        assertCanManageProperty(property, currentUser);
-        CloudinaryUploadResult uploadResult = cloudinaryService.uploadFileWithMetadata(file);
-        PropertyPhoto photo = PropertyPhoto.builder()
-                .property(property)
-                .url(uploadResult.secureUrl())
-                .cloudinaryPublicId(uploadResult.publicId())
-                .sortOrder(0)
-                .build();
-        PropertyPhoto savedPhoto = propertyPhotoRepository.save(photo);
-        return propertyMapper.toPhotoDto(savedPhoto);
+        return propertyPhotoService.uploadPhoto(propertyId, file);
     }
 
     @Override
     @Transactional
     public void deletePhoto(Long propertyId, Long photoId) {
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-        User currentUser = authenticationService.getCurrentUser();
-        assertCanManageProperty(property, currentUser);
-
-        PropertyPhoto photo = propertyPhotoRepository.findByIdAndPropertyId(photoId, propertyId)
-                .orElseThrow(() -> new EntityNotFoundException("Photo not found for the property"));
-        if (photo.getCloudinaryPublicId() != null && !photo.getCloudinaryPublicId().isBlank()) {
-            cloudinaryService.deleteFileByPublicId(photo.getCloudinaryPublicId());
-        } else {
-            cloudinaryService.deleteFile(photo.getUrl());
-        }
-        propertyPhotoRepository.delete(photo);
+        propertyPhotoService.deletePhoto(propertyId, photoId);
     }
 
     @Override
@@ -227,18 +165,15 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUser.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+        boolean isAdmin = isAdmin(currentUser);
         if (!isHost && !isAdmin) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You do not have permission to change the status of this property");
+            throw new AccessDeniedException("You do not have permission to change the status of this property");
         }
         if (newStatus == PropertyStatus.BLOCKED && !isAdmin) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Only administrators can block properties");
+            throw new AccessDeniedException("Only administrators can block properties");
         }
         if (property.getStatus() == PropertyStatus.BLOCKED && !isAdmin) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "This property is blocked by an administrator and cannot be unblocked manually");
         }
         property.setStatus(newStatus);
@@ -248,22 +183,13 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(PropertySearchCriteriaDto criteria, Pageable pageable) {
-        propertyValidator.validateSearchCriteria(criteria);
-        return propertyRepository.findAll(PropertySpecifications.withFilters(criteria), withTopPrioritySort(pageable))
-                .map(propertyMapper::toDto);
+        return propertySearchService.search(criteria, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyMapPinDto> searchMapPins(PropertySearchCriteriaDto criteria, Pageable pageable) {
-        propertyValidator.validateSearchCriteria(criteria);
-        Specification<Property> mapSpecification = PropertySpecifications.withFilters(criteria)
-                .and((root, query, cb) -> cb.and(
-                        cb.isNotNull(root.get("address").get("lat")),
-                        cb.isNotNull(root.get("address").get("lng"))
-                ));
-        return propertyRepository.findAll(mapSpecification, withTopPrioritySort(pageable))
-                .map(propertyMapper::toMapPinDto);
+        return propertySearchService.searchMapPins(criteria, pageable);
     }
 
     private void updateAmenities(
@@ -308,68 +234,6 @@ public class PropertyServiceImpl implements PropertyService {
         }
 
         property.setAmenities(amenities);
-    }
-
-    private void updateAddress(Property property, PropertyCreateRequestDto request) {
-        if (request.address() == null) {
-            return;
-        }
-        AddressDto dto = request.address();
-        Address address = property.getAddress();
-        if (address == null) {
-            address = propertyMapper.toAddressEntity(dto);
-        }
-
-        City cityRef = resolveCityReference(dto);
-        District districtRef = resolveDistrictReference(dto);
-        MetroStation metroStationRef = resolveMetroStationReference(dto);
-        ResidentialComplex residentialComplexRef = resolveResidentialComplexReference(dto);
-
-        cityRef = resolveCityFromReferences(cityRef, districtRef, metroStationRef, residentialComplexRef);
-
-        if (cityRef != null) {
-            if (districtRef != null && !districtRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("District does not belong to selected city");
-            }
-            if (metroStationRef != null && !metroStationRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Metro station does not belong to selected city");
-            }
-            if (residentialComplexRef != null && !residentialComplexRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Residential complex does not belong to selected city");
-            }
-        }
-
-        if (address.getLocation() == null) {
-            address.setLocation(new Location());
-        }
-        Location location = address.getLocation();
-        if (cityRef != null) {
-            location.setCountry(cityRef.getCountry());
-            location.setRegion(cityRef.getRegion());
-            location.setCity(cityRef.getName());
-        } else if (dto.location() != null) {
-            location.setCountry(dto.location().country());
-            location.setRegion(dto.location().region());
-            location.setCity(dto.location().city());
-        } else {
-            throw new IllegalArgumentException("Either cityId or address.location must be provided");
-        }
-        Location savedLocation = locationRepository.save(location);
-
-        address.setLocation(savedLocation);
-        address.setCityRef(cityRef);
-        address.setDistrictRef(districtRef);
-        address.setMetroStationRef(metroStationRef);
-        address.setResidentialComplexRef(residentialComplexRef);
-        address.setStreet(dto.street());
-        address.setHouseNumber(dto.houseNumber());
-        address.setApartment(dto.apartment());
-        address.setPostalCode(dto.postalCode());
-        address.setLat(dto.lat());
-        address.setLng(dto.lng());
-
-        Address savedAddress = addressRepository.save(address);
-        property.setAddress(savedAddress);
     }
 
     private void updatePricing(Property property, PropertyCreateRequestDto request) {
@@ -421,69 +285,6 @@ public class PropertyServiceImpl implements PropertyService {
         return new ArrayList<>(normalized);
     }
 
-    private City resolveCityReference(AddressDto addressDto) {
-        if (addressDto.cityId() != null) {
-            return cityRepository.findById(addressDto.cityId())
-                    .orElseThrow(() -> new EntityNotFoundException("City not found"));
-        }
-        if (addressDto.location() != null
-                && addressDto.location().city() != null
-                && !addressDto.location().city().isBlank()
-                && addressDto.location().region() != null
-                && !addressDto.location().region().isBlank()) {
-            return cityRepository.findFirstByNameIgnoreCaseAndRegionIgnoreCase(
-                    addressDto.location().city(),
-                    addressDto.location().region()
-            ).orElse(null);
-        }
-        return null;
-    }
-
-    private District resolveDistrictReference(AddressDto addressDto) {
-        if (addressDto.districtId() == null) {
-            return null;
-        }
-        return districtRepository.findById(addressDto.districtId())
-                .orElseThrow(() -> new EntityNotFoundException("District not found"));
-    }
-
-    private MetroStation resolveMetroStationReference(AddressDto addressDto) {
-        if (addressDto.metroStationId() == null) {
-            return null;
-        }
-        return metroStationRepository.findById(addressDto.metroStationId())
-                .orElseThrow(() -> new EntityNotFoundException("Metro station not found"));
-    }
-
-    private ResidentialComplex resolveResidentialComplexReference(AddressDto addressDto) {
-        if (addressDto.residentialComplexId() == null) {
-            return null;
-        }
-        return residentialComplexRepository.findById(addressDto.residentialComplexId())
-                .orElseThrow(() -> new EntityNotFoundException("Residential complex not found"));
-    }
-
-    private City resolveCityFromReferences(
-            City initialCity,
-            District district,
-            MetroStation metroStation,
-            ResidentialComplex residentialComplex
-    ) {
-        if (initialCity != null) {
-            return initialCity;
-        }
-        if (district != null) {
-            return district.getCity();
-        }
-        if (metroStation != null) {
-            return metroStation.getCity();
-        }
-        if (residentialComplex != null) {
-            return residentialComplex.getCity();
-        }
-        return null;
-    }
-
     private void assertCanManageProperty(Property property, User currentUser) {
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
         boolean isAdmin = isAdmin(currentUser);
@@ -527,5 +328,4 @@ public class PropertyServiceImpl implements PropertyService {
                 : topPrioritySort.and(Sort.by(Sort.Direction.DESC, "createdAt"));
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
     }
-
 }
