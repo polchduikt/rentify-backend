@@ -1,6 +1,5 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.config.WalletProperties;
 import com.rentify.core.dto.wallet.WalletBalanceDto;
 import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
@@ -16,6 +15,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.WalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,7 +36,16 @@ public class WalletServiceImpl implements WalletService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletTransactionMapper walletTransactionMapper;
     private final WalletNormalizationService walletNormalizationService;
-    private final WalletProperties walletProperties;
+
+    @Value("${application.wallet.currency:UAH}")
+    private String walletCurrency = "UAH";
+
+    @Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
+    private List<BigDecimal> walletTopUpOptions = List.of(
+            new BigDecimal("300.00"),
+            new BigDecimal("500.00"),
+            new BigDecimal("1000.00")
+    );
 
     @Override
     @Transactional
@@ -116,7 +125,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     private List<BigDecimal> resolveAllowedTopUpAmounts() {
-        List<BigDecimal> configured = walletProperties.getTopUpOptions();
+        List<BigDecimal> configured = walletTopUpOptions;
         if (configured == null || configured.isEmpty()) {
             throw new IllegalStateException("Wallet top-up options are not configured");
         }
@@ -136,7 +145,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     private String resolveCurrency() {
-        String currency = walletProperties.getCurrency();
+        String currency = walletCurrency;
         if (currency == null || currency.isBlank()) {
             throw new IllegalStateException("Wallet currency is not configured");
         }

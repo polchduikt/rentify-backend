@@ -1,6 +1,5 @@
 package com.rentify.core.unit;
 
-import com.rentify.core.config.WalletProperties;
 import com.rentify.core.dto.wallet.WalletBalanceDto;
 import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
@@ -25,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,7 +35,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,7 +47,6 @@ class WalletServiceImplTest {
     @Mock private WalletTransactionRepository walletTransactionRepository;
     @Mock private WalletTransactionMapper walletTransactionMapper;
     @Mock private WalletNormalizationService walletNormalizationService;
-    @Mock private WalletProperties walletProperties;
 
     @InjectMocks
     private WalletServiceImpl walletService;
@@ -63,8 +61,8 @@ class WalletServiceImplTest {
                 .subscriptionPlan(SubscriptionPlan.FREE)
                 .subscriptionActiveUntil(null)
                 .build();
-        lenient().when(walletProperties.getCurrency()).thenReturn("UAH");
-        lenient().when(walletProperties.getTopUpOptions()).thenReturn(List.of(
+        ReflectionTestUtils.setField(walletService, "walletCurrency", "UAH");
+        ReflectionTestUtils.setField(walletService, "walletTopUpOptions", List.of(
                 new BigDecimal("300.00"),
                 new BigDecimal("500.00"),
                 new BigDecimal("1000.00")

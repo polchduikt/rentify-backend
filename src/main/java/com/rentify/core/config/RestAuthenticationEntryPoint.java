@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +33,9 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 status.value(),
                 status.getReasonPhrase(),
                 "Authentication is required to access this resource",
-                request.getRequestURI()
+                request.getRequestURI(),
+                "AUTHENTICATION_REQUIRED",
+                Map.of()
         );
 
         response.setStatus(status.value());

@@ -2,6 +2,7 @@ package com.rentify.core.unit;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.rentify.core.exception.FileUploadException;
 import com.rentify.core.service.impl.CloudinaryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -94,7 +95,7 @@ class CloudinaryServiceImplTest {
             when(file.getBytes()).thenThrow(new IOException("read error"));
 
             assertThatThrownBy(() -> cloudinaryService.uploadFile(file))
-                    .isInstanceOf(RuntimeException.class)
+                    .isInstanceOf(FileUploadException.class)
                     .hasMessageContaining("Image upload failed: read error");
         }
     }
@@ -123,8 +124,8 @@ class CloudinaryServiceImplTest {
         @Test
         void shouldWrapException_whenUrlIsInvalid() {
             assertThatThrownBy(() -> cloudinaryService.deleteFile("https://example.com/no-upload-segment.jpg"))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Image deletion failed: Invalid Cloudinary URL");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Invalid Cloudinary URL");
         }
     }
 }
