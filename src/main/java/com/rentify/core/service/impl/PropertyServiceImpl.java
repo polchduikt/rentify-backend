@@ -94,12 +94,8 @@ public class PropertyServiceImpl implements PropertyService {
         assertRentalPricingRules(request);
         User host = authenticationService.getCurrentUser();
         Property property = propertyMapper.toEntity(request);
-        if (property.getRentalType() == null) {
-            property.setRentalType(request.rentalType());
-        }
-        if (property.getPropertyType() == null) {
-            property.setPropertyType(request.propertyType());
-        }
+        property.setRentalType(request.rentalType());
+        property.setPropertyType(request.propertyType());
         property.setMarketType(request.marketType());
         applyListingFlags(property, request, host);
         property.setHost(host);
@@ -126,6 +122,8 @@ public class PropertyServiceImpl implements PropertyService {
         User currentUser = authenticationService.getCurrentUser();
         assertCanManageProperty(property, currentUser);
         propertyMapper.updateEntity(request, property);
+        property.setRentalType(request.rentalType());
+        property.setPropertyType(request.propertyType());
         applyListingFlags(property, request, currentUser);
         updateAmenities(property, request.amenityIds(), request.amenitySlugs(), currentUser);
         propertyAddressService.updateAddress(property, request);

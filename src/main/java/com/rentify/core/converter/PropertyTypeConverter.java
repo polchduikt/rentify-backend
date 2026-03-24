@@ -9,7 +9,7 @@ public class PropertyTypeConverter implements AttributeConverter<PropertyType, S
 
     @Override
     public String convertToDatabaseColumn(PropertyType attribute) {
-        return attribute == null ? null : attribute.value();
+        return attribute == null ? null : attribute.dbValue();
     }
 
     @Override

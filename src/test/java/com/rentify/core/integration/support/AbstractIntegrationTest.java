@@ -146,6 +146,24 @@ public abstract class AbstractIntegrationTest {
         return propertyId;
     }
 
+    protected long createLongTermProperty(String token, String title, String city, double pricePerMonth) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/properties")
+                        .header("Authorization", bearerToken(token))
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(longTermPropertyPayload(title, city, pricePerMonth))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return readJson(result).get("id").asLong();
+    }
+
+    protected long createActiveLongTermProperty(String token, String title, String city, double pricePerMonth) throws Exception {
+        long propertyId = createLongTermProperty(token, title, city, pricePerMonth);
+        Property property = propertyRepository.findById(propertyId).orElseThrow();
+        property.setStatus(PropertyStatus.ACTIVE);
+        propertyRepository.save(property);
+        return propertyId;
+    }
+
     protected long createBookingAndReturnId(String token, long propertyId, LocalDate from, LocalDate to, short guests) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/bookings")
                         .header("Authorization", bearerToken(token))
@@ -203,7 +221,7 @@ public abstract class AbstractIntegrationTest {
         payload.put("title", title);
         payload.put("description", "Integration test listing");
         payload.put("rentalType", "SHORT_TERM");
-        payload.put("propertyType", "apartment");
+        payload.put("propertyType", "APARTMENT");
         payload.put("marketType", "SECONDARY");
         payload.put("rooms", 2);
         payload.put("floor", 4);
@@ -212,6 +230,46 @@ public abstract class AbstractIntegrationTest {
         payload.put("maxGuests", 3);
         payload.put("checkInTime", "11:00:00");
         payload.put("checkOutTime", "14:00:00");
+        payload.put("pricing", pricing);
+        payload.put("rules", rules);
+        return payload;
+    }
+
+    protected Map<String, Object> longTermPropertyPayload(String title, String city, double pricePerMonth) {
+        Map<String, Object> location = new LinkedHashMap<>();
+        location.put("country", "Ukraine");
+        location.put("region", "Kyivska");
+        location.put("city", city);
+
+        Map<String, Object> address = new LinkedHashMap<>();
+        address.put("location", location);
+        address.put("street", "Khreshchatyk");
+        address.put("houseNumber", "10");
+        address.put("apartment", "12");
+        address.put("postalCode", "01001");
+        address.put("lat", 50.4501);
+        address.put("lng", 30.5234);
+
+        Map<String, Object> pricing = new LinkedHashMap<>();
+        pricing.put("pricePerMonth", pricePerMonth);
+        pricing.put("currency", "UAH");
+
+        Map<String, Object> rules = new LinkedHashMap<>();
+        rules.put("petsAllowed", true);
+        rules.put("smokingAllowed", false);
+        rules.put("partiesAllowed", false);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("address", address);
+        payload.put("title", title);
+        payload.put("description", "Integration test listing");
+        payload.put("rentalType", "LONG_TERM");
+        payload.put("propertyType", "APARTMENT");
+        payload.put("marketType", "SECONDARY");
+        payload.put("rooms", 2);
+        payload.put("floor", 4);
+        payload.put("totalFloors", 9);
+        payload.put("areaSqm", 48.5);
         payload.put("pricing", pricing);
         payload.put("rules", rules);
         return payload;

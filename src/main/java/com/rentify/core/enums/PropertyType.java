@@ -1,7 +1,6 @@
 package com.rentify.core.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -23,8 +22,7 @@ public enum PropertyType {
         this.value = value;
     }
 
-    @JsonValue
-    public String value() {
+    public String dbValue() {
         return value;
     }
 
