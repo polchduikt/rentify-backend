@@ -33,7 +33,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -198,7 +197,7 @@ class ConversationServiceImplTest {
             ConversationDto dto = new ConversationDto(100L, 10L, 1L, 2L, ZonedDateTime.now());
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(conversationRepository.findAllByUserId(2L)).thenReturn(List.of(conversation));
-            when(chatMapper.toConversationDto(conversation)).thenReturn(dto);
+            when(chatMapper.toConversationDtos(List.of(conversation))).thenReturn(List.of(dto));
 
             List<ConversationDto> result = conversationService.getMyConversations();
 
@@ -239,7 +238,7 @@ class ConversationServiceImplTest {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(conversationRepository.findById(100L)).thenReturn(Optional.of(conversation));
             when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(100L)).thenReturn(List.of(message));
-            when(chatMapper.toMessageDto(eq(message))).thenReturn(dto);
+            when(chatMapper.toMessageDtos(List.of(message))).thenReturn(List.of(dto));
 
             List<MessageDto> result = conversationService.getConversationMessages(100L);
 

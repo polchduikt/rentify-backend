@@ -9,6 +9,7 @@ import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
+import com.rentify.core.mapper.AuthenticationMapper;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
@@ -42,6 +43,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,6 +58,7 @@ class AuthenticationServiceImplTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private RoleRepository roleRepository;
     @Mock private JwtDecoder googleJwtDecoder;
+    @Mock private AuthenticationMapper authenticationMapper;
 
     @InjectMocks
     private AuthenticationServiceImpl authenticationService;
@@ -76,6 +80,8 @@ class AuthenticationServiceImplTest {
                 .build();
 
         ReflectionTestUtils.setField(authenticationService, "googleClientId", "test-google-client-id");
+        lenient().when(authenticationMapper.toAuthenticationResponse(anyString()))
+                .thenAnswer(invocation -> new AuthenticationResponseDto(invocation.getArgument(0)));
     }
 
     @AfterEach

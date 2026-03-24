@@ -153,19 +153,8 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         assertCanManageProperty(property, currentUser);
-        property.setTitle(request.title());
-        property.setDescription(request.description());
-        property.setRentalType(request.rentalType());
-        property.setPropertyType(request.propertyType());
-        property.setMarketType(request.marketType());
+        propertyMapper.updateEntity(request, property);
         applyListingFlags(property, request, currentUser);
-        property.setRooms(request.rooms());
-        property.setFloor(request.floor());
-        property.setTotalFloors(request.totalFloors());
-        property.setAreaSqm(request.areaSqm());
-        property.setMaxGuests(request.maxGuests());
-        property.setCheckInTime(request.checkInTime());
-        property.setCheckOutTime(request.checkOutTime());
         updateAmenities(property, request.amenityIds(), request.amenitySlugs(), currentUser);
         updateAddress(property, request);
         updatePricing(property, request);
@@ -210,12 +199,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .sortOrder(0)
                 .build();
         PropertyPhoto savedPhoto = propertyPhotoRepository.save(photo);
-        return new PropertyPhotoDto(
-                savedPhoto.getId(),
-                savedPhoto.getUrl(),
-                savedPhoto.getSortOrder(),
-                savedPhoto.getCreatedAt()
-        );
+        return propertyMapper.toPhotoDto(savedPhoto);
     }
 
     @Override
@@ -279,7 +263,7 @@ public class PropertyServiceImpl implements PropertyService {
                         cb.isNotNull(root.get("address").get("lng"))
                 ));
         return propertyRepository.findAll(mapSpecification, withTopPrioritySort(pageable))
-                .map(this::toMapPinDto);
+                .map(propertyMapper::toMapPinDto);
     }
 
     private void updateAmenities(
@@ -398,11 +382,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.setPricing(pricing);
             return;
         }
-        property.getPricing().setPricePerNight(request.pricing().pricePerNight());
-        property.getPricing().setPricePerMonth(request.pricing().pricePerMonth());
-        property.getPricing().setCurrency(request.pricing().currency());
-        property.getPricing().setSecurityDeposit(request.pricing().securityDeposit());
-        property.getPricing().setCleaningFee(request.pricing().cleaningFee());
+        propertyMapper.updatePricing(request.pricing(), property.getPricing());
     }
 
     private void updateRules(Property property, PropertyCreateRequestDto request) {
@@ -415,10 +395,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.setRules(rules);
             return;
         }
-        property.getRules().setPetsAllowed(request.rules().petsAllowed());
-        property.getRules().setSmokingAllowed(request.rules().smokingAllowed());
-        property.getRules().setPartiesAllowed(request.rules().partiesAllowed());
-        property.getRules().setAdditionalRules(request.rules().additionalRules());
+        propertyMapper.updateRules(request.rules(), property.getRules());
     }
 
     private void applyListingFlags(Property property, PropertyCreateRequestDto request, User currentUser) {
@@ -551,39 +528,4 @@ public class PropertyServiceImpl implements PropertyService {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
     }
 
-    private PropertyMapPinDto toMapPinDto(Property property) {
-        PropertyPricing pricing = property.getPricing();
-        BigDecimal price = resolveMapPrice(property);
-        String currency = pricing != null ? pricing.getCurrency() : null;
-        BigDecimal lat = property.getAddress() != null ? property.getAddress().getLat() : null;
-        BigDecimal lng = property.getAddress() != null ? property.getAddress().getLng() : null;
-        return new PropertyMapPinDto(
-                property.getId(),
-                property.getTitle(),
-                property.getPropertyType(),
-                property.getMarketType(),
-                property.getRentalType(),
-                lat,
-                lng,
-                price,
-                currency,
-                property.getIsTopPromoted(),
-                property.getAverageRating(),
-                property.getReviewCount()
-        );
-    }
-
-    private BigDecimal resolveMapPrice(Property property) {
-        PropertyPricing pricing = property.getPricing();
-        if (pricing == null) {
-            return null;
-        }
-        if (property.getRentalType() == RentalType.SHORT_TERM) {
-            return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
-        }
-        if (property.getRentalType() == RentalType.LONG_TERM) {
-            return pricing.getPricePerMonth() != null ? pricing.getPricePerMonth() : pricing.getPricePerNight();
-        }
-        return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
-    }
 }

@@ -9,6 +9,7 @@ import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
+import com.rentify.core.mapper.AuthenticationMapper;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
@@ -49,6 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final RoleRepository roleRepository;
     @Qualifier("googleJwtDecoder")
     private final JwtDecoder googleJwtDecoder;
+    private final AuthenticationMapper authenticationMapper;
 
     @Value("${application.security.oauth.google.client-id:}")
     private String googleClientId;
@@ -74,7 +76,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
         userRepository.save(user);
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override
@@ -86,7 +88,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override
@@ -105,7 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         String jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override

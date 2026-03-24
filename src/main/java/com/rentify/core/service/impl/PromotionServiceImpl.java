@@ -12,6 +12,7 @@ import com.rentify.core.enums.SubscriptionPackageType;
 import com.rentify.core.enums.TopPromotionPackageType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.mapper.PromotionMapper;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
@@ -40,6 +41,7 @@ public class PromotionServiceImpl implements PromotionService {
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletNormalizationService walletNormalizationService;
+    private final PromotionMapper promotionMapper;
 
     @Override
     @Transactional
@@ -86,10 +88,8 @@ public class PromotionServiceImpl implements PromotionService {
                 .build();
         walletTransactionRepository.save(transaction);
 
-        return new TopPromotionPurchaseResponseDto(
-                property.getId(),
-                property.getIsTopPromoted(),
-                property.getTopPromotedUntil(),
+        return promotionMapper.toTopPromotionPurchaseResponse(
+                property,
                 price,
                 user.getBalance(),
                 UAH
@@ -129,9 +129,8 @@ public class PromotionServiceImpl implements PromotionService {
                 .build();
         walletTransactionRepository.save(transaction);
 
-        return new SubscriptionPurchaseResponseDto(
-                user.getSubscriptionPlan(),
-                user.getSubscriptionActiveUntil(),
+        return promotionMapper.toSubscriptionPurchaseResponse(
+                user,
                 price,
                 user.getBalance(),
                 UAH
@@ -140,27 +139,18 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     public List<TopPromotionPackageDto> getTopPromotionPackages() {
-        return Arrays.stream(TopPromotionPackageType.values())
-                .map(pkg -> new TopPromotionPackageDto(
-                        pkg,
-                        pkg.getDurationDays(),
-                        pkg.getPrice(),
-                        UAH
-                ))
-                .toList();
+        return promotionMapper.toTopPromotionPackageDtos(
+                Arrays.asList(TopPromotionPackageType.values()),
+                UAH
+        );
     }
 
     @Override
     public List<SubscriptionPackageDto> getSubscriptionPackages() {
-        return Arrays.stream(SubscriptionPackageType.values())
-                .map(pkg -> new SubscriptionPackageDto(
-                        pkg,
-                        pkg.getPlan(),
-                        pkg.getDurationDays(),
-                        pkg.getPrice(),
-                        UAH
-                ))
-                .toList();
+        return promotionMapper.toSubscriptionPackageDtos(
+                Arrays.asList(SubscriptionPackageType.values()),
+                UAH
+        );
     }
 
     private void ensureSufficientBalance(User user, BigDecimal price) {

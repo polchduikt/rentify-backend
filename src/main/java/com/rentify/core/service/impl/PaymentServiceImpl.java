@@ -76,10 +76,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional(readOnly = true)
     public List<PaymentResponseDto> getMyPayments() {
         User currentUser = authenticationService.getCurrentUser();
-        return paymentRepository.findAllByBookingTenantIdOrderByCreatedAtDesc(currentUser.getId())
-                .stream()
-                .map(paymentMapper::toDto)
-                .toList();
+        return paymentMapper.toDtos(paymentRepository.findAllByBookingTenantIdOrderByCreatedAtDesc(currentUser.getId()));
     }
 
     @Override
@@ -98,9 +95,6 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AccessDeniedException("You do not have permission to view these payments");
         }
 
-        return paymentRepository.findAllByBookingIdOrderByCreatedAtDesc(bookingId)
-                .stream()
-                .map(paymentMapper::toDto)
-                .toList();
+        return paymentMapper.toDtos(paymentRepository.findAllByBookingIdOrderByCreatedAtDesc(bookingId));
     }
 }

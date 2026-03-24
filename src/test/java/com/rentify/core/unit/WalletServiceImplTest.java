@@ -35,6 +35,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +70,27 @@ class WalletServiceImplTest {
                 new BigDecimal("500.00"),
                 new BigDecimal("1000.00")
         ));
+
+        lenient().when(walletTransactionMapper.toWalletBalanceDto(any(User.class), anyString()))
+                .thenAnswer(invocation -> {
+                    User mappedUser = invocation.getArgument(0);
+                    String currency = invocation.getArgument(1);
+                    return new WalletBalanceDto(
+                            mappedUser.getBalance(),
+                            currency,
+                            mappedUser.getSubscriptionPlan(),
+                            mappedUser.getSubscriptionActiveUntil()
+                    );
+                });
+        lenient().when(walletTransactionMapper.toTopUpOptionDtos(anyList(), anyString()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    List<BigDecimal> amounts = invocation.getArgument(0);
+                    String currency = invocation.getArgument(1);
+                    return amounts.stream()
+                            .map(amount -> new TopUpOptionDto(amount, currency))
+                            .toList();
+                });
     }
 
     @Nested

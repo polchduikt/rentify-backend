@@ -5,10 +5,14 @@ import com.rentify.core.entity.Booking;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+import java.util.List;
+
+@Mapper(config = MapStructCentralConfig.class)
 public interface BookingMapper {
     @Mapping(source = "property.id", target = "propertyId")
     @Mapping(source = "tenant.id", target = "tenantId")
     BookingDto toDto(Booking booking);
+
+    List<BookingDto> toDtos(List<Booking> bookings);
 }
 

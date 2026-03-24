@@ -313,6 +313,7 @@ class PropertyServiceImplTest {
             when(cloudinaryService.uploadFileWithMetadata(mockFile))
                     .thenReturn(new CloudinaryUploadResult(imageUrl, publicId));
             when(propertyPhotoRepository.save(any(PropertyPhoto.class))).thenReturn(savedPhoto);
+            when(propertyMapper.toPhotoDto(savedPhoto)).thenReturn(new PropertyPhotoDto(1L, imageUrl, 0, null));
 
             PropertyPhotoDto result = propertyService.uploadPhoto(10L, mockFile);
 

@@ -21,7 +21,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,10 +76,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional(readOnly = true)
     public List<ConversationDto> getMyConversations() {
         User currentUser = authService.getCurrentUser();
-        return conversationRepository.findAllByUserId(currentUser.getId())
-                .stream()
-                .map(chatMapper::toConversationDto)
-                .collect(Collectors.toList());
+        return chatMapper.toConversationDtos(conversationRepository.findAllByUserId(currentUser.getId()));
     }
 
     @Override
@@ -90,10 +86,7 @@ public class ConversationServiceImpl implements ConversationService {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
         assertParticipant(conversation, currentUser);
-        return messageRepository.findAllByConversationIdOrderByCreatedAtAsc(conversationId)
-                .stream()
-                .map(chatMapper::toMessageDto)
-                .collect(Collectors.toList());
+        return chatMapper.toMessageDtos(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(conversationId));
     }
 
     private void assertParticipant(Conversation conversation, User user) {

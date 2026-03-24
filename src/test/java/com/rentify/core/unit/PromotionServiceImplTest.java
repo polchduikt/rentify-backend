@@ -13,6 +13,7 @@ import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.enums.TopPromotionPackageType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.mapper.PromotionMapper;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +50,7 @@ class PromotionServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private WalletTransactionRepository walletTransactionRepository;
     @Mock private WalletNormalizationService walletNormalizationService;
+    @Mock private PromotionMapper promotionMapper;
 
     @InjectMocks
     private PromotionServiceImpl promotionService;
@@ -142,6 +145,21 @@ class PromotionServiceImplTest {
             when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(propertyRepository.save(any(Property.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(promotionMapper.toTopPromotionPurchaseResponse(any(Property.class), any(BigDecimal.class), any(BigDecimal.class), anyString()))
+                    .thenAnswer(invocation -> {
+                        Property mappedProperty = invocation.getArgument(0);
+                        BigDecimal chargedAmount = invocation.getArgument(1);
+                        BigDecimal balanceAfter = invocation.getArgument(2);
+                        String currency = invocation.getArgument(3);
+                        return new TopPromotionPurchaseResponseDto(
+                                mappedProperty.getId(),
+                                mappedProperty.getIsTopPromoted(),
+                                mappedProperty.getTopPromotedUntil(),
+                                chargedAmount,
+                                balanceAfter,
+                                currency
+                        );
+                    });
 
             TopPromotionPurchaseResponseDto result =
                     promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS);
@@ -192,6 +210,20 @@ class PromotionServiceImplTest {
             when(authenticationService.getCurrentUser()).thenReturn(host);
             when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(promotionMapper.toSubscriptionPurchaseResponse(any(User.class), any(BigDecimal.class), any(BigDecimal.class), anyString()))
+                    .thenAnswer(invocation -> {
+                        User mappedUser = invocation.getArgument(0);
+                        BigDecimal chargedAmount = invocation.getArgument(1);
+                        BigDecimal balanceAfter = invocation.getArgument(2);
+                        String currency = invocation.getArgument(3);
+                        return new SubscriptionPurchaseResponseDto(
+                                mappedUser.getSubscriptionPlan(),
+                                mappedUser.getSubscriptionActiveUntil(),
+                                chargedAmount,
+                                balanceAfter,
+                                currency
+                        );
+                    });
 
             SubscriptionPurchaseResponseDto result =
                     promotionService.purchaseSubscription(SubscriptionPackageType.PREMIUM_30_DAYS);
@@ -216,6 +248,15 @@ class PromotionServiceImplTest {
 
         @Test
         void shouldReturnAllTopPromotionPackages() {
+            when(promotionMapper.toTopPromotionPackageDtos(any(), anyString()))
+                    .thenAnswer(invocation -> {
+                        @SuppressWarnings("unchecked")
+                        List<TopPromotionPackageType> packageTypes = invocation.getArgument(0);
+                        String currency = invocation.getArgument(1);
+                        return packageTypes.stream()
+                                .map(pkg -> new TopPromotionPackageDto(pkg, pkg.getDurationDays(), pkg.getPrice(), currency))
+                                .toList();
+                    });
             List<TopPromotionPackageDto> packages = promotionService.getTopPromotionPackages();
 
             assertThat(packages).hasSize(TopPromotionPackageType.values().length);
@@ -224,6 +265,21 @@ class PromotionServiceImplTest {
 
         @Test
         void shouldReturnAllSubscriptionPackages() {
+            when(promotionMapper.toSubscriptionPackageDtos(any(), anyString()))
+                    .thenAnswer(invocation -> {
+                        @SuppressWarnings("unchecked")
+                        List<SubscriptionPackageType> packageTypes = invocation.getArgument(0);
+                        String currency = invocation.getArgument(1);
+                        return packageTypes.stream()
+                                .map(pkg -> new SubscriptionPackageDto(
+                                        pkg,
+                                        pkg.getPlan(),
+                                        pkg.getDurationDays(),
+                                        pkg.getPrice(),
+                                        currency
+                                ))
+                                .toList();
+                    });
             List<SubscriptionPackageDto> packages = promotionService.getSubscriptionPackages();
 
             assertThat(packages).hasSize(SubscriptionPackageType.values().length);

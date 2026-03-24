@@ -33,7 +33,6 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -191,7 +190,7 @@ class PaymentServiceImplTest {
             );
             when(authenticationService.getCurrentUser()).thenReturn(tenant);
             when(paymentRepository.findAllByBookingTenantIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(payment));
-            when(paymentMapper.toDto(payment)).thenReturn(dto);
+            when(paymentMapper.toDtos(List.of(payment))).thenReturn(List.of(dto));
 
             List<PaymentResponseDto> result = paymentService.getMyPayments();
 
@@ -234,7 +233,7 @@ class PaymentServiceImplTest {
             when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
             when(authenticationService.getCurrentUser()).thenReturn(admin);
             when(paymentRepository.findAllByBookingIdOrderByCreatedAtDesc(100L)).thenReturn(List.of(payment));
-            when(paymentMapper.toDto(eq(payment))).thenReturn(dto);
+            when(paymentMapper.toDtos(List.of(payment))).thenReturn(List.of(dto));
 
             List<PaymentResponseDto> result = paymentService.getPaymentsByBooking(100L);
 

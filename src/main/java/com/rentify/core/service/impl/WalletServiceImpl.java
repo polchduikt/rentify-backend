@@ -57,7 +57,7 @@ public class WalletServiceImpl implements WalletService {
         if (changed) {
             userRepository.save(user);
         }
-        return toWalletBalanceDto(user);
+        return walletTransactionMapper.toWalletBalanceDto(user, resolveCurrency());
     }
 
     @Override
@@ -82,7 +82,7 @@ public class WalletServiceImpl implements WalletService {
                 .build();
         walletTransactionRepository.save(transaction);
 
-        return toWalletBalanceDto(user);
+        return walletTransactionMapper.toWalletBalanceDto(user, resolveCurrency());
     }
 
     @Override
@@ -96,18 +96,7 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public List<TopUpOptionDto> getTopUpOptions() {
         String currency = resolveCurrency();
-        return resolveAllowedTopUpAmounts().stream()
-                .map(amount -> new TopUpOptionDto(amount, currency))
-                .toList();
-    }
-
-    private WalletBalanceDto toWalletBalanceDto(User user) {
-        return new WalletBalanceDto(
-                user.getBalance(),
-                resolveCurrency(),
-                user.getSubscriptionPlan(),
-                user.getSubscriptionActiveUntil()
-        );
+        return walletTransactionMapper.toTopUpOptionDtos(resolveAllowedTopUpAmounts(), currency);
     }
 
     private BigDecimal normalizeAmount(BigDecimal amount) {
