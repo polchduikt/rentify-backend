@@ -7,6 +7,7 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Payment;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
+import com.rentify.core.enums.BookingScope;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.PaymentStatus;
 import com.rentify.core.enums.PropertyStatus;
@@ -134,6 +135,15 @@ public class BookingServiceImpl implements BookingService {
             throw new AccessDeniedException("You do not have permission to view this booking");
         }
         return bookingMapper.toDto(booking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookingDto> getBookings(BookingScope scope, Pageable pageable) {
+        return switch (scope) {
+            case GUEST -> getMyBookings(pageable);
+            case HOST -> getIncomingBookings(pageable);
+        };
     }
 
     @Override

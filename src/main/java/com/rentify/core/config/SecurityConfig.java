@@ -71,7 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sessions", "/api/v1/sessions/google").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/sessions/me").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/properties/my", "/api/v1/properties/me").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/properties/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/*").permitAll()

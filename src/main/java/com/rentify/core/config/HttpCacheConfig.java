@@ -100,7 +100,7 @@ public class HttpCacheConfig implements WebMvcConfigurer {
             return PUBLIC_SHORT_CACHE;
         }
 
-        if (path.startsWith("/api/v1/properties/my") || path.startsWith("/api/v1/properties/me")) {
+        if (path.startsWith("/api/v1/properties/me")) {
             return NO_STORE;
         }
 

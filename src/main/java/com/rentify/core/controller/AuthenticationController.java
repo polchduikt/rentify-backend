@@ -102,22 +102,8 @@ public class AuthenticationController {
     )
     @ApiResponse(responseCode = "204", description = "Session cookie cleared")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        tokenRevocationService.revoke(resolveAccessToken(request));
+        tokenRevocationService.revoke(authCookieService.resolveAccessToken(request));
         authCookieService.clearAccessTokenCookie(response);
         return ResponseEntity.noContent().build();
-    }
-
-    private String resolveAccessToken(HttpServletRequest request) {
-        if (authCookieService.isCookieStrategyEnabled()) {
-            return authCookieService.extractTokenFromCookie(request);
-        }
-
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-
-        String token = authHeader.substring(7);
-        return token.isBlank() ? null : token;
     }
 }

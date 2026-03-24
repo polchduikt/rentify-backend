@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Property Promotions", description = "Property promotion purchase endpoints")
 @SecurityRequirement(name = "bearerAuth")
@@ -38,14 +39,14 @@ public class PropertyPromotionController {
 
     private final PromotionService promotionService;
 
-    @PostMapping("/{propertyId}/promotions")
+    @PostMapping("/properties/{propertyId}/promotions")
     @Operation(
             summary = "Purchase promotion for property",
             description = "Purchases selected top-promotion package and applies promotion to chosen property."
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "200",
+                    responseCode = "201",
                     description = "Promotion purchased",
                     content = @Content(schema = @Schema(implementation = TopPromotionPurchaseResponseDto.class))
             ),
@@ -55,6 +56,7 @@ public class PropertyPromotionController {
             @Parameter(description = "Property ID", example = "42")
             @PathVariable @Positive Long propertyId,
             @Valid @RequestBody PurchaseTopPromotionRequestDto request) {
-        return ResponseEntity.ok(promotionService.purchaseTopPromotion(propertyId, request.packageType()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(promotionService.purchaseTopPromotion(propertyId, request.packageType()));
     }
 }

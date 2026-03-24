@@ -1,21 +1,16 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.dto.property.AvailabilityBlockDto;
-import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
 import com.rentify.core.dto.property.PropertyMapPinDto;
-import com.rentify.core.dto.property.PropertyPhotoDto;
 import com.rentify.core.dto.property.PropertyResponseDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
 import com.rentify.core.dto.property.PropertyStatusUpdateRequestDto;
-import com.rentify.core.dto.property.UnavailableDateRangeDto;
 import com.rentify.core.enums.PropertyStatus;
-import com.rentify.core.service.AvailabilityService;
 import com.rentify.core.service.PropertyService;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -29,21 +24,26 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Properties", description = "Property listing, search, photos and availability endpoints")
+@Tag(name = "Properties", description = "Property listing and search endpoints")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid request data"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
@@ -51,7 +51,6 @@ import java.util.List;
 public class PropertyController {
 
     private final PropertyService propertyService;
-    private final AvailabilityService availabilityService;
 
     @GetMapping
     @Operation(
@@ -71,7 +70,7 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.search(criteria, pageable));
     }
 
-    @GetMapping({"/my", "/me"})
+    @GetMapping("/me")
     @Operation(
             summary = "Get current user properties",
             description = "Returns paginated properties owned by the current user. Optional statuses filter supports repeated values."
@@ -173,52 +172,6 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(
-            summary = "Upload property photo",
-            description = "Uploads a photo file and attaches it to the property. Only owner can upload photos."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Photo uploaded",
-                    content = @Content(schema = @Schema(implementation = PropertyPhotoDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Property not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
-    public ResponseEntity<PropertyPhotoDto> uploadPhoto(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long id,
-            @Parameter(description = "Image file to upload")
-            @RequestPart("file") MultipartFile file) {
-        PropertyPhotoDto uploadedPhoto = propertyService.uploadPhoto(id, file);
-        return ResponseEntity.ok(uploadedPhoto);
-    }
-
-    @DeleteMapping("/{id}/photos/{photoId}")
-    @Operation(
-            summary = "Delete property photo",
-            description = "Deletes a property photo by photo identifier. Only listing owner can delete photos."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Photo deleted"),
-            @ApiResponse(responseCode = "404", description = "Property or photo not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
-    public ResponseEntity<Void> deletePhoto(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long id,
-            @Parameter(description = "Photo ID", example = "101")
-            @PathVariable @Positive Long photoId) {
-        propertyService.deletePhoto(id, photoId);
-        return ResponseEntity.noContent().build();
-    }
-
     @GetMapping("/map-pins")
     @Operation(
             summary = "Search map pins",
@@ -234,66 +187,6 @@ public class PropertyController {
             @PageableDefault(size = 200, sort = "createdAt", direction = Sort.Direction.DESC)
             @ParameterObject Pageable pageable) {
         return ResponseEntity.ok(propertyService.searchMapPins(criteria, pageable));
-    }
-
-    @PostMapping("/{id}/availability-blocks")
-    @Operation(
-            summary = "Create availability block",
-            description = "Blocks a date range from booking for a property. Only owner can create blocks."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Availability block created",
-                    content = @Content(schema = @Schema(implementation = AvailabilityBlockDto.class))
-            ),
-            @ApiResponse(responseCode = "404", description = "Property not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
-    public ResponseEntity<AvailabilityBlockDto> createBlock(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long id,
-            @Valid @RequestBody AvailabilityBlockRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(availabilityService.createBlock(id, request));
-    }
-
-    @GetMapping("/{propertyId}/availability-blocks")
-    @Operation(
-            summary = "Get availability blocks by property",
-            description = "Returns manually created availability blocks for the selected property."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Availability blocks retrieved",
-            content = @Content(schema = @Schema(implementation = AvailabilityBlockDto.class))
-    )
-    public ResponseEntity<List<AvailabilityBlockDto>> getBlocks(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long propertyId) {
-        return ResponseEntity.ok(availabilityService.getBlocksByProperty(propertyId));
-    }
-
-    @GetMapping("/{propertyId}/unavailable-date-ranges")
-    @Operation(
-            summary = "Get unavailable date ranges",
-            description = "Returns merged unavailable ranges from both manual blocks and active bookings."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Unavailable date ranges retrieved",
-            content = @Content(schema = @Schema(implementation = UnavailableDateRangeDto.class))
-    )
-    public ResponseEntity<List<UnavailableDateRangeDto>> getUnavailableRanges(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long propertyId,
-            @Parameter(description = "Start date filter (ISO yyyy-MM-dd)", example = "2026-03-20")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
-            @Parameter(description = "End date filter (ISO yyyy-MM-dd)", example = "2026-03-30")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
-        return ResponseEntity.ok(availabilityService.getUnavailableRangesByProperty(propertyId, dateFrom, dateTo));
     }
 
     @PatchMapping("/{id}")
@@ -317,26 +210,5 @@ public class PropertyController {
             @PathVariable @Positive Long id,
             @Valid @RequestBody PropertyStatusUpdateRequestDto request) {
         return ResponseEntity.ok(propertyService.changePropertyStatus(id, request.status()));
-    }
-
-    @DeleteMapping("/{propertyId}/availability-blocks/{blockId}")
-    @Operation(
-            summary = "Delete availability block",
-            description = "Removes an existing manual availability block. Only listing owner can perform operation."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Availability block deleted"),
-            @ApiResponse(responseCode = "404", description = "Property or block not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
-    public ResponseEntity<Void> deleteBlock(
-            @Parameter(description = "Property ID", example = "42")
-            @PathVariable @Positive Long propertyId,
-            @Parameter(description = "Availability block ID", example = "77")
-            @PathVariable @Positive Long blockId) {
-        availabilityService.deleteBlock(propertyId, blockId);
-        return ResponseEntity.noContent().build();
     }
 }

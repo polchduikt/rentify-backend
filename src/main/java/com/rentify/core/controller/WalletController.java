@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,12 +64,12 @@ public class WalletController {
             description = "Adds funds to user wallet by selected supported amount."
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "201",
             description = "Wallet topped up",
             content = @Content(schema = @Schema(implementation = WalletBalanceDto.class))
     )
     public ResponseEntity<WalletBalanceDto> topUp(@Valid @RequestBody WalletTopUpRequestDto request) {
-        return ResponseEntity.ok(walletService.topUpBalance(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(walletService.topUpBalance(request));
     }
 
     @GetMapping("/transactions")

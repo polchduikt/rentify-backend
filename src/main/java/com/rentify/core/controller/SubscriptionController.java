@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,12 +42,13 @@ public class SubscriptionController {
             description = "Purchases selected subscription package and updates current user subscription plan."
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "201",
             description = "Subscription purchased",
             content = @Content(schema = @Schema(implementation = SubscriptionPurchaseResponseDto.class))
     )
     public ResponseEntity<SubscriptionPurchaseResponseDto> purchaseSubscription(
             @Valid @RequestBody PurchaseSubscriptionRequestDto request) {
-        return ResponseEntity.ok(promotionService.purchaseSubscription(request.packageType()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(promotionService.purchaseSubscription(request.packageType()));
     }
 }

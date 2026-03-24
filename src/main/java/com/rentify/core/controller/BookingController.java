@@ -3,6 +3,7 @@ package com.rentify.core.controller;
 import com.rentify.core.dto.booking.BookingDto;
 import com.rentify.core.dto.booking.BookingRequestDto;
 import com.rentify.core.dto.payment.PaymentResponseDto;
+import com.rentify.core.enums.BookingScope;
 import com.rentify.core.service.BookingService;
 import com.rentify.core.service.PaymentService;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -72,17 +72,11 @@ public class BookingController {
     )
     public ResponseEntity<Page<BookingDto>> getBookings(
             @Parameter(description = "Scope of bookings: guest or host", example = "guest")
-            @RequestParam(defaultValue = "guest") String role,
+            @RequestParam(defaultValue = "guest") BookingScope scope,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        if ("guest".equalsIgnoreCase(role)) {
-            return ResponseEntity.ok(bookingService.getMyBookings(pageable));
-        }
-        if ("host".equalsIgnoreCase(role)) {
-            return ResponseEntity.ok(bookingService.getIncomingBookings(pageable));
-        }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported bookings role. Use guest or host.");
+        return ResponseEntity.ok(bookingService.getBookings(scope, pageable));
     }
 
     @GetMapping("/{id}")
