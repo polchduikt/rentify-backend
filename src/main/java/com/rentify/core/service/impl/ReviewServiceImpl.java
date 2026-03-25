@@ -6,19 +6,18 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.Review;
 import com.rentify.core.entity.User;
-import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.mapper.ReviewMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.ReviewRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.ReviewService;
+import com.rentify.core.validation.ReviewValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
@@ -33,28 +32,21 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookingRepository bookingRepository;
     private final AuthenticationService authService;
     private final ReviewMapper reviewMapper;
+    private final ReviewValidator reviewValidator;
 
     @Override
     @Transactional
     public ReviewDto createReview(ReviewRequestDto request) {
+        reviewValidator.validateCreateReviewRequest(request);
+
         User author = authService.getCurrentUser();
         Booking booking = bookingRepository.findById(request.bookingId())
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         Property property = propertyRepository.findByIdForUpdate(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
 
-        if (!booking.getTenant().getId().equals(author.getId())) {
-            throw new AccessDeniedException("You can only review bookings that belong to you");
-        }
-        if (!booking.getProperty().getId().equals(property.getId())) {
-            throw new IllegalArgumentException("Booking does not belong to the specified property");
-        }
-        if (booking.getStatus() != BookingStatus.COMPLETED) {
-            throw new IllegalStateException("You can only review properties after your stay is COMPLETED");
-        }
-        if (reviewRepository.existsByBookingId(booking.getId())) {
-            throw new IllegalStateException("You have already reviewed this booking");
-        }
+        boolean alreadyReviewed = reviewRepository.existsByBookingId(booking.getId());
+        reviewValidator.validateReviewEligibility(booking, property, author, alreadyReviewed);
 
         Review review = Review.builder()
                 .property(property)

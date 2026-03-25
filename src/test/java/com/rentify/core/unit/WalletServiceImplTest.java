@@ -17,6 +17,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.impl.WalletServiceImpl;
+import com.rentify.core.validation.WalletValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -52,6 +53,7 @@ class WalletServiceImplTest {
     @Mock private WalletTransactionMapper walletTransactionMapper;
     @Mock private WalletNormalizationService walletNormalizationService;
     @Mock private CurrencyResolver currencyResolver;
+    @Mock private WalletValidator walletValidator;
 
     @InjectMocks
     private WalletServiceImpl walletService;
@@ -92,6 +94,23 @@ class WalletServiceImplTest {
                     return amounts.stream()
                             .map(amount -> new TopUpOptionDto(amount, currency))
                             .toList();
+                });
+        lenient().when(walletValidator.normalizeAmount(any(), anyList()))
+                .thenAnswer(invocation -> {
+                    BigDecimal amount = invocation.getArgument(0);
+                    @SuppressWarnings("unchecked")
+                    List<BigDecimal> allowedAmounts = invocation.getArgument(1);
+                    if (amount == null) {
+                        throw new IllegalArgumentException("Top-up amount is required");
+                    }
+                    BigDecimal normalizedAmount = amount.setScale(2, java.math.RoundingMode.HALF_UP);
+                    if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new IllegalArgumentException("Top-up amount must be greater than zero");
+                    }
+                    if (!allowedAmounts.contains(normalizedAmount)) {
+                        throw new IllegalArgumentException("Top-up amount is not allowed");
+                    }
+                    return normalizedAmount;
                 });
     }
 

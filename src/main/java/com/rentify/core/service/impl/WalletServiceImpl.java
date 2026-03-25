@@ -16,6 +16,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.WalletService;
+import com.rentify.core.validation.WalletValidator;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,7 @@ public class WalletServiceImpl implements WalletService {
     private final WalletTransactionMapper walletTransactionMapper;
     private final WalletNormalizationService walletNormalizationService;
     private final CurrencyResolver currencyResolver;
+    private final WalletValidator walletValidator;
 
     @org.springframework.beans.factory.annotation.Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
     private List<BigDecimal> walletTopUpOptions = List.of(
@@ -67,7 +69,7 @@ public class WalletServiceImpl implements WalletService {
         User user = authenticationService.getCurrentUser();
         walletNormalizationService.normalizeWalletDefaults(user);
         walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
-        BigDecimal amount = normalizeAmount(request.amount());
+        BigDecimal amount = walletValidator.normalizeAmount(request.amount(), resolveAllowedTopUpAmounts());
 
         user.setBalance(user.getBalance().add(amount));
         userRepository.save(user);
@@ -102,20 +104,6 @@ public class WalletServiceImpl implements WalletService {
     public List<TopUpOptionDto> getTopUpOptions() {
         String currency = resolveCurrency();
         return walletTransactionMapper.toTopUpOptionDtos(resolveAllowedTopUpAmounts(), currency);
-    }
-
-    private BigDecimal normalizeAmount(BigDecimal amount) {
-        if (amount == null) {
-            throw new IllegalArgumentException("Top-up amount is required");
-        }
-        BigDecimal normalizedAmount = amount.setScale(2, RoundingMode.HALF_UP);
-        if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Top-up amount must be greater than zero");
-        }
-        if (!resolveAllowedTopUpAmounts().contains(normalizedAmount)) {
-            throw new IllegalArgumentException("Top-up amount is not allowed");
-        }
-        return normalizedAmount;
     }
 
     private List<BigDecimal> resolveAllowedTopUpAmounts() {

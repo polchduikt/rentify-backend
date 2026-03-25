@@ -5,21 +5,18 @@ import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.RentalType;
-import com.rentify.core.exception.ApiValidationException;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Component
-@RequiredArgsConstructor
-public class BookingValidator {
+public class BookingValidator extends AbstractValidator {
 
-    private final Validator validator;
+    public BookingValidator(Validator validator) {
+        super(validator);
+    }
 
     public void validateCreateBookingRequest(BookingRequestDto request) {
         Set<String> errors = collectBeanErrors(request);
@@ -64,21 +61,6 @@ public class BookingValidator {
         }
         if (isOccupied) {
             throw new IllegalStateException("The property is already booked for the selected dates.");
-        }
-    }
-
-    private <T> Set<String> collectBeanErrors(T target) {
-        Set<ConstraintViolation<T>> violations = validator.validate(target);
-        Set<String> errors = new LinkedHashSet<>();
-        for (ConstraintViolation<T> violation : violations) {
-            errors.add(violation.getPropertyPath() + ": " + violation.getMessage());
-        }
-        return errors;
-    }
-
-    private void throwIfAny(Set<String> errors) {
-        if (!errors.isEmpty()) {
-            throw new ApiValidationException(errors);
         }
     }
 }

@@ -3,10 +3,7 @@ package com.rentify.core.validation;
 import com.rentify.core.dto.property.AddressDto;
 import com.rentify.core.dto.property.PropertyCreateRequestDto;
 import com.rentify.core.dto.property.PropertySearchCriteriaDto;
-import com.rentify.core.exception.ApiValidationException;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -14,10 +11,11 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Component
-@RequiredArgsConstructor
-public class PropertyValidator {
+public class PropertyValidator extends AbstractValidator {
 
-    private final Validator validator;
+    public PropertyValidator(Validator validator) {
+        super(validator);
+    }
 
     public void validateCreateOrUpdateRequest(PropertyCreateRequestDto request) {
         Set<String> errors = collectBeanErrors(request);
@@ -40,18 +38,33 @@ public class PropertyValidator {
 
     public void validateSearchCriteria(PropertySearchCriteriaDto criteria) {
         Set<String> errors = new LinkedHashSet<>();
+        validateIdFields(criteria, errors);
+        validateMinMaxRanges(criteria, errors);
+        validateDateRange(criteria, errors);
+        validateGeoLocation(criteria, errors);
+        boolean hasFullBounds = validateMapBounds(criteria, errors);
+        validateMapBoundsConflicts(criteria, hasFullBounds, errors);
+        throwIfAny(errors);
+    }
+
+    private void validateIdFields(PropertySearchCriteriaDto criteria, Set<String> errors) {
         validatePositiveId("propertyId", criteria.propertyId(), errors);
         validatePositiveId("cityId", criteria.cityId(), errors);
         validatePositiveId("districtId", criteria.districtId(), errors);
         validatePositiveId("metroStationId", criteria.metroStationId(), errors);
         validatePositiveId("residentialComplexId", criteria.residentialComplexId(), errors);
+    }
+
+    private void validateMinMaxRanges(PropertySearchCriteriaDto criteria, Set<String> errors) {
         validateMinMax("minPrice", criteria.minPrice(), "maxPrice", criteria.maxPrice(), errors);
         validateMinMax("minRooms", criteria.minRooms(), "maxRooms", criteria.maxRooms(), errors);
         validateMinMax("minFloor", criteria.minFloor(), "maxFloor", criteria.maxFloor(), errors);
         validateMinMax("minTotalFloors", criteria.minTotalFloors(), "maxTotalFloors", criteria.maxTotalFloors(), errors);
         validateMinMax("minSleepingPlaces", criteria.minSleepingPlaces(), "maxSleepingPlaces", criteria.maxSleepingPlaces(), errors);
         validateMinMax("minArea", criteria.minArea(), "maxArea", criteria.maxArea(), errors);
+    }
 
+    private void validateDateRange(PropertySearchCriteriaDto criteria, Set<String> errors) {
         if ((criteria.dateFrom() == null) != (criteria.dateTo() == null)) {
             errors.add("dateFrom/dateTo: both values must be provided together");
         }
@@ -59,7 +72,9 @@ public class PropertyValidator {
                 && !criteria.dateFrom().isBefore(criteria.dateTo())) {
             errors.add("dateFrom: must be before dateTo");
         }
+    }
 
+    private void validateGeoLocation(PropertySearchCriteriaDto criteria, Set<String> errors) {
         if ((criteria.lat() == null) != (criteria.lng() == null)) {
             errors.add("lat/lng: both values must be provided together");
         }
@@ -75,7 +90,9 @@ public class PropertyValidator {
         if (criteria.radiusKm() != null && criteria.lat() == null) {
             errors.add("radiusKm: requires lat/lng to be provided");
         }
+    }
 
+    private boolean validateMapBounds(PropertySearchCriteriaDto criteria, Set<String> errors) {
         boolean hasAnyBoundsValue = criteria.southWestLat() != null
                 || criteria.southWestLng() != null
                 || criteria.northEastLat() != null
@@ -102,14 +119,20 @@ public class PropertyValidator {
         if (hasFullBounds && criteria.southWestLat() > criteria.northEastLat()) {
             errors.add("southWestLat: must be less than or equal to northEastLat");
         }
+        return hasFullBounds;
+    }
+
+    private void validateMapBoundsConflicts(
+            PropertySearchCriteriaDto criteria,
+            boolean hasFullBounds,
+            Set<String> errors
+    ) {
         if (hasFullBounds && criteria.radiusKm() != null) {
             errors.add("radiusKm: cannot be used together with map bounds");
         }
         if (hasFullBounds && (criteria.lat() != null || criteria.lng() != null)) {
             errors.add("lat/lng: cannot be used together with map bounds");
         }
-
-        throwIfAny(errors);
     }
 
     private void validateAddressReferences(AddressDto address, Set<String> errors) {
@@ -145,21 +168,6 @@ public class PropertyValidator {
     ) {
         if (minValue != null && maxValue != null && minValue.compareTo(maxValue) > 0) {
             errors.add(minFieldName + ": must be less than or equal to " + maxFieldName);
-        }
-    }
-
-    private <T> Set<String> collectBeanErrors(T target) {
-        Set<ConstraintViolation<T>> violations = validator.validate(target);
-        Set<String> errors = new LinkedHashSet<>();
-        for (ConstraintViolation<T> violation : violations) {
-            errors.add(violation.getPropertyPath() + ": " + violation.getMessage());
-        }
-        return errors;
-    }
-
-    private void throwIfAny(Set<String> errors) {
-        if (!errors.isEmpty()) {
-            throw new ApiValidationException(errors);
         }
     }
 }
