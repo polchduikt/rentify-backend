@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
 import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
+import com.rentify.core.exception.FileUploadException;
 import com.rentify.core.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,11 +46,13 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             Object secureUrl = uploadResult.get("secure_url");
             Object publicId = uploadResult.get("public_id");
             if (secureUrl == null || publicId == null) {
-                throw new RuntimeException("Cloudinary upload response is missing secure_url or public_id");
+                throw new FileUploadException("Cloudinary upload response is missing secure_url or public_id");
             }
             return new CloudinaryUploadResult(secureUrl.toString(), publicId.toString());
+        } catch (FileUploadException ex) {
+            throw ex;
         } catch (Exception e) {
-            throw new RuntimeException("Image upload failed: " + e.getMessage());
+            throw new FileUploadException("Image upload failed: " + e.getMessage(), e);
         }
     }
 
@@ -66,8 +69,10 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
+        } catch (IllegalArgumentException ex) {
+            throw ex;
         } catch (Exception e) {
-            throw new RuntimeException("Image deletion failed: " + e.getMessage());
+            throw new FileUploadException("Image deletion failed: " + e.getMessage(), e);
         }
     }
 
@@ -79,7 +84,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
         } catch (Exception e) {
-            throw new RuntimeException("Image deletion failed: " + e.getMessage());
+            throw new FileUploadException("Image deletion failed: " + e.getMessage(), e);
         }
     }
 

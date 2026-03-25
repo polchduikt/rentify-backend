@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -149,10 +150,25 @@ class UserServiceImplTest {
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
             when(userRepository.save(currentUser)).thenReturn(currentUser);
             when(userMapper.toDto(currentUser)).thenReturn(userResponseDto);
+            doAnswer(invocation -> {
+                UpdateUserRequestDto dto = invocation.getArgument(0);
+                User user = invocation.getArgument(1);
+                if (dto.firstName() != null) {
+                    user.setFirstName(dto.firstName());
+                }
+                if (dto.lastName() != null) {
+                    user.setLastName(dto.lastName());
+                }
+                if (dto.phone() != null) {
+                    user.setPhone(dto.phone());
+                }
+                return null;
+            }).when(userMapper).updateUser(request, currentUser);
 
             userService.updateProfile(request);
 
             verify(userValidator).validateUpdateProfile(request);
+            verify(userMapper).updateUser(request, currentUser);
             assertThat(currentUser.getFirstName()).isEqualTo("NewFirst");
             assertThat(currentUser.getLastName()).isEqualTo("Koval");
             assertThat(currentUser.getPhone()).isEqualTo("+380501234567");

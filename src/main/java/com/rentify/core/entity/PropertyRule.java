@@ -5,8 +5,12 @@ import lombok.*;
 
 @Entity
 @Table(name = "property_rules")
+@AttributeOverrides({
+        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", nullable = true)),
+        @AttributeOverride(name = "updatedAt", column = @Column(name = "updated_at", nullable = true))
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class PropertyRule {
+public class PropertyRule extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

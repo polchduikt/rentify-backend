@@ -2,6 +2,7 @@ package com.rentify.core.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentify.core.enums.PropertyMarketType;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -36,10 +37,10 @@ public record PropertyCreateRequestDto(
         @Schema(description = "Rental type", example = "SHORT_TERM")
         RentalType rentalType,
 
-        @NotBlank(message = "Property type is required")
+        @NotNull(message = "Property type is required")
         @JsonProperty("propertyType")
-        @Schema(description = "Property type", example = "apartment")
-        String propertyType,
+        @Schema(description = "Property type", example = "apartment (APARTMENT)")
+        PropertyType propertyType,
 
         @JsonProperty("marketType")
         @Schema(description = "Market type", example = "SECONDARY")

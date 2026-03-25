@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "property_photos")
+@Table(
+        name = "property_photos",
+        indexes = @Index(name = "idx_property_photos_property_id", columnList = "property_id")
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PropertyPhoto extends CreatedAtEntity {
     @Id

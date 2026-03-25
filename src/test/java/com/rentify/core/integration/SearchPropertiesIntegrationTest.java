@@ -2,6 +2,7 @@ package com.rentify.core.integration;
 
 import com.rentify.core.entity.Property;
 import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.integration.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,5 +64,42 @@ class SearchPropertiesIntegrationTest extends AbstractIntegrationTest {
                         .param("dateTo", "2026-04-10"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("dateFrom")));
+    }
+
+    @Test
+    @DisplayName("Positive: search filters by propertyType regardless of stored case")
+    void shouldFilterByPropertyTypeIgnoringStoredCase() throws Exception {
+        String token = registerUserAndGetToken(randomEmail("search-type"), "StrongPass123!", "Search", "Type");
+        long apartmentId = createActiveShortTermProperty(token, "Apartment listing", "Kyiv");
+        long houseId = createActiveShortTermProperty(token, "House listing", "Kyiv");
+
+        Property house = propertyRepository.findById(houseId).orElseThrow();
+        house.setPropertyType(PropertyType.HOUSE);
+        propertyRepository.save(house);
+
+        jdbcTemplate.update("UPDATE properties SET property_type = ? WHERE id = ?", "APARTMENT", apartmentId);
+
+        mockMvc.perform(get("/api/v1/properties")
+                        .param("city", "Kyiv")
+                        .param("propertyType", "apartment"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value((int) apartmentId));
+    }
+
+    @Test
+    @DisplayName("Positive: minPrice uses monthly price for LONG_TERM search")
+    void shouldFilterLongTermByMonthlyPrice() throws Exception {
+        String token = registerUserAndGetToken(randomEmail("search-price"), "StrongPass123!", "Search", "Price");
+        createActiveLongTermProperty(token, "Long-term 12k", "Kyiv", 12000.0);
+        long expectedPropertyId = createActiveLongTermProperty(token, "Long-term 16k", "Kyiv", 16000.0);
+
+        mockMvc.perform(get("/api/v1/properties")
+                        .param("city", "Kyiv")
+                        .param("rentalType", "LONG_TERM")
+                        .param("minPrice", "16000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value((int) expectedPropertyId));
     }
 }

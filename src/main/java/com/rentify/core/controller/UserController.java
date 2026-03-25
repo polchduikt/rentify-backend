@@ -1,6 +1,7 @@
 package com.rentify.core.controller;
 
 import com.rentify.core.dto.user.ChangePasswordRequestDto;
+import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
@@ -105,7 +106,8 @@ public class UserController {
     )
     @ApiResponse(responseCode = "204", description = "Account deactivated")
     public ResponseEntity<Void> deleteProfile(
-            @RequestHeader(value = "X-Current-Password", required = false) String currentPassword) {
+            @RequestBody(required = false) DeleteAccountRequestDto request) {
+        String currentPassword = request != null ? request.currentPassword() : null;
         userService.deleteCurrentAccount(currentPassword);
         return ResponseEntity.noContent().build();
     }

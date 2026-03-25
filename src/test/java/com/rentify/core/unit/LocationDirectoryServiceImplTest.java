@@ -4,6 +4,7 @@ import com.rentify.core.dto.location.LocationSuggestionDto;
 import com.rentify.core.entity.City;
 import com.rentify.core.entity.District;
 import com.rentify.core.enums.LocationSuggestionType;
+import com.rentify.core.mapper.LocationMapper;
 import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.MetroStationRepository;
@@ -20,8 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +36,7 @@ class LocationDirectoryServiceImplTest {
     @Mock private DistrictRepository districtRepository;
     @Mock private MetroStationRepository metroStationRepository;
     @Mock private ResidentialComplexRepository residentialComplexRepository;
+    @Mock private LocationMapper locationMapper;
 
     @InjectMocks
     private LocationDirectoryServiceImpl locationDirectoryService;
@@ -48,6 +52,11 @@ class LocationDirectoryServiceImplTest {
                 .region("Kyivska")
                 .country("Ukraine")
                 .build();
+
+        lenient().when(locationMapper.toCitySuggestions(anyList())).thenReturn(List.of());
+        lenient().when(locationMapper.toDistrictSuggestions(anyList())).thenReturn(List.of());
+        lenient().when(locationMapper.toMetroSuggestions(anyList())).thenReturn(List.of());
+        lenient().when(locationMapper.toResidentialComplexSuggestions(anyList())).thenReturn(List.of());
     }
 
     @Nested
@@ -73,6 +82,18 @@ class LocationDirectoryServiceImplTest {
                     .build();
             when(districtRepository.searchByPrefix("ky", 1L, PageRequest.of(0, 5)))
                     .thenReturn(List.of(district));
+            when(locationMapper.toDistrictSuggestions(List.of(district)))
+                    .thenReturn(List.of(
+                            new LocationSuggestionDto(
+                                    district.getId(),
+                                    LocationSuggestionType.DISTRICT,
+                                    district.getName(),
+                                    city.getId(),
+                                    city.getName(),
+                                    city.getRegion(),
+                                    city.getCountry()
+                            )
+                    ));
 
             List<LocationSuggestionDto> result = locationDirectoryService.suggest("  Ky  ", 1L, List.of("district"), 5);
 
@@ -118,6 +139,12 @@ class LocationDirectoryServiceImplTest {
                     .build();
             when(cityRepository.searchByPrefix(eq("ky"), eq(PageRequest.of(0, 2))))
                     .thenReturn(List.of(city, city2, city3));
+            when(locationMapper.toCitySuggestions(List.of(city, city2, city3)))
+                    .thenReturn(List.of(
+                            new LocationSuggestionDto(city.getId(), LocationSuggestionType.CITY, city.getName(), city.getId(), city.getName(), city.getRegion(), city.getCountry()),
+                            new LocationSuggestionDto(city2.getId(), LocationSuggestionType.CITY, city2.getName(), city2.getId(), city2.getName(), city2.getRegion(), city2.getCountry()),
+                            new LocationSuggestionDto(city3.getId(), LocationSuggestionType.CITY, city3.getName(), city3.getId(), city3.getName(), city3.getRegion(), city3.getCountry())
+                    ));
 
             List<LocationSuggestionDto> result = locationDirectoryService.suggest("ky", null, List.of("city"), 2);
 

@@ -14,6 +14,7 @@ import com.rentify.core.repository.MessageRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.impl.ConversationServiceImpl;
+import com.rentify.core.validation.ConversationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,10 +34,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ConversationServiceImplTest {
@@ -46,6 +47,7 @@ class ConversationServiceImplTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private AuthenticationService authService;
     @Mock private ChatMapper chatMapper;
+    @Mock private ConversationValidator conversationValidator;
 
     @InjectMocks
     private ConversationServiceImpl conversationService;
@@ -73,6 +75,33 @@ class ConversationServiceImplTest {
                 .build();
 
         sendRequest = new SendMessageRequestDto("Hello!");
+
+        lenient().doAnswer(invocation -> {
+            Long propertyId = invocation.getArgument(0);
+            if (propertyId == null || propertyId <= 0) {
+                throw new IllegalArgumentException("Property id must be positive");
+            }
+            return null;
+        }).when(conversationValidator).validatePropertyId(any());
+
+        lenient().doAnswer(invocation -> {
+            Property propertyArg = invocation.getArgument(0);
+            User currentUserArg = invocation.getArgument(1);
+            if (propertyArg.getHost().getId().equals(currentUserArg.getId())) {
+                throw new IllegalArgumentException("Host cannot initiate a conversation for their own property");
+            }
+            return null;
+        }).when(conversationValidator).validateConversationInitiator(any(Property.class), any(User.class));
+
+        lenient().doAnswer(invocation -> {
+            Conversation conversationArg = invocation.getArgument(0);
+            User userArg = invocation.getArgument(1);
+            if (!conversationArg.getHost().getId().equals(userArg.getId())
+                    && !conversationArg.getTenant().getId().equals(userArg.getId())) {
+                throw new AccessDeniedException("You do not have permission to access this conversation");
+            }
+            return null;
+        }).when(conversationValidator).validateParticipant(any(Conversation.class), any(User.class));
     }
 
     @Nested
@@ -198,7 +227,7 @@ class ConversationServiceImplTest {
             ConversationDto dto = new ConversationDto(100L, 10L, 1L, 2L, ZonedDateTime.now());
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(conversationRepository.findAllByUserId(2L)).thenReturn(List.of(conversation));
-            when(chatMapper.toConversationDto(conversation)).thenReturn(dto);
+            when(chatMapper.toConversationDtos(List.of(conversation))).thenReturn(List.of(dto));
 
             List<ConversationDto> result = conversationService.getMyConversations();
 
@@ -239,7 +268,7 @@ class ConversationServiceImplTest {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(conversationRepository.findById(100L)).thenReturn(Optional.of(conversation));
             when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(100L)).thenReturn(List.of(message));
-            when(chatMapper.toMessageDto(eq(message))).thenReturn(dto);
+            when(chatMapper.toMessageDtos(List.of(message))).thenReturn(List.of(dto));
 
             List<MessageDto> result = conversationService.getConversationMessages(100L);
 

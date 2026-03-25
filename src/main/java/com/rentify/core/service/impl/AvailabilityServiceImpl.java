@@ -27,7 +27,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +46,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         if (request.dateFrom().isAfter(request.dateTo())) {
             throw new IllegalArgumentException("dateFrom must be before or equal to dateTo");
         }
-        Property property = propertyRepository.findById(propertyId)
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authService.getCurrentUser();
         if (!property.getHost().getId().equals(currentUser.getId())) {
@@ -79,10 +78,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     @Override
     @Transactional(readOnly = true)
     public List<AvailabilityBlockDto> getBlocksByProperty(Long propertyId) {
-        return availabilityRepository.findAllByPropertyId(propertyId)
-                .stream()
-                .map(mapper::toDto)
-                .collect(Collectors.toList());
+        return mapper.toDtos(availabilityRepository.findAllByPropertyId(propertyId));
     }
 
     @Override
@@ -113,24 +109,8 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         }
 
         List<UnavailableDateRangeDto> unavailableRanges = new ArrayList<>();
-
-        for (AvailabilityBlock block : blocks) {
-            unavailableRanges.add(new UnavailableDateRangeDto(
-                    block.getDateFrom(),
-                    block.getDateTo(),
-                    "BLOCK",
-                    null
-            ));
-        }
-
-        for (Booking booking : bookings) {
-            unavailableRanges.add(new UnavailableDateRangeDto(
-                    booking.getDateFrom(),
-                    booking.getDateTo(),
-                    "BOOKING",
-                    booking.getStatus()
-            ));
-        }
+        unavailableRanges.addAll(mapper.toUnavailableDateRangeDtosFromBlocks(blocks));
+        unavailableRanges.addAll(mapper.toUnavailableDateRangeDtosFromBookings(bookings));
 
         unavailableRanges.sort(
                 Comparator.comparing(UnavailableDateRangeDto::dateFrom)

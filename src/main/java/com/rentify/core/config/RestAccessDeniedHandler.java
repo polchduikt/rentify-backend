@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +33,9 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
                 status.value(),
                 status.getReasonPhrase(),
                 "You do not have permission to access this resource",
-                request.getRequestURI()
+                request.getRequestURI(),
+                "ACCESS_DENIED",
+                Map.of()
         );
 
         response.setStatus(status.value());

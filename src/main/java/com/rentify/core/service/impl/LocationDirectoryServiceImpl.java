@@ -2,6 +2,7 @@ package com.rentify.core.service.impl;
 
 import com.rentify.core.dto.location.LocationSuggestionDto;
 import com.rentify.core.enums.LocationSuggestionType;
+import com.rentify.core.mapper.LocationMapper;
 import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.MetroStationRepository;
@@ -28,6 +29,7 @@ public class LocationDirectoryServiceImpl implements LocationDirectoryService {
     private final DistrictRepository districtRepository;
     private final MetroStationRepository metroStationRepository;
     private final ResidentialComplexRepository residentialComplexRepository;
+    private final LocationMapper locationMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,52 +45,24 @@ public class LocationDirectoryServiceImpl implements LocationDirectoryService {
 
         List<LocationSuggestionDto> result = new ArrayList<>();
         if (requestedTypes.contains(LocationSuggestionType.CITY)) {
-            cityRepository.searchByPrefix(normalizedQuery, PageRequest.of(0, perTypeLimit))
-                    .forEach(city -> result.add(new LocationSuggestionDto(
-                            city.getId(),
-                            LocationSuggestionType.CITY,
-                            city.getName(),
-                            city.getId(),
-                            city.getName(),
-                            city.getRegion(),
-                            city.getCountry()
-                    )));
+            result.addAll(locationMapper.toCitySuggestions(
+                    cityRepository.searchByPrefix(normalizedQuery, PageRequest.of(0, perTypeLimit))
+            ));
         }
         if (requestedTypes.contains(LocationSuggestionType.DISTRICT)) {
-            districtRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
-                    .forEach(district -> result.add(new LocationSuggestionDto(
-                            district.getId(),
-                            LocationSuggestionType.DISTRICT,
-                            district.getName(),
-                            district.getCity().getId(),
-                            district.getCity().getName(),
-                            district.getCity().getRegion(),
-                            district.getCity().getCountry()
-                    )));
+            result.addAll(locationMapper.toDistrictSuggestions(
+                    districtRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
+            ));
         }
         if (requestedTypes.contains(LocationSuggestionType.METRO)) {
-            metroStationRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
-                    .forEach(metro -> result.add(new LocationSuggestionDto(
-                            metro.getId(),
-                            LocationSuggestionType.METRO,
-                            metro.getName(),
-                            metro.getCity().getId(),
-                            metro.getCity().getName(),
-                            metro.getCity().getRegion(),
-                            metro.getCity().getCountry()
-                    )));
+            result.addAll(locationMapper.toMetroSuggestions(
+                    metroStationRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
+            ));
         }
         if (requestedTypes.contains(LocationSuggestionType.RESIDENTIAL_COMPLEX)) {
-            residentialComplexRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
-                    .forEach(complex -> result.add(new LocationSuggestionDto(
-                            complex.getId(),
-                            LocationSuggestionType.RESIDENTIAL_COMPLEX,
-                            complex.getName(),
-                            complex.getCity().getId(),
-                            complex.getCity().getName(),
-                            complex.getCity().getRegion(),
-                            complex.getCity().getCountry()
-                    )));
+            result.addAll(locationMapper.toResidentialComplexSuggestions(
+                    residentialComplexRepository.searchByPrefix(normalizedQuery, cityId, PageRequest.of(0, perTypeLimit))
+            ));
         }
 
         if (result.size() > finalLimit) {

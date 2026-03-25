@@ -1,20 +1,22 @@
 package com.rentify.core.validation;
 
 import com.rentify.core.dto.booking.BookingRequestDto;
-import com.rentify.core.exception.ApiValidationException;
-import jakarta.validation.ConstraintViolation;
+import com.rentify.core.entity.Property;
+import com.rentify.core.entity.User;
+import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.enums.RentalType;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashSet;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
 @Component
-@RequiredArgsConstructor
-public class BookingValidator {
+public class BookingValidator extends AbstractValidator {
 
-    private final Validator validator;
+    public BookingValidator(Validator validator) {
+        super(validator);
+    }
 
     public void validateCreateBookingRequest(BookingRequestDto request) {
         Set<String> errors = collectBeanErrors(request);
@@ -29,18 +31,36 @@ public class BookingValidator {
         throwIfAny(errors);
     }
 
-    private <T> Set<String> collectBeanErrors(T target) {
-        Set<ConstraintViolation<T>> violations = validator.validate(target);
-        Set<String> errors = new LinkedHashSet<>();
-        for (ConstraintViolation<T> violation : violations) {
-            errors.add(violation.getPropertyPath() + ": " + violation.getMessage());
+    public void validateBookingEligibility(Property property, User tenant, BookingRequestDto request) {
+        if (property.getStatus() != PropertyStatus.ACTIVE) {
+            throw new IllegalStateException("Only active properties can be booked.");
         }
-        return errors;
+        if (property.getRentalType() != RentalType.SHORT_TERM) {
+            throw new IllegalStateException("Only short-term properties can be booked.");
+        }
+        if (property.getHost().getId().equals(tenant.getId())) {
+            throw new IllegalArgumentException("You cannot book your own property.");
+        }
+
+        long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
+        if (nights <= 0) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date.");
+        }
+        if (property.getMaxGuests() == null) {
+            throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
+        }
+        if (request.guests() > property.getMaxGuests()) {
+            throw new IllegalArgumentException(
+                    "Guest count exceeds the maximum capacity of " + property.getMaxGuests() + " for this property.");
+        }
     }
 
-    private void throwIfAny(Set<String> errors) {
-        if (!errors.isEmpty()) {
-            throw new ApiValidationException(errors);
+    public void validateAvailability(boolean hasBlockedDates, boolean isOccupied) {
+        if (hasBlockedDates) {
+            throw new IllegalStateException("The property is blocked by the host for the selected dates.");
+        }
+        if (isOccupied) {
+            throw new IllegalStateException("The property is already booked for the selected dates.");
         }
     }
 }

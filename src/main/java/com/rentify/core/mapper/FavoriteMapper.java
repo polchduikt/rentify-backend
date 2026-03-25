@@ -5,9 +5,13 @@ import com.rentify.core.entity.Favorite;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = PropertyMapper.class)
+import java.util.List;
+
+@Mapper(config = MapStructCentralConfig.class, uses = PropertyMapper.class)
 public interface FavoriteMapper {
 
     @Mapping(source = "property.id", target = "propertyId")
     FavoriteResponseDto toDto(Favorite favorite);
+
+    List<FavoriteResponseDto> toDtos(List<Favorite> favorites);
 }

@@ -50,7 +50,7 @@ public class AmenityServiceImpl implements AmenityService {
 
         return grouped.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                .map(entry -> new AmenityCategoryGroupDto(entry.getKey(), entry.getValue()))
+                .map(entry -> amenityMapper.toCategoryGroupDto(entry.getKey(), entry.getValue()))
                 .toList();
     }
 }

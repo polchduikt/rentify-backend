@@ -48,7 +48,7 @@ class CookieAuthenticationIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Positive: logout clears auth cookie in cookie mode")
     void shouldClearCookieOnLogout() throws Exception {
-        mockMvc.perform(delete("/api/v1/sessions/current"))
+        mockMvc.perform(delete("/api/v1/sessions/me"))
                 .andExpect(status().isNoContent())
                 .andExpect(cookie().maxAge("rentify_access_token", 0));
     }

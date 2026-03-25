@@ -7,7 +7,9 @@ import com.rentify.core.entity.Message;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+import java.util.List;
+
+@Mapper(config = MapStructCentralConfig.class)
 public interface ChatMapper {
 
     @Mapping(source = "property.id", target = "propertyId")
@@ -15,8 +17,12 @@ public interface ChatMapper {
     @Mapping(source = "tenant.id", target = "tenantId")
     ConversationDto toConversationDto(Conversation conversation);
 
+    List<ConversationDto> toConversationDtos(List<Conversation> conversations);
+
     @Mapping(source = "conversation.id", target = "conversationId")
     @Mapping(source = "sender.id", target = "senderId")
     @Mapping(source = "isRead", target = "isRead")
     MessageDto toMessageDto(Message message);
+
+    List<MessageDto> toMessageDtos(List<Message> messages);
 }

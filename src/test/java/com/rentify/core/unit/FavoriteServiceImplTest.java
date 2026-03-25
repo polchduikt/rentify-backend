@@ -154,8 +154,7 @@ class FavoriteServiceImplTest {
 
             when(authenticationService.getCurrentUser()).thenReturn(user);
             when(favoriteRepository.findAllByUser_IdOrderByCreatedAtDesc(1L)).thenReturn(List.of(favorite, favorite2));
-            when(favoriteMapper.toDto(favorite)).thenReturn(favoriteDto);
-            when(favoriteMapper.toDto(favorite2)).thenReturn(favoriteDto2);
+            when(favoriteMapper.toDtos(List.of(favorite, favorite2))).thenReturn(List.of(favoriteDto, favoriteDto2));
 
             List<FavoriteResponseDto> result = favoriteService.getMyFavorites();
 

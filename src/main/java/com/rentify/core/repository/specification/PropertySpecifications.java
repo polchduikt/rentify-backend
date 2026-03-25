@@ -6,8 +6,12 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.RentalType;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -122,11 +126,12 @@ public class PropertySpecifications {
                     ));
                 }
             }
+            Expression<BigDecimal> comparablePrice = resolveComparablePriceExpression(criteria, root, cb);
             if (criteria.minPrice() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("pricing").get("pricePerNight"), criteria.minPrice()));
+                predicates.add(cb.greaterThanOrEqualTo(comparablePrice, criteria.minPrice()));
             }
             if (criteria.maxPrice() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("pricing").get("pricePerNight"), criteria.maxPrice()));
+                predicates.add(cb.lessThanOrEqualTo(comparablePrice, criteria.maxPrice()));
             }
             if (criteria.minRooms() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("rooms"), criteria.minRooms()));
@@ -190,10 +195,10 @@ public class PropertySpecifications {
             if (criteria.marketType() != null) {
                 predicates.add(cb.equal(root.get("marketType"), criteria.marketType()));
             }
-            if (criteria.propertyType() != null && !criteria.propertyType().isBlank()) {
+            if (criteria.propertyType() != null) {
                 predicates.add(cb.equal(
-                        cb.lower(root.get("propertyType")),
-                        criteria.propertyType().toLowerCase(Locale.ROOT)
+                        cb.lower(root.get("propertyType").as(String.class)),
+                        criteria.propertyType().dbValue()
                 ));
             }
             if (criteria.verifiedProperty() != null) {
@@ -266,5 +271,32 @@ public class PropertySpecifications {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static Expression<BigDecimal> resolveComparablePriceExpression(
+            PropertySearchCriteriaDto criteria,
+            Root<Property> root,
+            CriteriaBuilder cb
+    ) {
+        Expression<BigDecimal> pricePerNight = root.get("pricing").get("pricePerNight");
+        Expression<BigDecimal> pricePerMonth = root.get("pricing").get("pricePerMonth");
+
+        Expression<BigDecimal> shortTermPrice = cb.<BigDecimal>coalesce()
+                .value(pricePerNight)
+                .value(pricePerMonth);
+        Expression<BigDecimal> longTermPrice = cb.<BigDecimal>coalesce()
+                .value(pricePerMonth)
+                .value(pricePerNight);
+
+        if (criteria.rentalType() == RentalType.SHORT_TERM) {
+            return shortTermPrice;
+        }
+        if (criteria.rentalType() == RentalType.LONG_TERM) {
+            return longTermPrice;
+        }
+
+        return cb.<BigDecimal>selectCase()
+                .when(cb.equal(root.get("rentalType"), RentalType.LONG_TERM), longTermPrice)
+                .otherwise(shortTermPrice);
     }
 }

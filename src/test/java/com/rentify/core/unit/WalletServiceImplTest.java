@@ -1,6 +1,5 @@
 package com.rentify.core.unit;
 
-import com.rentify.core.config.WalletProperties;
 import com.rentify.core.dto.wallet.WalletBalanceDto;
 import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
@@ -8,14 +7,17 @@ import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
 import com.rentify.core.enums.SubscriptionPlan;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.impl.WalletServiceImpl;
+import com.rentify.core.validation.WalletValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,6 +37,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,7 +52,8 @@ class WalletServiceImplTest {
     @Mock private WalletTransactionRepository walletTransactionRepository;
     @Mock private WalletTransactionMapper walletTransactionMapper;
     @Mock private WalletNormalizationService walletNormalizationService;
-    @Mock private WalletProperties walletProperties;
+    @Mock private CurrencyResolver currencyResolver;
+    @Mock private WalletValidator walletValidator;
 
     @InjectMocks
     private WalletServiceImpl walletService;
@@ -63,12 +68,50 @@ class WalletServiceImplTest {
                 .subscriptionPlan(SubscriptionPlan.FREE)
                 .subscriptionActiveUntil(null)
                 .build();
-        lenient().when(walletProperties.getCurrency()).thenReturn("UAH");
-        lenient().when(walletProperties.getTopUpOptions()).thenReturn(List.of(
+        org.springframework.test.util.ReflectionTestUtils.setField(walletService, "walletTopUpOptions", List.of(
                 new BigDecimal("300.00"),
                 new BigDecimal("500.00"),
                 new BigDecimal("1000.00")
         ));
+        lenient().when(currencyResolver.resolveDefaultCurrency()).thenReturn("UAH");
+
+        lenient().when(walletTransactionMapper.toWalletBalanceDto(any(User.class), anyString()))
+                .thenAnswer(invocation -> {
+                    User mappedUser = invocation.getArgument(0);
+                    String currency = invocation.getArgument(1);
+                    return new WalletBalanceDto(
+                            mappedUser.getBalance(),
+                            currency,
+                            mappedUser.getSubscriptionPlan(),
+                            mappedUser.getSubscriptionActiveUntil()
+                    );
+                });
+        lenient().when(walletTransactionMapper.toTopUpOptionDtos(anyList(), anyString()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    List<BigDecimal> amounts = invocation.getArgument(0);
+                    String currency = invocation.getArgument(1);
+                    return amounts.stream()
+                            .map(amount -> new TopUpOptionDto(amount, currency))
+                            .toList();
+                });
+        lenient().when(walletValidator.normalizeAmount(any(), anyList()))
+                .thenAnswer(invocation -> {
+                    BigDecimal amount = invocation.getArgument(0);
+                    @SuppressWarnings("unchecked")
+                    List<BigDecimal> allowedAmounts = invocation.getArgument(1);
+                    if (amount == null) {
+                        throw new IllegalArgumentException("Top-up amount is required");
+                    }
+                    BigDecimal normalizedAmount = amount.setScale(2, java.math.RoundingMode.HALF_UP);
+                    if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new IllegalArgumentException("Top-up amount must be greater than zero");
+                    }
+                    if (!allowedAmounts.contains(normalizedAmount)) {
+                        throw new IllegalArgumentException("Top-up amount is not allowed");
+                    }
+                    return normalizedAmount;
+                });
     }
 
     @Nested
@@ -136,7 +179,7 @@ class WalletServiceImplTest {
             assertThat(transactionCaptor.getValue().getDirection()).isEqualTo(WalletTransactionDirection.CREDIT);
             assertThat(transactionCaptor.getValue().getType()).isEqualTo(WalletTransactionType.TOP_UP);
             assertThat(transactionCaptor.getValue().getAmount()).isEqualByComparingTo("300.00");
-            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo("WALLET");
+            assertThat(transactionCaptor.getValue().getReferenceType()).isEqualTo(WalletReferenceType.WALLET);
         }
 
         @Test
@@ -159,7 +202,7 @@ class WalletServiceImplTest {
             WalletTransaction transaction = WalletTransaction.builder().id(1L).user(user).build();
             WalletTransactionDto dto = new WalletTransactionDto(
                     1L, 1L, WalletTransactionDirection.CREDIT, WalletTransactionType.TOP_UP,
-                    new BigDecimal("100.00"), "UAH", "Top up", "WALLET", null, ZonedDateTime.now()
+                    new BigDecimal("100.00"), "UAH", "Top up", WalletReferenceType.WALLET, null, ZonedDateTime.now()
             );
             Page<WalletTransaction> page = new PageImpl<>(List.of(transaction), pageable, 1);
 

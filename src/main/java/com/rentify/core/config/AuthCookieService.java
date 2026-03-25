@@ -93,6 +93,20 @@ public class AuthCookieService {
         return null;
     }
 
+    public String resolveAccessToken(HttpServletRequest request) {
+        if (isCookieStrategyEnabled()) {
+            return extractTokenFromCookie(request);
+        }
+
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        return token.isBlank() ? null : token;
+    }
+
     private ResponseCookie.ResponseCookieBuilder baseCookieBuilder(String value) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(accessTokenCookieName, value)
                 .path(cookiePath)

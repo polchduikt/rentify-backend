@@ -5,7 +5,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "messages")
+@Table(
+        name = "messages",
+        indexes = {
+                @Index(name = "idx_messages_conversation_id", columnList = "conversation_id"),
+                @Index(name = "idx_messages_sender_id", columnList = "sender_id"),
+                @Index(name = "idx_messages_conversation_created_at", columnList = "conversation_id, created_at")
+        }
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Message extends CreatedAtEntity {
     @Id

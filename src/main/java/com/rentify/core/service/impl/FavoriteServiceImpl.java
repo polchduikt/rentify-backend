@@ -68,8 +68,6 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Transactional(readOnly = true)
     public List<FavoriteResponseDto> getMyFavorites() {
         Long userId = authenticationService.getCurrentUser().getId();
-        return favoriteRepository.findAllByUser_IdOrderByCreatedAtDesc(userId).stream()
-                .map(favoriteMapper::toDto)
-                .toList();
+        return favoriteMapper.toDtos(favoriteRepository.findAllByUser_IdOrderByCreatedAtDesc(userId));
     }
 }

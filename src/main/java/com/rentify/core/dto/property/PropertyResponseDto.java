@@ -3,6 +3,7 @@ package com.rentify.core.dto.property;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.PropertyMarketType;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -28,7 +29,7 @@ public record PropertyResponseDto(
         @Schema(description = "Status", example = "ACTIVE")
         PropertyStatus status,
         @Schema(description = "Property type", example = "apartment")
-        @JsonProperty("propertyType") String propertyType,
+        @JsonProperty("propertyType") PropertyType propertyType,
         @Schema(description = "Market type", example = "SECONDARY")
         @JsonProperty("marketType") PropertyMarketType marketType,
         @Schema(description = "Is verified property", example = "true")

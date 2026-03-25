@@ -1,20 +1,23 @@
 package com.rentify.core.service.impl;
 
-import com.rentify.core.config.WalletProperties;
 import com.rentify.core.dto.wallet.WalletBalanceDto;
 import com.rentify.core.dto.wallet.TopUpOptionDto;
 import com.rentify.core.dto.wallet.WalletTopUpRequestDto;
 import com.rentify.core.dto.wallet.WalletTransactionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.entity.WalletTransaction;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
 import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.WalletNormalizationService;
 import com.rentify.core.service.WalletService;
+import com.rentify.core.validation.WalletValidator;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +31,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class WalletServiceImpl implements WalletService {
 
@@ -36,7 +40,15 @@ public class WalletServiceImpl implements WalletService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletTransactionMapper walletTransactionMapper;
     private final WalletNormalizationService walletNormalizationService;
-    private final WalletProperties walletProperties;
+    private final CurrencyResolver currencyResolver;
+    private final WalletValidator walletValidator;
+
+    @org.springframework.beans.factory.annotation.Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
+    private List<BigDecimal> walletTopUpOptions = List.of(
+            new BigDecimal("300.00"),
+            new BigDecimal("500.00"),
+            new BigDecimal("1000.00")
+    );
 
     @Override
     @Transactional
@@ -48,7 +60,7 @@ public class WalletServiceImpl implements WalletService {
         if (changed) {
             userRepository.save(user);
         }
-        return toWalletBalanceDto(user);
+        return walletTransactionMapper.toWalletBalanceDto(user, resolveCurrency());
     }
 
     @Override
@@ -57,7 +69,7 @@ public class WalletServiceImpl implements WalletService {
         User user = authenticationService.getCurrentUser();
         walletNormalizationService.normalizeWalletDefaults(user);
         walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
-        BigDecimal amount = normalizeAmount(request.amount());
+        BigDecimal amount = walletValidator.normalizeAmount(request.amount(), resolveAllowedTopUpAmounts());
 
         user.setBalance(user.getBalance().add(amount));
         userRepository.save(user);
@@ -69,17 +81,21 @@ public class WalletServiceImpl implements WalletService {
                 .amount(amount)
                 .currency(resolveCurrency())
                 .description("Mock wallet top-up")
-                .referenceType("WALLET")
+                .referenceType(WalletReferenceType.WALLET)
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Wallet top-up completed: userId={}, amount={}, currency={}, newBalance={}",
+                user.getId(), amount, resolveCurrency(), user.getBalance());
 
-        return toWalletBalanceDto(user);
+        return walletTransactionMapper.toWalletBalanceDto(user, resolveCurrency());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<WalletTransactionDto> getMyTransactions(Pageable pageable) {
         User user = authenticationService.getCurrentUser();
+        walletNormalizationService.normalizeWalletDefaults(user);
+        walletNormalizationService.normalizeSubscription(user, ZonedDateTime.now());
         return walletTransactionRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId(), pageable)
                 .map(walletTransactionMapper::toDto);
     }
@@ -87,36 +103,11 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public List<TopUpOptionDto> getTopUpOptions() {
         String currency = resolveCurrency();
-        return resolveAllowedTopUpAmounts().stream()
-                .map(amount -> new TopUpOptionDto(amount, currency))
-                .toList();
-    }
-
-    private WalletBalanceDto toWalletBalanceDto(User user) {
-        return new WalletBalanceDto(
-                user.getBalance(),
-                resolveCurrency(),
-                user.getSubscriptionPlan(),
-                user.getSubscriptionActiveUntil()
-        );
-    }
-
-    private BigDecimal normalizeAmount(BigDecimal amount) {
-        if (amount == null) {
-            throw new IllegalArgumentException("Top-up amount is required");
-        }
-        BigDecimal normalizedAmount = amount.setScale(2, RoundingMode.HALF_UP);
-        if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Top-up amount must be greater than zero");
-        }
-        if (!resolveAllowedTopUpAmounts().contains(normalizedAmount)) {
-            throw new IllegalArgumentException("Top-up amount is not allowed");
-        }
-        return normalizedAmount;
+        return walletTransactionMapper.toTopUpOptionDtos(resolveAllowedTopUpAmounts(), currency);
     }
 
     private List<BigDecimal> resolveAllowedTopUpAmounts() {
-        List<BigDecimal> configured = walletProperties.getTopUpOptions();
+        List<BigDecimal> configured = walletTopUpOptions;
         if (configured == null || configured.isEmpty()) {
             throw new IllegalStateException("Wallet top-up options are not configured");
         }
@@ -136,10 +127,6 @@ public class WalletServiceImpl implements WalletService {
     }
 
     private String resolveCurrency() {
-        String currency = walletProperties.getCurrency();
-        if (currency == null || currency.isBlank()) {
-            throw new IllegalStateException("Wallet currency is not configured");
-        }
-        return currency.trim();
+        return currencyResolver.resolveDefaultCurrency();
     }
 }

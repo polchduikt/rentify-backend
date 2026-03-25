@@ -2,9 +2,12 @@ package com.rentify.core.entity;
 
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.PropertyMarketType;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
+import com.rentify.core.converter.PropertyTypeConverter;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -46,8 +49,9 @@ public class Property extends AuditableEntity {
     @Column(nullable = false)
     private PropertyStatus status = PropertyStatus.DRAFT;
 
+    @Convert(converter = PropertyTypeConverter.class)
     @Column(name = "property_type", length = 60)
-    private String propertyType;
+    private PropertyType propertyType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "market_type", length = 40)
@@ -106,11 +110,11 @@ public class Property extends AuditableEntity {
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id", unique = true)
     private Address address;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "property_amenities",
             joinColumns = @JoinColumn(name = "property_id"),
@@ -124,4 +128,21 @@ public class Property extends AuditableEntity {
 
     @OneToOne(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private PropertyRule rules;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Property property = (Property) o;
+        return id != null && id.equals(property.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

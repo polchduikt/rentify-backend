@@ -10,8 +10,10 @@ import com.rentify.core.entity.WalletTransaction;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.SubscriptionPackageType;
 import com.rentify.core.enums.TopPromotionPackageType;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.mapper.PromotionMapper;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
@@ -19,6 +21,7 @@ import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PromotionService;
 import com.rentify.core.service.WalletNormalizationService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PromotionServiceImpl implements PromotionService {
 
@@ -40,6 +44,7 @@ public class PromotionServiceImpl implements PromotionService {
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletNormalizationService walletNormalizationService;
+    private final PromotionMapper promotionMapper;
 
     @Override
     @Transactional
@@ -81,15 +86,15 @@ public class PromotionServiceImpl implements PromotionService {
                 .amount(price)
                 .currency(UAH)
                 .description("Top promotion for property #" + propertyId + " (" + packageType.name() + ")")
-                .referenceType("PROPERTY")
+                .referenceType(WalletReferenceType.PROPERTY)
                 .referenceId(propertyId)
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Top promotion purchased: propertyId={}, userId={}, packageType={}, amount={}, currency={}",
+                propertyId, user.getId(), packageType, price, UAH);
 
-        return new TopPromotionPurchaseResponseDto(
-                property.getId(),
-                property.getIsTopPromoted(),
-                property.getTopPromotedUntil(),
+        return promotionMapper.toTopPromotionPurchaseResponse(
+                property,
                 price,
                 user.getBalance(),
                 UAH
@@ -125,13 +130,14 @@ public class PromotionServiceImpl implements PromotionService {
                 .amount(price)
                 .currency(UAH)
                 .description("Subscription purchase (" + packageType.name() + ")")
-                .referenceType("SUBSCRIPTION")
+                .referenceType(WalletReferenceType.SUBSCRIPTION)
                 .build();
         walletTransactionRepository.save(transaction);
+        log.info("Subscription purchased: userId={}, packageType={}, amount={}, currency={}",
+                user.getId(), packageType, price, UAH);
 
-        return new SubscriptionPurchaseResponseDto(
-                user.getSubscriptionPlan(),
-                user.getSubscriptionActiveUntil(),
+        return promotionMapper.toSubscriptionPurchaseResponse(
+                user,
                 price,
                 user.getBalance(),
                 UAH
@@ -140,27 +146,18 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     public List<TopPromotionPackageDto> getTopPromotionPackages() {
-        return Arrays.stream(TopPromotionPackageType.values())
-                .map(pkg -> new TopPromotionPackageDto(
-                        pkg,
-                        pkg.getDurationDays(),
-                        pkg.getPrice(),
-                        UAH
-                ))
-                .toList();
+        return promotionMapper.toTopPromotionPackageDtos(
+                Arrays.asList(TopPromotionPackageType.values()),
+                UAH
+        );
     }
 
     @Override
     public List<SubscriptionPackageDto> getSubscriptionPackages() {
-        return Arrays.stream(SubscriptionPackageType.values())
-                .map(pkg -> new SubscriptionPackageDto(
-                        pkg,
-                        pkg.getPlan(),
-                        pkg.getDurationDays(),
-                        pkg.getPrice(),
-                        UAH
-                ))
-                .toList();
+        return promotionMapper.toSubscriptionPackageDtos(
+                Arrays.asList(SubscriptionPackageType.values()),
+                UAH
+        );
     }
 
     private void ensureSufficientBalance(User user, BigDecimal price) {

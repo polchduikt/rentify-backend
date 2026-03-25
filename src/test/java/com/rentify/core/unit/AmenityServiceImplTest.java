@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,6 +76,10 @@ class AmenityServiceImplTest {
             when(amenityRepository.findAllByOrderByCategoryAscNameAsc()).thenReturn(List.of(wifi, unknown));
             when(amenityMapper.toDto(wifi)).thenReturn(wifiDto);
             when(amenityMapper.toDto(unknown)).thenReturn(unknownDto);
+            when(amenityMapper.toCategoryGroupDto(eq(AmenityCategory.BASIC), eq(List.of(wifiDto))))
+                    .thenReturn(new AmenityCategoryGroupDto(AmenityCategory.BASIC, List.of(wifiDto)));
+            when(amenityMapper.toCategoryGroupDto(eq(AmenityCategory.OTHER), eq(List.of(unknownDto))))
+                    .thenReturn(new AmenityCategoryGroupDto(AmenityCategory.OTHER, List.of(unknownDto)));
 
             List<AmenityCategoryGroupDto> result = amenityService.getAmenitiesGrouped();
 

@@ -11,11 +11,13 @@ public class Location {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Builder.Default
     @Column(nullable = false, length = 80)
     private String country = "Ukraine";
 
+    @Builder.Default
     @Column(length = 120)
-    private String region;
+    private String region = "";
 
     @Column(nullable = false, length = 120)
     private String city;

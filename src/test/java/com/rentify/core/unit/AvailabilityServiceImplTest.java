@@ -92,7 +92,7 @@ class AvailabilityServiceImplTest {
 
         @Test
         void shouldThrowEntityNotFound_whenPropertyMissing() {
-            when(propertyRepository.findById(10L)).thenReturn(Optional.empty());
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> availabilityService.createBlock(10L, request))
                     .isInstanceOf(EntityNotFoundException.class)
@@ -101,7 +101,7 @@ class AvailabilityServiceImplTest {
 
         @Test
         void shouldThrowAccessDenied_whenCurrentUserIsNotHost() {
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(otherUser);
 
             assertThatThrownBy(() -> availabilityService.createBlock(10L, request))
@@ -111,7 +111,7 @@ class AvailabilityServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenOverlappingBlockExists() {
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(host);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom()
@@ -124,7 +124,7 @@ class AvailabilityServiceImplTest {
 
         @Test
         void shouldThrowIllegalState_whenOverlappingBookingsExist() {
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(host);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom()
@@ -153,7 +153,7 @@ class AvailabilityServiceImplTest {
                     50L, 10L, request.dateFrom(), request.dateTo(), request.reason(), 1L, createdAt
             );
 
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(host);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom()
@@ -185,7 +185,7 @@ class AvailabilityServiceImplTest {
                     10L, 10L, LocalDate.now(), LocalDate.now().plusDays(1), "reason", 1L, ZonedDateTime.now()
             );
             when(availabilityRepository.findAllByPropertyId(10L)).thenReturn(List.of(block));
-            when(mapper.toDto(block)).thenReturn(dto);
+            when(mapper.toDtos(List.of(block))).thenReturn(List.of(dto));
 
             List<AvailabilityBlockDto> result = availabilityService.getBlocksByProperty(10L);
 
@@ -243,6 +243,22 @@ class AvailabilityServiceImplTest {
             when(bookingRepository.findOverlappingByPropertyIdAndStatusNotIn(
                     eq(10L), anyList(), eq(from), eq(to), any()
             )).thenReturn(new PageImpl<>(List.of(booking)));
+            when(mapper.toUnavailableDateRangeDtosFromBlocks(List.of(block))).thenReturn(List.of(
+                    new UnavailableDateRangeDto(
+                            block.getDateFrom(),
+                            block.getDateTo(),
+                            "BLOCK",
+                            null
+                    )
+            ));
+            when(mapper.toUnavailableDateRangeDtosFromBookings(List.of(booking))).thenReturn(List.of(
+                    new UnavailableDateRangeDto(
+                            booking.getDateFrom(),
+                            booking.getDateTo(),
+                            "BOOKING",
+                            booking.getStatus()
+                    )
+            ));
 
             List<UnavailableDateRangeDto> result = availabilityService.getUnavailableRangesByProperty(10L, from, to);
 
@@ -268,6 +284,22 @@ class AvailabilityServiceImplTest {
             when(bookingRepository.findAllByPropertyIdAndStatusNotIn(
                     eq(10L), anyList(), any()
             )).thenReturn(new PageImpl<>(List.of(booking)));
+            when(mapper.toUnavailableDateRangeDtosFromBlocks(List.of(block))).thenReturn(List.of(
+                    new UnavailableDateRangeDto(
+                            block.getDateFrom(),
+                            block.getDateTo(),
+                            "BLOCK",
+                            null
+                    )
+            ));
+            when(mapper.toUnavailableDateRangeDtosFromBookings(List.of(booking))).thenReturn(List.of(
+                    new UnavailableDateRangeDto(
+                            booking.getDateFrom(),
+                            booking.getDateTo(),
+                            "BOOKING",
+                            booking.getStatus()
+                    )
+            ));
 
             List<UnavailableDateRangeDto> result = availabilityService.getUnavailableRangesByProperty(10L, null, null);
 

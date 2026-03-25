@@ -7,10 +7,10 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Payment;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
+import com.rentify.core.service.CurrencyResolver;
+import com.rentify.core.enums.BookingScope;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.PaymentStatus;
-import com.rentify.core.enums.PropertyStatus;
-import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.BookingMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -21,21 +21,21 @@ import com.rentify.core.service.BookingService;
 import com.rentify.core.security.UserRoleUtils;
 import com.rentify.core.validation.BookingValidator;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
@@ -48,6 +48,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final AvailabilityBlockRepository availabilityRepository;
     private final BookingValidator bookingValidator;
+    private final CurrencyResolver currencyResolver;
 
     @Override
     @Transactional
@@ -56,54 +57,56 @@ public class BookingServiceImpl implements BookingService {
         User tenant = authService.getCurrentUser();
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        bookingValidator.validateBookingEligibility(property, tenant, request);
 
-        if (property.getStatus() != PropertyStatus.ACTIVE) {
-            throw new IllegalStateException("Only active properties can be booked.");
-        }
-        if (property.getRentalType() != RentalType.SHORT_TERM) {
-            throw new IllegalStateException("Only short-term properties can be booked.");
-        }
-        if (property.getHost().getId().equals(tenant.getId())) {
-            throw new IllegalArgumentException("You cannot book your own property.");
-        }
+        boolean hasBlockedDates = hasBlockedDates(property.getId(), request);
+        boolean isOccupied = hasOverlappingBookings(property.getId(), request);
+        bookingValidator.validateAvailability(hasBlockedDates, isOccupied);
 
-        long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
-        if (nights <= 0) {
-            throw new IllegalArgumentException("Check-out date must be after check-in date.");
-        }
-        if (property.getMaxGuests() == null) {
-            throw new IllegalStateException("Property configuration is invalid: maxGuests is not set.");
-        }
-        if (request.guests() > property.getMaxGuests()) {
-            throw new IllegalArgumentException("Guest count exceeds the maximum capacity of " + property.getMaxGuests() +
-                    " for this property.");
-        }
+        BigDecimal totalPrice = calculateTotalPrice(property, request);
+        Booking booking = buildBooking(property, tenant, request, totalPrice);
+        Booking savedBooking = saveBookingWithRaceProtection(booking);
+
+        log.info("Booking created: bookingId={}, propertyId={}, tenantId={}, totalPrice={}",
+                savedBooking.getId(), property.getId(), tenant.getId(), totalPrice);
+        return bookingMapper.toDto(savedBooking);
+    }
+
+    private boolean hasBlockedDates(Long propertyId, BookingRequestDto request) {
         List<AvailabilityBlock> overlappingBlocks = availabilityRepository
                 .findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
-                        property.getId(), request.dateTo(), request.dateFrom());
+                        propertyId, request.dateTo(), request.dateFrom());
         if (!overlappingBlocks.isEmpty()) {
-            throw new IllegalStateException("The property is blocked by the host for the selected dates.");
+            return true;
         }
+        return false;
+    }
+
+    private boolean hasOverlappingBookings(Long propertyId, BookingRequestDto request) {
         List<BookingStatus> ignoredStatuses = List.of(
                 BookingStatus.CANCELLED,
                 BookingStatus.REJECTED,
                 BookingStatus.COMPLETED
         );
-        boolean isOccupied = bookingRepository.hasOverlappingBookings(
-                property.getId(),
+        return bookingRepository.hasOverlappingBookings(
+                propertyId,
                 request.dateFrom(),
                 request.dateTo(),
                 ignoredStatuses
         );
-        if (isOccupied) {
-            throw new IllegalStateException("The property is already booked for the selected dates.");
-        }
+    }
+
+    private BigDecimal calculateTotalPrice(Property property, BookingRequestDto request) {
         if (property.getPricing() == null || property.getPricing().getPricePerNight() == null) {
             throw new IllegalStateException("Property configuration is invalid: pricePerNight is not set.");
         }
+        long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
         BigDecimal pricePerNight = property.getPricing().getPricePerNight();
-        BigDecimal totalPrice = pricePerNight.multiply(BigDecimal.valueOf(nights));
-        Booking booking = Booking.builder()
+        return pricePerNight.multiply(BigDecimal.valueOf(nights));
+    }
+
+    private Booking buildBooking(Property property, User tenant, BookingRequestDto request, BigDecimal totalPrice) {
+        return Booking.builder()
                 .property(property)
                 .tenant(tenant)
                 .dateFrom(request.dateFrom())
@@ -112,13 +115,15 @@ public class BookingServiceImpl implements BookingService {
                 .totalPrice(totalPrice)
                 .status(BookingStatus.CREATED)
                 .build();
+    }
+
+    private Booking saveBookingWithRaceProtection(Booking booking) {
         try {
-            booking = bookingRepository.saveAndFlush(booking);
+            return bookingRepository.saveAndFlush(booking);
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Race condition: The property was just booked by someone else for these dates. " +
                     "Please choose different dates.");
         }
-        return bookingMapper.toDto(booking);
     }
 
     @Override
@@ -134,6 +139,15 @@ public class BookingServiceImpl implements BookingService {
             throw new AccessDeniedException("You do not have permission to view this booking");
         }
         return bookingMapper.toDto(booking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookingDto> getBookings(BookingScope scope, Pageable pageable) {
+        return switch (scope) {
+            case GUEST -> getMyBookings(pageable);
+            case HOST -> getIncomingBookings(pageable);
+        };
     }
 
     @Override
@@ -170,6 +184,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking savedBooking = bookingRepository.save(booking);
         refundIfPaid(savedBooking);
+        log.info("Booking canceled: bookingId={}, actorUserId={}", savedBooking.getId(), currentUser.getId());
         return bookingMapper.toDto(savedBooking);
     }
 
@@ -185,6 +200,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingDto confirmBooking(Long id) {
         Booking booking = processHostAction(id, BookingStatus.CONFIRMED);
+        log.info("Booking confirmed: bookingId={}", booking.getId());
         return bookingMapper.toDto(booking);
     }
 
@@ -192,6 +208,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingDto rejectBooking(Long id) {
         Booking booking = processHostAction(id, BookingStatus.REJECTED);
+        log.info("Booking rejected: bookingId={}", booking.getId());
         return bookingMapper.toDto(booking);
     }
 
@@ -200,7 +217,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
         User currentUser = authService.getCurrentUser();
         if (!booking.getProperty().getHost().getId().equals(currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied: You are not the host of this property");
+            throw new AccessDeniedException("Access denied: you are not the host of this property");
         }
         if (booking.getStatus() != BookingStatus.CREATED) {
             throw new IllegalStateException("You can only change the status of CREATED bookings");
@@ -220,12 +237,7 @@ public class BookingServiceImpl implements BookingService {
             return;
         }
 
-        String currency = "UAH";
-        if (booking.getProperty().getPricing() != null
-                && booking.getProperty().getPricing().getCurrency() != null
-                && !booking.getProperty().getPricing().getCurrency().isBlank()) {
-            currency = booking.getProperty().getPricing().getCurrency().trim();
-        }
+        String currency = currencyResolver.resolvePropertyCurrency(booking.getProperty());
 
         Payment refund = Payment.builder()
                 .booking(booking)
@@ -236,5 +248,7 @@ public class BookingServiceImpl implements BookingService {
                 .providerPaymentId("mock_refund_" + UUID.randomUUID())
                 .build();
         paymentRepository.save(refund);
+        log.info("Refund created for canceled booking: bookingId={}, amount={}, currency={}",
+                booking.getId(), booking.getTotalPrice(), currency);
     }
 }

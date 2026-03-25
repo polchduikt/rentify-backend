@@ -9,6 +9,7 @@ import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
+import com.rentify.core.mapper.AuthenticationMapper;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final RoleRepository roleRepository;
     @Qualifier("googleJwtDecoder")
     private final JwtDecoder googleJwtDecoder;
+    private final AuthenticationMapper authenticationMapper;
 
     @Value("${application.security.oauth.google.client-id:}")
     private String googleClientId;
@@ -73,7 +76,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
         userRepository.save(user);
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override
@@ -85,7 +88,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override
@@ -104,14 +107,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         String jwtToken = jwtService.generateToken(new SecurityUser(user));
-        return new AuthenticationResponseDto(jwtToken);
+        return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
 
     @Override
     public User getCurrentUser() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw new AuthenticationCredentialsNotFoundException("User not authenticated");
         }
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
         return securityUser.getUser();
@@ -201,7 +204,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private Role getUserRole() {
         return roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Error: ROLE_USER not found."));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Critical configuration error: ROLE_USER not found in database"));
     }
 
     private record GoogleUserInfo(

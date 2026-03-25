@@ -6,7 +6,13 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "payments")
+@Table(
+        name = "payments",
+        indexes = {
+                @Index(name = "idx_payments_booking_id", columnList = "booking_id"),
+                @Index(name = "idx_payments_booking_created_at", columnList = "booking_id, created_at")
+        }
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Payment extends AuditableEntity {
     @Id
@@ -34,5 +40,4 @@ public class Payment extends AuditableEntity {
 
     @Column(name = "provider_payment_id", length = 120)
     private String providerPaymentId;
-
 }

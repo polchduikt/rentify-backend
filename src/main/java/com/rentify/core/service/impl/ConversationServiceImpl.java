@@ -14,14 +14,13 @@ import com.rentify.core.repository.MessageRepository;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.ConversationService;
+import com.rentify.core.validation.ConversationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,17 +31,17 @@ public class ConversationServiceImpl implements ConversationService {
     private final PropertyRepository propertyRepository;
     private final AuthenticationService authService;
     private final ChatMapper chatMapper;
+    private final ConversationValidator conversationValidator;
 
     @Override
     @Transactional
     public ConversationDto getOrCreateConversation(Long propertyId) {
+        conversationValidator.validatePropertyId(propertyId);
+
         User currentUser = authService.getCurrentUser();
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
-
-        if (property.getHost().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("Host cannot initiate a conversation for their own property");
-        }
+        conversationValidator.validateConversationInitiator(property, currentUser);
 
         Conversation conversation = findOrCreateConversation(property, currentUser);
         return chatMapper.toConversationDto(conversation);
@@ -58,10 +57,12 @@ public class ConversationServiceImpl implements ConversationService {
     @Override
     @Transactional
     public MessageDto sendMessage(Long conversationId, SendMessageRequestDto request) {
+        conversationValidator.validateSendMessageRequest(request);
+
         User sender = authService.getCurrentUser();
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
-        assertParticipant(conversation, sender);
+        conversationValidator.validateParticipant(conversation, sender);
 
         Message message = Message.builder()
                 .conversation(conversation)
@@ -77,10 +78,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional(readOnly = true)
     public List<ConversationDto> getMyConversations() {
         User currentUser = authService.getCurrentUser();
-        return conversationRepository.findAllByUserId(currentUser.getId())
-                .stream()
-                .map(chatMapper::toConversationDto)
-                .collect(Collectors.toList());
+        return chatMapper.toConversationDtos(conversationRepository.findAllByUserId(currentUser.getId()));
     }
 
     @Override
@@ -89,18 +87,8 @@ public class ConversationServiceImpl implements ConversationService {
         User currentUser = authService.getCurrentUser();
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
-        assertParticipant(conversation, currentUser);
-        return messageRepository.findAllByConversationIdOrderByCreatedAtAsc(conversationId)
-                .stream()
-                .map(chatMapper::toMessageDto)
-                .collect(Collectors.toList());
-    }
-
-    private void assertParticipant(Conversation conversation, User user) {
-        if (!conversation.getHost().getId().equals(user.getId()) &&
-                !conversation.getTenant().getId().equals(user.getId())) {
-            throw new AccessDeniedException("You do not have permission to access this conversation");
-        }
+        conversationValidator.validateParticipant(conversation, currentUser);
+        return chatMapper.toMessageDtos(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(conversationId));
     }
 
     private Conversation findOrCreateConversation(Property property, User tenant) {

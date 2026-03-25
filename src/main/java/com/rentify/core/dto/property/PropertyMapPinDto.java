@@ -2,6 +2,7 @@ package com.rentify.core.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentify.core.enums.PropertyMarketType;
+import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
 
 import java.math.BigDecimal;
@@ -13,7 +14,7 @@ public record PropertyMapPinDto(
         Long id,
         @Schema(description = "Title", example = "Cozy apartment in Kyiv center")
         String title,
-        @JsonProperty("propertyType") String propertyType,
+        @JsonProperty("propertyType") PropertyType propertyType,
         @JsonProperty("marketType") PropertyMarketType marketType,
         @JsonProperty("rentalType") RentalType rentalType,
         @Schema(description = "Lat", example = "100.0")

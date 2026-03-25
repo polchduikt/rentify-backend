@@ -56,15 +56,7 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto updateProfile(UpdateUserRequestDto request) {
         userValidator.validateUpdateProfile(request);
         User user = authenticationService.getCurrentUser();
-        if (request.firstName() != null) {
-            user.setFirstName(request.firstName());
-        }
-        if (request.lastName() != null) {
-            user.setLastName(request.lastName());
-        }
-        if (request.phone() != null) {
-            user.setPhone(request.phone());
-        }
+        userMapper.updateUser(request, user);
         User savedUser = userRepository.save(user);
         return userMapper.toDto(savedUser);
     }
@@ -89,6 +81,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateException("Account is already deactivated");
         }
         validateDeletePassword(user, currentPassword);
+        Long userId = user.getId();
 
         user.setIsActive(false);
         user.setEmail(buildDeletedEmail(user.getId()));
@@ -104,6 +97,7 @@ public class UserServiceImpl implements UserService {
         user.setSubscriptionActiveUntil(null);
 
         userRepository.save(user);
+        log.info("User account deactivated: userId={}", userId);
     }
 
     @Override

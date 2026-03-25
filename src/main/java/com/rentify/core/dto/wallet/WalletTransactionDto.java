@@ -1,6 +1,7 @@
 package com.rentify.core.dto.wallet;
 
 import com.rentify.core.enums.WalletTransactionDirection;
+import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionType;
 
 import java.math.BigDecimal;
@@ -23,8 +24,8 @@ public record WalletTransactionDto(
         String currency,
         @Schema(description = "Description", example = "Spacious apartment with balcony and modern renovation.")
         String description,
-        @Schema(description = "Reference type", example = "apartment")
-        String referenceType,
+        @Schema(description = "Reference type", example = "PROPERTY")
+        WalletReferenceType referenceType,
         @Schema(description = "Reference id", example = "42")
         Long referenceId,
         ZonedDateTime createdAt

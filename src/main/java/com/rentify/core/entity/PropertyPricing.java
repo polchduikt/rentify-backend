@@ -2,14 +2,16 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "property_pricing")
+@AttributeOverrides({
+        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", nullable = true)),
+        @AttributeOverride(name = "updatedAt", column = @Column(name = "updated_at", nullable = true))
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class PropertyPricing {
+public class PropertyPricing extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,8 +35,4 @@ public class PropertyPricing {
 
     @Column(name = "cleaning_fee", precision = 12, scale = 2)
     private BigDecimal cleaningFee;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private ZonedDateTime updatedAt;
 }

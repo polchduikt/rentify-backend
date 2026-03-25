@@ -13,6 +13,7 @@ import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.ReviewRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.impl.ReviewServiceImpl;
+import com.rentify.core.validation.ReviewValidator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,8 +34,11 @@ import java.util.List;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceImplTest {
@@ -44,6 +48,7 @@ class ReviewServiceImplTest {
     @Mock private BookingRepository bookingRepository;
     @Mock private AuthenticationService authService;
     @Mock private ReviewMapper reviewMapper;
+    @Mock private ReviewValidator reviewValidator;
 
     @InjectMocks
     private ReviewServiceImpl reviewService;
@@ -77,6 +82,27 @@ class ReviewServiceImplTest {
         request = new ReviewRequestDto(10L, 20L, (short) 5, "Great stay");
         reviewDto = new ReviewDto(1L, 10L, 20L, 1L, (short) 5, "Illia", "Great stay", ZonedDateTime.now());
         pageable = PageRequest.of(0, 10);
+
+        lenient().doAnswer(invocation -> {
+            Booking bookingArg = invocation.getArgument(0);
+            Property propertyArg = invocation.getArgument(1);
+            User authorArg = invocation.getArgument(2);
+            boolean alreadyReviewed = invocation.getArgument(3);
+
+            if (!bookingArg.getTenant().getId().equals(authorArg.getId())) {
+                throw new AccessDeniedException("You can only review bookings that belong to you");
+            }
+            if (!bookingArg.getProperty().getId().equals(propertyArg.getId())) {
+                throw new IllegalArgumentException("Booking does not belong to the specified property");
+            }
+            if (bookingArg.getStatus() != BookingStatus.COMPLETED) {
+                throw new IllegalStateException("You can only review properties after your stay is COMPLETED");
+            }
+            if (alreadyReviewed) {
+                throw new IllegalStateException("You have already reviewed this booking");
+            }
+            return null;
+        }).when(reviewValidator).validateReviewEligibility(any(Booking.class), any(Property.class), any(User.class), anyBoolean());
     }
 
     @Nested
