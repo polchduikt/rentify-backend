@@ -2,6 +2,7 @@ package com.rentify.core.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,11 +16,12 @@ import java.util.List;
 import java.util.Locale;
 
 @Configuration
+@RequiredArgsConstructor
 public class HttpCacheConfig implements WebMvcConfigurer {
 
     private static final String NO_STORE = "no-store";
-    private static final String PUBLIC_SHORT_CACHE = "public, max-age=60, stale-while-revalidate=300";
-    private static final String PUBLIC_MEDIUM_CACHE = "public, max-age=300, stale-while-revalidate=1800";
+
+    private final CacheProperties cacheProperties;
 
     @Bean
     public FilterRegistrationBean<ShallowEtagHeaderFilter> apiEtagFilter() {
@@ -55,7 +57,7 @@ public class HttpCacheConfig implements WebMvcConfigurer {
                 }
 
                 String path = normalizePath(request);
-                response.setHeader(HttpHeaders.CACHE_CONTROL, resolveCacheControl(path));
+                response.setHeader(HttpHeaders.CACHE_CONTROL, resolveCacheControlValue(path));
                 appendVary(response, "Origin");
                 appendVary(response, "Accept-Encoding");
                 return true;
@@ -87,17 +89,17 @@ public class HttpCacheConfig implements WebMvcConfigurer {
         return path.startsWith(contextPath) ? path.substring(contextPath.length()) : path;
     }
 
-    private static String resolveCacheControl(String path) {
+    private String resolveCacheControlValue(String path) {
         if (path.startsWith("/api/v1/amenities") || path.startsWith("/api/v1/locations")) {
-            return PUBLIC_MEDIUM_CACHE;
+            return publicMediumCacheControl();
         }
 
         if (path.startsWith("/api/v1/properties/") && path.endsWith("/reviews")) {
-            return PUBLIC_SHORT_CACHE;
+            return publicShortCacheControl();
         }
 
         if (path.matches("^/api/v1/users/\\d+$")) {
-            return PUBLIC_SHORT_CACHE;
+            return publicShortCacheControl();
         }
 
         if (path.startsWith("/api/v1/properties/me")) {
@@ -105,14 +107,14 @@ public class HttpCacheConfig implements WebMvcConfigurer {
         }
 
         if (path.startsWith("/api/v1/properties")) {
-            return PUBLIC_SHORT_CACHE;
+            return publicShortCacheControl();
         }
 
         if (isPrivatePath(path)) {
             return NO_STORE;
         }
 
-        return PUBLIC_SHORT_CACHE;
+        return publicShortCacheControl();
     }
 
     private static boolean isPrivatePath(String path) {
@@ -150,5 +152,17 @@ public class HttpCacheConfig implements WebMvcConfigurer {
                 .map(String::trim)
                 .map(value -> value.toLowerCase(Locale.ROOT))
                 .anyMatch(target::equals);
+    }
+
+    private String publicShortCacheControl() {
+        return buildPublicCacheControl(cacheProperties.getShortMaxAge(), cacheProperties.getShortSwr());
+    }
+
+    private String publicMediumCacheControl() {
+        return buildPublicCacheControl(cacheProperties.getMediumMaxAge(), cacheProperties.getMediumSwr());
+    }
+
+    private String buildPublicCacheControl(long maxAgeSeconds, long swrSeconds) {
+        return "public, max-age=" + maxAgeSeconds + ", stale-while-revalidate=" + swrSeconds;
     }
 }

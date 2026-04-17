@@ -1,13 +1,11 @@
 package com.rentify.core.controller;
 
-import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.service.AuthResponseService;
 import com.rentify.core.service.AuthenticationService;
-import com.rentify.core.security.TokenRevocationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,9 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
-    private final AuthCookieService authCookieService;
     private final AuthResponseService authResponseService;
-    private final TokenRevocationService tokenRevocationService;
 
     @PostMapping("/users")
     @Operation(
@@ -102,8 +98,7 @@ public class AuthenticationController {
     )
     @ApiResponse(responseCode = "204", description = "Session cookie cleared")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        tokenRevocationService.revoke(authCookieService.resolveAccessToken(request));
-        authCookieService.clearAccessTokenCookie(response);
+        authenticationService.logout(request, response);
         return ResponseEntity.noContent().build();
     }
 }

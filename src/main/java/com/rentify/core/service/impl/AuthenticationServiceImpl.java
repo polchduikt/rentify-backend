@@ -4,6 +4,7 @@ import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
+import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
@@ -14,7 +15,10 @@ import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
 import com.rentify.core.security.SecurityUser;
+import com.rentify.core.security.TokenRevocationService;
 import com.rentify.core.service.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -51,6 +55,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Qualifier("googleJwtDecoder")
     private final JwtDecoder googleJwtDecoder;
     private final AuthenticationMapper authenticationMapper;
+    private final AuthCookieService authCookieService;
+    private final TokenRevocationService tokenRevocationService;
 
     @Value("${application.security.oauth.google.client-id:}")
     private String googleClientId;
@@ -87,6 +93,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new AccountDeactivatedException("Account is deactivated");
+        }
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
         return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
@@ -108,6 +117,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String jwtToken = jwtService.generateToken(new SecurityUser(user));
         return authenticationMapper.toAuthenticationResponse(jwtToken);
+    }
+
+    @Override
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        String accessToken = authCookieService.resolveAccessToken(request);
+        if (accessToken != null && !accessToken.isBlank()) {
+            tokenRevocationService.revoke(accessToken);
+        } else {
+            LOGGER.warn("Logout called but no access token found in request");
+        }
+        authCookieService.clearAccessTokenCookie(response);
+        SecurityContextHolder.clearContext();
     }
 
     @Override

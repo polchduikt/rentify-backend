@@ -4,6 +4,7 @@ import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
+import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
@@ -14,7 +15,10 @@ import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
 import com.rentify.core.security.SecurityUser;
+import com.rentify.core.security.TokenRevocationService;
 import com.rentify.core.service.impl.AuthenticationServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,6 +63,8 @@ class AuthenticationServiceImplTest {
     @Mock private RoleRepository roleRepository;
     @Mock private JwtDecoder googleJwtDecoder;
     @Mock private AuthenticationMapper authenticationMapper;
+    @Mock private AuthCookieService authCookieService;
+    @Mock private TokenRevocationService tokenRevocationService;
 
     @InjectMocks
     private AuthenticationServiceImpl authenticationService;
@@ -162,6 +168,20 @@ class AuthenticationServiceImplTest {
             assertThatThrownBy(() -> authenticationService.authenticate(request))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessage("User not found");
+        }
+
+        @Test
+        void shouldThrowAccountDeactivated_whenUserInactive() {
+            AuthenticationRequestDto request = new AuthenticationRequestDto("user@rentify.com", "StrongPass123!");
+            Authentication authResult = new UsernamePasswordAuthenticationToken("user@rentify.com", "StrongPass123!");
+            user.setIsActive(false);
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authResult);
+            when(userRepository.findByEmail("user@rentify.com")).thenReturn(Optional.of(user));
+
+            assertThatThrownBy(() -> authenticationService.authenticate(request))
+                    .isInstanceOf(AccountDeactivatedException.class)
+                    .hasMessage("Account is deactivated");
+            verify(jwtService, never()).generateToken(any(SecurityUser.class));
         }
     }
 
@@ -303,6 +323,22 @@ class AuthenticationServiceImplTest {
             assertThat(userCaptor.getValue().getOauthSubject()).isEqualTo("sub-1");
             assertThat(userCaptor.getValue().getIsActive()).isTrue();
             assertThat(userCaptor.getValue().getRoles()).contains(userRole);
+        }
+    }
+
+    @Nested
+    @DisplayName("logout()")
+    class LogoutTests {
+
+        @Test
+        void shouldRevokeResolvedTokenAndClearCookie() {
+            HttpServletRequest request = org.mockito.Mockito.mock(HttpServletRequest.class);
+            HttpServletResponse response = org.mockito.Mockito.mock(HttpServletResponse.class);
+            when(authCookieService.resolveAccessToken(request)).thenReturn("jwt-token");
+            authenticationService.logout(request, response);
+            verify(authCookieService).resolveAccessToken(request);
+            verify(tokenRevocationService).revoke("jwt-token");
+            verify(authCookieService).clearAccessTokenCookie(response);
         }
     }
 
