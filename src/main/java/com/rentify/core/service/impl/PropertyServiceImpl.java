@@ -16,6 +16,7 @@ import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AmenityRepository;
 import com.rentify.core.repository.PropertyRepository;
+import com.rentify.core.security.UserRoleUtils;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PropertyService;
 import com.rentify.core.service.impl.property.PropertyAddressService;
@@ -163,7 +164,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = isAdmin(currentUser);
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
         if (!isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to change the status of this property");
         }
@@ -222,7 +223,7 @@ public class PropertyServiceImpl implements PropertyService {
             amenities.addAll(foundBySlugs);
         }
 
-        if (!isAdmin(currentUser)) {
+        if (!UserRoleUtils.isAdmin(currentUser)) {
             Set<Amenity> currentAmenities = property.getAmenities() != null ? property.getAmenities() : Set.of();
             Set<Amenity> existingVerificationAmenities = currentAmenities.stream()
                     .filter(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION)
@@ -261,7 +262,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void applyListingFlags(Property property, PropertyCreateRequestDto request, User currentUser) {
-        if (!isAdmin(currentUser)) {
+        if (!UserRoleUtils.isAdmin(currentUser)) {
             return;
         }
         property.setIsVerifiedProperty(Boolean.TRUE.equals(request.isVerifiedProperty()));
@@ -285,15 +286,10 @@ public class PropertyServiceImpl implements PropertyService {
 
     private void assertCanManageProperty(Property property, User currentUser) {
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = isAdmin(currentUser);
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
         if (!isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to manage this property");
         }
-    }
-
-    private boolean isAdmin(User user) {
-        return user.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
     }
 
     private void assertRentalPricingRules(PropertyCreateRequestDto request) {

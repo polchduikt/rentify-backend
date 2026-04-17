@@ -16,11 +16,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Date;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -30,33 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
     private final AuthCookieService authCookieService;
     private final TokenRevocationService tokenRevocationService;
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
-    private static final List<String> EXCLUDED_PATHS = List.of(
-            "/api/v1/sessions/**",
-            "/v3/api-docs/**",
-            "/swagger-ui/**"
-    );
-
-    @Override
-    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        String path = request.getRequestURI();
-        String method = request.getMethod();
-        if ("POST".equalsIgnoreCase(method) && "/api/v1/users".equals(path)) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method)) {
-            if (path.startsWith("/api/v1/properties/me") || path.startsWith("/api/v1/users/me")) {
-                return false;
-            }
-            if (pathMatcher.match("/api/v1/properties/**", path) ||
-                    pathMatcher.match("/api/v1/amenities/**", path) ||
-                    pathMatcher.match("/api/v1/locations/**", path) ||
-                    pathMatcher.match("/api/v1/users/*", path)) {
-                return true;
-            }
-        }
-        return EXCLUDED_PATHS.stream().anyMatch(p -> pathMatcher.match(p, path));
-    }
 
     @Override
     protected void doFilterInternal(

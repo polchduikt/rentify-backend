@@ -14,6 +14,7 @@ import com.rentify.core.mapper.AuthenticationMapper;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
+import com.rentify.core.security.Roles;
 import com.rentify.core.security.SecurityUser;
 import com.rentify.core.security.TokenRevocationService;
 import com.rentify.core.service.AuthenticationService;
@@ -224,9 +225,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private Role getUserRole() {
-        return roleRepository.findByName("ROLE_USER")
+        return roleRepository.findByName(Roles.USER)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Critical configuration error: ROLE_USER not found in database"));
+                        "Critical configuration error: " + Roles.USER + " not found in database"));
     }
 
     private record GoogleUserInfo(
