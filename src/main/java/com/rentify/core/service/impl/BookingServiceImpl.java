@@ -7,6 +7,7 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Payment;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.enums.BookingScope;
 import com.rentify.core.enums.BookingStatus;
@@ -98,7 +99,8 @@ public class BookingServiceImpl implements BookingService {
 
     private BigDecimal calculateTotalPrice(Property property, BookingRequestDto request) {
         if (property.getPricing() == null || property.getPricing().getPricePerNight() == null) {
-            throw new IllegalStateException("Property configuration is invalid: pricePerNight is not set.");
+            throw DomainException.internal("PROPERTY_CONFIGURATION_INVALID",
+                    "Property configuration is invalid: pricePerNight is not set.");
         }
         long nights = ChronoUnit.DAYS.between(request.dateFrom(), request.dateTo());
         BigDecimal pricePerNight = property.getPricing().getPricePerNight();
@@ -121,8 +123,10 @@ public class BookingServiceImpl implements BookingService {
         try {
             return bookingRepository.saveAndFlush(booking);
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Race condition: The property was just booked by someone else for these dates. " +
-                    "Please choose different dates.");
+            throw DomainException.conflict(
+                    "BOOKING_CONFLICT",
+                    "The property was just booked by someone else for these dates. Please choose different dates."
+            );
         }
     }
 
@@ -171,14 +175,14 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.REJECTED) {
-            throw new IllegalStateException("Booking is already closed");
+            throw DomainException.conflict("BOOKING_STATUS_INVALID", "Booking is already closed");
         }
         if (booking.getStatus() == BookingStatus.COMPLETED) {
-            throw new IllegalStateException("Completed booking cannot be cancelled");
+            throw DomainException.conflict("BOOKING_STATUS_INVALID", "Completed booking cannot be cancelled");
         }
 
         if (isTenant && booking.getStatus() == BookingStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Tenant cannot cancel booking in progress");
+            throw DomainException.conflict("BOOKING_STATUS_INVALID", "Tenant cannot cancel booking in progress");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -220,7 +224,7 @@ public class BookingServiceImpl implements BookingService {
             throw new AccessDeniedException("Access denied: you are not the host of this property");
         }
         if (booking.getStatus() != BookingStatus.CREATED) {
-            throw new IllegalStateException("You can only change the status of CREATED bookings");
+            throw DomainException.conflict("BOOKING_STATUS_INVALID", "You can only change the status of CREATED bookings");
         }
         booking.setStatus(newStatus);
         return bookingRepository.save(booking);

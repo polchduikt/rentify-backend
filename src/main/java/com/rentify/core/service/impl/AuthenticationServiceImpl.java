@@ -7,6 +7,7 @@ import com.rentify.core.dto.auth.RegisterRequestDto;
 import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.exception.AccountDeactivatedException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
@@ -67,7 +68,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponseDto register(RegisterRequestDto request) {
         LOGGER.info("Registering new user with email: {}", request.email());
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already taken");
+            throw DomainException.conflict("EMAIL_ALREADY_TAKEN", "Email already taken");
         }
         Role userRole = getUserRole();
         var roles = new HashSet<Role>();
@@ -106,7 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponseDto authenticateWithGoogle(GoogleOAuthRequestDto request) {
         LOGGER.info("Authenticating via Google OAuth");
         if (googleClientId == null || googleClientId.isBlank()) {
-            throw new IllegalStateException("Google OAuth is not configured on server");
+            throw DomainException.serviceUnavailable("GOOGLE_OAUTH_NOT_CONFIGURED", "Google OAuth is not configured on server");
         }
 
         GoogleUserInfo googleUser = decodeGoogleIdToken(request.idToken());

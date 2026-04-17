@@ -16,6 +16,7 @@ import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.LocationRepository;
 import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.ResidentialComplexRepository;
+import com.rentify.core.exception.DomainException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,13 +52,13 @@ public class PropertyAddressService {
 
         if (cityRef != null) {
             if (districtRef != null && !districtRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("District does not belong to selected city");
+                throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "District does not belong to selected city");
             }
             if (metroStationRef != null && !metroStationRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Metro station does not belong to selected city");
+                throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "Metro station does not belong to selected city");
             }
             if (residentialComplexRef != null && !residentialComplexRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Residential complex does not belong to selected city");
+                throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "Residential complex does not belong to selected city");
             }
         }
 
@@ -74,7 +75,7 @@ public class PropertyAddressService {
             location.setRegion(dto.location().region());
             location.setCity(dto.location().city());
         } else {
-            throw new IllegalArgumentException("Either cityId or address.location must be provided");
+            throw DomainException.badRequest("ADDRESS_LOCATION_REQUIRED", "Either cityId or address.location must be provided");
         }
         Location savedLocation = resolveOrCreateLocation(location);
 
@@ -107,7 +108,7 @@ public class PropertyAddressService {
 
     private String normalizeRequiredLocationValue(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Location " + fieldName + " must not be blank");
+            throw DomainException.badRequest("ADDRESS_LOCATION_REQUIRED", "Location " + fieldName + " must not be blank");
         }
         return value.trim();
     }

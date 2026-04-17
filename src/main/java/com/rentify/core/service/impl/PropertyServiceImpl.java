@@ -24,6 +24,7 @@ import com.rentify.core.service.impl.property.PropertyCleanupService;
 import com.rentify.core.service.impl.property.PropertyPhotoService;
 import com.rentify.core.service.impl.property.PropertySearchService;
 import com.rentify.core.validation.PropertyValidator;
+import com.rentify.core.exception.DomainException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -295,19 +296,29 @@ public class PropertyServiceImpl implements PropertyService {
     private void assertRentalPricingRules(PropertyCreateRequestDto request) {
         if (request.rentalType() == RentalType.SHORT_TERM) {
             if (request.maxGuests() == null) {
-                throw new IllegalArgumentException("maxGuests is required for short-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "maxGuests is required for short-term rental",
+                        java.util.Map.of("maxGuests", "required")
+                );
             }
             if (request.pricing() == null || request.pricing().pricePerNight() == null
                     || request.pricing().pricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException(
-                        "pricePerNight is required and must be greater than 0 for short-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "pricePerNight is required and must be greater than 0 for short-term rental",
+                        java.util.Map.of("pricePerNight", "must be greater than 0")
+                );
             }
         }
         if (request.rentalType() == RentalType.LONG_TERM) {
             if (request.pricing() == null || request.pricing().pricePerMonth() == null
                     || request.pricing().pricePerMonth().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException(
-                        "pricePerMonth is required and must be greater than 0 for long-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "pricePerMonth is required and must be greater than 0 for long-term rental",
+                        java.util.Map.of("pricePerMonth", "must be greater than 0")
+                );
             }
         }
     }

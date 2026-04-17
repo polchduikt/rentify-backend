@@ -5,6 +5,7 @@ import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.mapper.UserMapper;
 import com.rentify.core.repository.UserRepository;
@@ -67,7 +68,7 @@ public class UserServiceImpl implements UserService {
         userValidator.validateChangePassword(request);
         User user = authenticationService.getCurrentUser();
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Current password is incorrect");
+            throw DomainException.badRequest("PASSWORD_INCORRECT", "Current password is incorrect");
         }
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
@@ -78,7 +79,7 @@ public class UserServiceImpl implements UserService {
     public void deleteCurrentAccount(String currentPassword) {
         User user = authenticationService.getCurrentUser();
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            throw new IllegalStateException("Account is already deactivated");
+            throw DomainException.conflict("ACCOUNT_ALREADY_DEACTIVATED", "Account is already deactivated");
         }
         validateDeletePassword(user, currentPassword);
         Long userId = user.getId();
@@ -143,10 +144,10 @@ public class UserServiceImpl implements UserService {
             return;
         }
         if (currentPassword == null || currentPassword.isBlank()) {
-            throw new IllegalArgumentException("Current password is required to delete account");
+            throw DomainException.badRequest("CURRENT_PASSWORD_REQUIRED", "Current password is required to delete account");
         }
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Current password is incorrect");
+            throw DomainException.badRequest("PASSWORD_INCORRECT", "Current password is incorrect");
         }
     }
 

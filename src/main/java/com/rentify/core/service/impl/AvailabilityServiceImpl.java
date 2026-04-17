@@ -8,6 +8,7 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.AvailabilityMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -44,7 +45,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     @Transactional
     public AvailabilityBlockDto createBlock(Long propertyId, AvailabilityBlockRequestDto request) {
         if (request.dateFrom().isAfter(request.dateTo())) {
-            throw new IllegalArgumentException("dateFrom must be before or equal to dateTo");
+            throw DomainException.badRequest("DATE_RANGE_INVALID", "dateFrom must be before or equal to dateTo");
         }
         Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -56,14 +57,14 @@ public class AvailabilityServiceImpl implements AvailabilityService {
                 .findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                         propertyId, request.dateTo(), request.dateFrom());
         if (!overlappingBlocks.isEmpty()) {
-            throw new IllegalStateException("These dates are already blocked.");
+            throw DomainException.conflict("AVAILABILITY_ALREADY_BLOCKED", "These dates are already blocked.");
         }
         boolean hasBookings = bookingRepository.hasOverlappingBookings(
                 propertyId, request.dateFrom(), request.dateTo(),
                 List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.COMPLETED)
         );
         if (hasBookings) {
-            throw new IllegalStateException("Cannot block dates because there are existing bookings for this period.");
+            throw DomainException.conflict("AVAILABILITY_HAS_BOOKINGS", "Cannot block dates because there are existing bookings for this period.");
         }
         AvailabilityBlock block = AvailabilityBlock.builder()
                 .property(property)
@@ -135,10 +136,10 @@ public class AvailabilityServiceImpl implements AvailabilityService {
 
     private void validateDateRange(LocalDate dateFrom, LocalDate dateTo) {
         if ((dateFrom == null) != (dateTo == null)) {
-            throw new IllegalArgumentException("Both dateFrom and dateTo must be provided together.");
+            throw DomainException.badRequest("DATE_RANGE_INVALID", "Both dateFrom and dateTo must be provided together.");
         }
         if (dateFrom != null && !dateFrom.isBefore(dateTo)) {
-            throw new IllegalArgumentException("dateFrom must be before dateTo.");
+            throw DomainException.badRequest("DATE_RANGE_INVALID", "dateFrom must be before dateTo.");
         }
     }
 

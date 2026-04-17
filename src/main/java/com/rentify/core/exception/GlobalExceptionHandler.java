@@ -44,6 +44,11 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ApiErrorResponse> handleDomainException(DomainException ex, HttpServletRequest request) {
+        return build(ex.getStatus(), ex.getMessage(), request, ex.getErrorCode(), ex.getDetails(), ex);
+    }
+
     @ExceptionHandler(InvalidGoogleTokenException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidGoogleTokenException(
             InvalidGoogleTokenException ex, HttpServletRequest request) {

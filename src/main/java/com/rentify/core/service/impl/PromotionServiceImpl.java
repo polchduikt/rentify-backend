@@ -13,6 +13,7 @@ import com.rentify.core.enums.TopPromotionPackageType;
 import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.PromotionMapper;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.UserRepository;
@@ -50,7 +51,7 @@ public class PromotionServiceImpl implements PromotionService {
     @Transactional
     public TopPromotionPurchaseResponseDto purchaseTopPromotion(Long propertyId, TopPromotionPackageType packageType) {
         if (packageType == null) {
-            throw new IllegalArgumentException("Top promotion package is required");
+            throw DomainException.badRequest("PROMOTION_PACKAGE_REQUIRED", "Top promotion package is required");
         }
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -61,7 +62,7 @@ public class PromotionServiceImpl implements PromotionService {
             throw new AccessDeniedException("You can only promote your own properties");
         }
         if (property.getStatus() != PropertyStatus.ACTIVE) {
-            throw new IllegalStateException("Only active properties can be promoted");
+            throw DomainException.conflict("PROMOTION_PROPERTY_NOT_ACTIVE", "Only active properties can be promoted");
         }
         BigDecimal price = packageType.getPrice();
         ensureSufficientBalance(user, price);
@@ -105,7 +106,7 @@ public class PromotionServiceImpl implements PromotionService {
     @Transactional
     public SubscriptionPurchaseResponseDto purchaseSubscription(SubscriptionPackageType packageType) {
         if (packageType == null) {
-            throw new IllegalArgumentException("Subscription package is required");
+            throw DomainException.badRequest("SUBSCRIPTION_PACKAGE_REQUIRED", "Subscription package is required");
         }
         User user = loadCurrentUserForUpdate();
         walletNormalizationService.normalizeWalletDefaults(user);
@@ -162,7 +163,7 @@ public class PromotionServiceImpl implements PromotionService {
 
     private void ensureSufficientBalance(User user, BigDecimal price) {
         if (user.getBalance().compareTo(price) < 0) {
-            throw new IllegalStateException("Insufficient balance. Please top up your wallet.");
+            throw DomainException.conflict("WALLET_INSUFFICIENT_BALANCE", "Insufficient balance. Please top up your wallet.");
         }
     }
 

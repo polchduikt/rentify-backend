@@ -6,6 +6,7 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.Review;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.ReviewMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PropertyRepository;
@@ -59,7 +60,7 @@ public class ReviewServiceImpl implements ReviewService {
         try {
             savedReview = reviewRepository.save(review);
         } catch (DataIntegrityViolationException ex) {
-            throw new IllegalStateException("You have already reviewed this booking");
+            throw DomainException.conflict("REVIEW_ALREADY_EXISTS", "You have already reviewed this booking");
         }
 
         long reviewCount = reviewRepository.countByPropertyId(property.getId());
