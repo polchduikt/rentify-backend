@@ -8,6 +8,7 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.config.AvailabilityProperties;
 import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.AvailabilityMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
@@ -33,13 +34,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AvailabilityServiceImpl implements AvailabilityService {
 
-    private static final int BOOKING_FETCH_PAGE_SIZE = 500;
-
     private final AvailabilityBlockRepository availabilityRepository;
     private final PropertyRepository propertyRepository;
     private final BookingRepository bookingRepository;
     private final AuthenticationService authService;
     private final AvailabilityMapper mapper;
+    private final AvailabilityProperties availabilityProperties;
 
     @Override
     @Transactional
@@ -158,7 +158,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
                     excludedStatuses,
                     dateFrom,
                     dateTo,
-                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+                    PageRequest.of(pageNumber, availabilityProperties.getBookingFetchPageSize(), Sort.by(Sort.Direction.ASC, "dateFrom"))
             );
             result.addAll(page.getContent());
             pageNumber++;
@@ -177,7 +177,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             page = bookingRepository.findAllByPropertyIdAndStatusNotIn(
                     propertyId,
                     excludedStatuses,
-                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+                    PageRequest.of(pageNumber, availabilityProperties.getBookingFetchPageSize(), Sort.by(Sort.Direction.ASC, "dateFrom"))
             );
             result.addAll(page.getContent());
             pageNumber++;

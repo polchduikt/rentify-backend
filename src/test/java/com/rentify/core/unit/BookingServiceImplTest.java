@@ -13,6 +13,7 @@ import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.PaymentStatus;
 import com.rentify.core.enums.PropertyStatus;
 import com.rentify.core.enums.RentalType;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.BookingMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -177,113 +178,114 @@ class BookingServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenPropertyIsNotActive() {
+        void shouldThrowDomainException_whenPropertyIsNotActive() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalStateException("Only active properties can be booked."))
+            doThrow(DomainException.conflict("BOOKING_PROPERTY_NOT_ACTIVE", "Only active properties can be booked."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Only active properties can be booked.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenPropertyIsNotShortTerm() {
+        void shouldThrowDomainException_whenPropertyIsNotShortTerm() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalStateException("Only short-term properties can be booked."))
+            doThrow(DomainException.conflict("BOOKING_RENTAL_TYPE_NOT_ALLOWED", "Only short-term properties can be booked."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Only short-term properties can be booked.");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenTenantBooksOwnProperty() {
+        void shouldThrowDomainException_whenTenantBooksOwnProperty() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalArgumentException("You cannot book your own property."))
+            doThrow(DomainException.badRequest("BOOKING_SELF_NOT_ALLOWED", "You cannot book your own property."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("You cannot book your own property.");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenStayHasNoNights() {
+        void shouldThrowDomainException_whenStayHasNoNights() {
             BookingRequestDto zeroNightsRequest = new BookingRequestDto(10L, request.dateFrom(), request.dateFrom(), (short) 2);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalArgumentException("Check-out date must be after check-in date."))
+            doThrow(DomainException.badRequest("BOOKING_DATES_INVALID", "Check-out date must be after check-in date."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, zeroNightsRequest);
 
             assertThatThrownBy(() -> bookingService.createBooking(zeroNightsRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Check-out date must be after check-in date.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenMaxGuestsNotConfigured() {
+        void shouldThrowDomainException_whenMaxGuestsNotConfigured() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalStateException("Property configuration is invalid: maxGuests is not set."))
+            doThrow(DomainException.internal("PROPERTY_CONFIGURATION_INVALID", "Property configuration is invalid: maxGuests is not set."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, request);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Property configuration is invalid: maxGuests is not set.");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenGuestsExceedCapacity() {
+        void shouldThrowDomainException_whenGuestsExceedCapacity() {
             BookingRequestDto tooManyGuestsRequest = new BookingRequestDto(10L, request.dateFrom(), request.dateTo(), (short) 4);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
-            doThrow(new IllegalArgumentException(
+            doThrow(DomainException.badRequest(
+                    "BOOKING_GUESTS_EXCEED_CAPACITY",
                     "Guest count exceeds the maximum capacity of " + property.getMaxGuests() + " for this property."))
                     .when(bookingValidator).validateBookingEligibility(property, tenantUser, tooManyGuestsRequest);
 
             assertThatThrownBy(() -> bookingService.createBooking(tooManyGuestsRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("Guest count exceeds the maximum capacity");
         }
 
         @Test
-        void shouldThrowIllegalState_whenDatesBlockedByHost() {
+        void shouldThrowDomainException_whenDatesBlockedByHost() {
             AvailabilityBlock block = AvailabilityBlock.builder().id(1L).property(property).build();
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom())).thenReturn(List.of(block));
-            doThrow(new IllegalStateException("The property is blocked by the host for the selected dates."))
+            doThrow(DomainException.conflict("BOOKING_DATES_BLOCKED", "The property is blocked by the host for the selected dates."))
                     .when(bookingValidator).validateAvailability(true, false);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("The property is blocked by the host for the selected dates.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenPropertyAlreadyBookedForDates() {
+        void shouldThrowDomainException_whenPropertyAlreadyBookedForDates() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                     10L, request.dateTo(), request.dateFrom())).thenReturn(List.of());
             when(bookingRepository.hasOverlappingBookings(eq(10L), eq(request.dateFrom()), eq(request.dateTo()), anyList()))
                     .thenReturn(true);
-            doThrow(new IllegalStateException("The property is already booked for the selected dates."))
+            doThrow(DomainException.conflict("BOOKING_DATES_OCCUPIED", "The property is already booked for the selected dates."))
                     .when(bookingValidator).validateAvailability(false, true);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("The property is already booked for the selected dates.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenPricePerNightMissing() {
+        void shouldThrowDomainException_whenPricePerNightMissing() {
             property.setPricing(null);
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
@@ -293,12 +295,12 @@ class BookingServiceImplTest {
                     .thenReturn(false);
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Property configuration is invalid: pricePerNight is not set.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenConcurrentBookingHappens() {
+        void shouldThrowDomainException_whenConcurrentBookingHappens() {
             when(authService.getCurrentUser()).thenReturn(tenantUser);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
@@ -308,8 +310,8 @@ class BookingServiceImplTest {
             when(bookingRepository.saveAndFlush(any(Booking.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Race condition: The property was just booked by someone else");
+                    .isInstanceOf(DomainException.class)
+                    .hasMessageContaining("The property was just booked by someone else");
         }
     }
 
@@ -392,35 +394,35 @@ class BookingServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingAlreadyClosed() {
+        void shouldThrowDomainException_whenBookingAlreadyClosed() {
             booking.setStatus(BookingStatus.CANCELLED);
             when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
             when(authService.getCurrentUser()).thenReturn(tenantUser);
 
             assertThatThrownBy(() -> bookingService.cancelBooking(50L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Booking is already closed");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingCompleted() {
+        void shouldThrowDomainException_whenBookingCompleted() {
             booking.setStatus(BookingStatus.COMPLETED);
             when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
             when(authService.getCurrentUser()).thenReturn(tenantUser);
 
             assertThatThrownBy(() -> bookingService.cancelBooking(50L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Completed booking cannot be cancelled");
         }
 
         @Test
-        void shouldThrowIllegalState_whenTenantCancelsInProgressBooking() {
+        void shouldThrowDomainException_whenTenantCancelsInProgressBooking() {
             booking.setStatus(BookingStatus.IN_PROGRESS);
             when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
             when(authService.getCurrentUser()).thenReturn(tenantUser);
 
             assertThatThrownBy(() -> bookingService.cancelBooking(50L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Tenant cannot cancel booking in progress");
         }
 
@@ -519,13 +521,13 @@ class BookingServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingIsNotCreated() {
+        void shouldThrowDomainException_whenBookingIsNotCreated() {
             booking.setStatus(BookingStatus.CONFIRMED);
             when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
             when(authService.getCurrentUser()).thenReturn(hostUser);
 
             assertThatThrownBy(() -> bookingService.confirmBooking(50L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("You can only change the status of CREATED bookings");
         }
     }

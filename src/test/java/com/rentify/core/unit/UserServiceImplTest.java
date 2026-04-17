@@ -6,6 +6,7 @@ import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.SubscriptionPlan;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.UserMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.service.AuthenticationService;
@@ -195,13 +196,13 @@ class UserServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenCurrentPasswordIsIncorrect() {
+        void shouldThrowDomainException_whenCurrentPasswordIsIncorrect() {
             ChangePasswordRequestDto request = new ChangePasswordRequestDto("wrong-pass", "new-pass", "new-pass");
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
             when(passwordEncoder.matches("wrong-pass", "hashed-password")).thenReturn(false);
 
             assertThatThrownBy(() -> userService.changePassword(request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Current password is incorrect");
 
             verify(userRepository, never()).save(any(User.class));
@@ -237,11 +238,11 @@ class UserServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenPasswordMissingForLocalAccount() {
+        void shouldThrowDomainException_whenPasswordMissingForLocalAccount() {
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
 
             assertThatThrownBy(() -> userService.deleteCurrentAccount(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Current password is required to delete account");
         }
 
@@ -258,12 +259,12 @@ class UserServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenAccountAlreadyDeactivated() {
+        void shouldThrowDomainException_whenAccountAlreadyDeactivated() {
             currentUser.setIsActive(false);
             when(authenticationService.getCurrentUser()).thenReturn(currentUser);
 
             assertThatThrownBy(() -> userService.deleteCurrentAccount("any-pass"))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Account is already deactivated");
         }
     }

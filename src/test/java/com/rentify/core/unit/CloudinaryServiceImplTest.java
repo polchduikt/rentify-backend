@@ -2,6 +2,9 @@ package com.rentify.core.unit;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.rentify.core.config.CloudinaryProperties;
+import com.rentify.core.config.MediaUploadProperties;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.exception.FileUploadException;
 import com.rentify.core.service.impl.CloudinaryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +36,9 @@ class CloudinaryServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        cloudinaryService = new CloudinaryServiceImpl(cloudinary);
+        MediaUploadProperties mediaUploadProperties = new MediaUploadProperties();
+        CloudinaryProperties cloudinaryProperties = new CloudinaryProperties();
+        cloudinaryService = new CloudinaryServiceImpl(cloudinary, mediaUploadProperties, cloudinaryProperties);
     }
 
     @Nested
@@ -59,30 +64,30 @@ class CloudinaryServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenFileIsNull() {
+        void shouldThrowDomainException_whenFileIsNull() {
             assertThatThrownBy(() -> cloudinaryService.uploadFile(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("File is required");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenFileTypeIsUnsupported() {
+        void shouldThrowDomainException_whenFileTypeIsUnsupported() {
             when(file.isEmpty()).thenReturn(false);
             when(file.getContentType()).thenReturn("application/pdf");
 
             assertThatThrownBy(() -> cloudinaryService.uploadFile(file))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("Unsupported file type");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenFileTooLarge() {
+        void shouldThrowDomainException_whenFileTooLarge() {
             when(file.isEmpty()).thenReturn(false);
             when(file.getContentType()).thenReturn("image/png");
             when(file.getSize()).thenReturn(11L * 1024 * 1024);
 
             assertThatThrownBy(() -> cloudinaryService.uploadFile(file))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("File size exceeds 10 MB");
         }
 
@@ -124,7 +129,7 @@ class CloudinaryServiceImplTest {
         @Test
         void shouldWrapException_whenUrlIsInvalid() {
             assertThatThrownBy(() -> cloudinaryService.deleteFile("https://example.com/no-upload-segment.jpg"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("Invalid Cloudinary URL");
         }
     }

@@ -14,6 +14,7 @@ import com.rentify.core.enums.TopPromotionPackageType;
 import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.PromotionMapper;
 import com.rentify.core.repository.PropertyRepository;
 import com.rentify.core.repository.UserRepository;
@@ -86,9 +87,9 @@ class PromotionServiceImplTest {
     class PurchaseTopPromotionTests {
 
         @Test
-        void shouldThrowIllegalArgument_whenPackageMissing() {
+        void shouldThrowDomainException_whenPackageMissing() {
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Top promotion package is required");
         }
 
@@ -113,26 +114,26 @@ class PromotionServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenPropertyNotActive() {
+        void shouldThrowDomainException_whenPropertyNotActive() {
             property.setStatus(PropertyStatus.INACTIVE);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(host);
             when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Only active properties can be promoted");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBalanceInsufficient() {
+        void shouldThrowDomainException_whenBalanceInsufficient() {
             host.setBalance(new BigDecimal("50.00"));
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(host);
             when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseTopPromotion(10L, TopPromotionPackageType.TOP_7_DAYS))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Insufficient balance. Please top up your wallet.");
         }
 
@@ -186,20 +187,20 @@ class PromotionServiceImplTest {
     class PurchaseSubscriptionTests {
 
         @Test
-        void shouldThrowIllegalArgument_whenPackageMissing() {
+        void shouldThrowDomainException_whenPackageMissing() {
             assertThatThrownBy(() -> promotionService.purchaseSubscription(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Subscription package is required");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBalanceInsufficient() {
+        void shouldThrowDomainException_whenBalanceInsufficient() {
             host.setBalance(new BigDecimal("100.00"));
             when(authenticationService.getCurrentUser()).thenReturn(host);
             when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(host));
 
             assertThatThrownBy(() -> promotionService.purchaseSubscription(SubscriptionPackageType.BASIC_30_DAYS))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Insufficient balance. Please top up your wallet.");
         }
 

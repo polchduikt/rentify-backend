@@ -19,6 +19,7 @@ import com.rentify.core.service.WalletService;
 import com.rentify.core.validation.WalletValidator;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public class WalletServiceImpl implements WalletService {
     private final CurrencyResolver currencyResolver;
     private final WalletValidator walletValidator;
 
-    @org.springframework.beans.factory.annotation.Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
+    @Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
     private List<BigDecimal> walletTopUpOptions = List.of(
             new BigDecimal("300.00"),
             new BigDecimal("500.00"),

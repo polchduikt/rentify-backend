@@ -8,6 +8,8 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.config.AvailabilityProperties;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.AvailabilityMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -47,6 +49,7 @@ class AvailabilityServiceImplTest {
     @Mock private BookingRepository bookingRepository;
     @Mock private AuthenticationService authService;
     @Mock private AvailabilityMapper mapper;
+    @Mock private AvailabilityProperties availabilityProperties;
 
     @InjectMocks
     private AvailabilityServiceImpl availabilityService;
@@ -58,6 +61,7 @@ class AvailabilityServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(availabilityProperties.getBookingFetchPageSize()).thenReturn(500);
         host = User.builder().id(1L).build();
         otherUser = User.builder().id(2L).build();
 
@@ -78,7 +82,7 @@ class AvailabilityServiceImplTest {
     class CreateBlockTests {
 
         @Test
-        void shouldThrowIllegalArgument_whenDateRangeInvalid() {
+        void shouldThrowDomainException_whenDateRangeInvalid() {
             AvailabilityBlockRequestDto invalid = new AvailabilityBlockRequestDto(
                     LocalDate.of(2026, 4, 15),
                     LocalDate.of(2026, 4, 10),
@@ -86,7 +90,7 @@ class AvailabilityServiceImplTest {
             );
 
             assertThatThrownBy(() -> availabilityService.createBlock(10L, invalid))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("dateFrom must be before or equal to dateTo");
         }
 
@@ -110,7 +114,7 @@ class AvailabilityServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenOverlappingBlockExists() {
+        void shouldThrowDomainException_whenOverlappingBlockExists() {
             when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(host);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
@@ -118,12 +122,12 @@ class AvailabilityServiceImplTest {
             )).thenReturn(List.of(AvailabilityBlock.builder().id(1L).build()));
 
             assertThatThrownBy(() -> availabilityService.createBlock(10L, request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("These dates are already blocked.");
         }
 
         @Test
-        void shouldThrowIllegalState_whenOverlappingBookingsExist() {
+        void shouldThrowDomainException_whenOverlappingBookingsExist() {
             when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(authService.getCurrentUser()).thenReturn(host);
             when(availabilityRepository.findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
@@ -133,7 +137,7 @@ class AvailabilityServiceImplTest {
                     .thenReturn(true);
 
             assertThatThrownBy(() -> availabilityService.createBlock(10L, request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Cannot block dates because there are existing bookings for this period.");
         }
 
@@ -198,18 +202,18 @@ class AvailabilityServiceImplTest {
     class GetUnavailableRangesTests {
 
         @Test
-        void shouldThrowIllegalArgument_whenOnlyOneDateProvided() {
+        void shouldThrowDomainException_whenOnlyOneDateProvided() {
             assertThatThrownBy(() -> availabilityService.getUnavailableRangesByProperty(10L, LocalDate.now(), null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Both dateFrom and dateTo must be provided together.");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenDateFromNotBeforeDateTo() {
+        void shouldThrowDomainException_whenDateFromNotBeforeDateTo() {
             LocalDate date = LocalDate.of(2026, 5, 1);
 
             assertThatThrownBy(() -> availabilityService.getUnavailableRangesByProperty(10L, date, date))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("dateFrom must be before dateTo.");
         }
 

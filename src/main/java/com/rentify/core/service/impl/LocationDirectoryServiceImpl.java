@@ -7,6 +7,7 @@ import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.ResidentialComplexRepository;
+import com.rentify.core.config.LocationSuggestProperties;
 import com.rentify.core.service.LocationDirectoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -22,14 +23,12 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class LocationDirectoryServiceImpl implements LocationDirectoryService {
 
-    private static final int DEFAULT_LIMIT = 10;
-    private static final int MAX_LIMIT = 50;
-
     private final CityRepository cityRepository;
     private final DistrictRepository districtRepository;
     private final MetroStationRepository metroStationRepository;
     private final ResidentialComplexRepository residentialComplexRepository;
     private final LocationMapper locationMapper;
+    private final LocationSuggestProperties suggestProperties;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,12 +93,12 @@ public class LocationDirectoryServiceImpl implements LocationDirectoryService {
 
     private int resolveLimit(Integer limit) {
         if (limit == null) {
-            return DEFAULT_LIMIT;
+            return suggestProperties.getDefaultLimit();
         }
         if (limit < 1) {
-            return DEFAULT_LIMIT;
+            return suggestProperties.getDefaultLimit();
         }
-        return Math.min(limit, MAX_LIMIT);
+        return Math.min(limit, suggestProperties.getMaxLimit());
     }
 
     private String escapeLikePattern(String input) {

@@ -10,6 +10,7 @@ import com.rentify.core.enums.SubscriptionPlan;
 import com.rentify.core.enums.WalletReferenceType;
 import com.rentify.core.enums.WalletTransactionDirection;
 import com.rentify.core.enums.WalletTransactionType;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.WalletTransactionMapper;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
@@ -101,14 +102,18 @@ class WalletServiceImplTest {
                     @SuppressWarnings("unchecked")
                     List<BigDecimal> allowedAmounts = invocation.getArgument(1);
                     if (amount == null) {
-                        throw new IllegalArgumentException("Top-up amount is required");
+                        throw DomainException.badRequest("WALLET_TOPUP_AMOUNT_REQUIRED", "Top-up amount is required");
                     }
                     BigDecimal normalizedAmount = amount.setScale(2, java.math.RoundingMode.HALF_UP);
                     if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                        throw new IllegalArgumentException("Top-up amount must be greater than zero");
+                        throw DomainException.badRequest("WALLET_TOPUP_AMOUNT_INVALID", "Top-up amount must be greater than zero");
                     }
                     if (!allowedAmounts.contains(normalizedAmount)) {
-                        throw new IllegalArgumentException("Top-up amount is not allowed");
+                        throw DomainException.badRequest(
+                                "WALLET_TOPUP_AMOUNT_NOT_ALLOWED",
+                                "Top-up amount is not allowed",
+                                java.util.Map.of("amount", normalizedAmount.toPlainString())
+                        );
                     }
                     return normalizedAmount;
                 });
@@ -148,20 +153,20 @@ class WalletServiceImplTest {
     class TopUpBalanceTests {
 
         @Test
-        void shouldThrowIllegalArgument_whenAmountMissing() {
+        void shouldThrowDomainException_whenAmountMissing() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
 
             assertThatThrownBy(() -> walletService.topUpBalance(new WalletTopUpRequestDto(null)))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Top-up amount is required");
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenAmountNotPositive() {
+        void shouldThrowDomainException_whenAmountNotPositive() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
 
             assertThatThrownBy(() -> walletService.topUpBalance(new WalletTopUpRequestDto(BigDecimal.ZERO)))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Top-up amount must be greater than zero");
         }
 
@@ -183,11 +188,11 @@ class WalletServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenAmountNotInAllowedOptions() {
+        void shouldThrowDomainException_whenAmountNotInAllowedOptions() {
             when(authenticationService.getCurrentUser()).thenReturn(user);
 
             assertThatThrownBy(() -> walletService.topUpBalance(new WalletTopUpRequestDto(new BigDecimal("250.00"))))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Top-up amount is not allowed");
         }
     }

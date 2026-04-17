@@ -9,6 +9,7 @@ import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.DistrictRepository;
 import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.ResidentialComplexRepository;
+import com.rentify.core.config.LocationSuggestProperties;
 import com.rentify.core.service.impl.LocationDirectoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,7 @@ class LocationDirectoryServiceImplTest {
     @Mock private MetroStationRepository metroStationRepository;
     @Mock private ResidentialComplexRepository residentialComplexRepository;
     @Mock private LocationMapper locationMapper;
+    @Mock private LocationSuggestProperties suggestProperties;
 
     @InjectMocks
     private LocationDirectoryServiceImpl locationDirectoryService;
@@ -53,6 +55,8 @@ class LocationDirectoryServiceImplTest {
                 .country("Ukraine")
                 .build();
 
+        lenient().when(suggestProperties.getDefaultLimit()).thenReturn(10);
+        lenient().when(suggestProperties.getMaxLimit()).thenReturn(50);
         lenient().when(locationMapper.toCitySuggestions(anyList())).thenReturn(List.of());
         lenient().when(locationMapper.toDistrictSuggestions(anyList())).thenReturn(List.of());
         lenient().when(locationMapper.toMetroSuggestions(anyList())).thenReturn(List.of());

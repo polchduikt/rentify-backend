@@ -9,6 +9,7 @@ import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.PaymentStatus;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.PaymentMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PaymentRepository;
@@ -103,37 +104,37 @@ class PaymentServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenAlreadyPaid() {
+        void shouldThrowDomainException_whenAlreadyPaid() {
             when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
             when(authenticationService.getCurrentUser()).thenReturn(tenant);
             when(paymentRepository.existsByBookingIdAndStatus(100L, PaymentStatus.PAID)).thenReturn(true);
 
             assertThatThrownBy(() -> paymentService.payBooking(100L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Booking is already paid");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingNotConfirmed() {
+        void shouldThrowDomainException_whenBookingNotConfirmed() {
             booking.setStatus(BookingStatus.CREATED);
             when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
             when(authenticationService.getCurrentUser()).thenReturn(tenant);
             when(paymentRepository.existsByBookingIdAndStatus(100L, PaymentStatus.PAID)).thenReturn(false);
 
             assertThatThrownBy(() -> paymentService.payBooking(100L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Booking must be CONFIRMED by host before payment");
         }
 
         @Test
-        void shouldThrowIllegalState_whenTotalPriceMissing() {
+        void shouldThrowDomainException_whenTotalPriceMissing() {
             booking.setTotalPrice(null);
             when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
             when(authenticationService.getCurrentUser()).thenReturn(tenant);
             when(paymentRepository.existsByBookingIdAndStatus(100L, PaymentStatus.PAID)).thenReturn(false);
 
             assertThatThrownBy(() -> paymentService.payBooking(100L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Booking has no calculated total price");
         }
 

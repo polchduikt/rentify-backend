@@ -8,6 +8,7 @@ import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
 import com.rentify.core.exception.AccountDeactivatedException;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
 import com.rentify.core.mapper.AuthenticationMapper;
@@ -119,12 +120,12 @@ class AuthenticationServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenEmailAlreadyTaken() {
+        void shouldThrowDomainException_whenEmailAlreadyTaken() {
             RegisterRequestDto request = new RegisterRequestDto("Illia", "Koval", "+380991112233", "user@rentify.com", "StrongPass123!");
             when(userRepository.existsByEmail("user@rentify.com")).thenReturn(true);
 
             assertThatThrownBy(() -> authenticationService.register(request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Email already taken");
         }
 
@@ -190,12 +191,12 @@ class AuthenticationServiceImplTest {
     class AuthenticateWithGoogleTests {
 
         @Test
-        void shouldThrowIllegalState_whenGoogleOAuthIsNotConfigured() {
+        void shouldThrowDomainException_whenGoogleOAuthIsNotConfigured() {
             ReflectionTestUtils.setField(authenticationService, "googleClientId", "");
             GoogleOAuthRequestDto request = new GoogleOAuthRequestDto("id-token");
 
             assertThatThrownBy(() -> authenticationService.authenticateWithGoogle(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Google OAuth is not configured on server");
         }
 
