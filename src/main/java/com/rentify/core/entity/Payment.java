@@ -3,6 +3,7 @@ package com.rentify.core.entity;
 import com.rentify.core.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 
 @Entity
@@ -40,4 +41,21 @@ public class Payment extends AuditableEntity {
 
     @Column(name = "provider_payment_id", length = 120)
     private String providerPaymentId;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Payment that = (Payment) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

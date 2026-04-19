@@ -2,6 +2,7 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 
 @Entity
@@ -49,4 +50,21 @@ public class Address {
 
     @Column(precision = 9, scale = 6)
     private BigDecimal lng;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Address address = (Address) o;
+        return id != null && id.equals(address.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

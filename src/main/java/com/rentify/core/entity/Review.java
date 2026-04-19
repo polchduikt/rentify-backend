@@ -2,6 +2,7 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 @Entity
 @Table(
@@ -38,5 +39,22 @@ public class Review extends CreatedAtEntity {
 
     @Column(columnDefinition = "TEXT")
     private String comment;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Review that = (Review) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 
 }

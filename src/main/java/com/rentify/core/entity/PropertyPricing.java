@@ -2,6 +2,7 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 
 @Entity
@@ -35,4 +36,21 @@ public class PropertyPricing extends AuditableEntity {
 
     @Column(name = "cleaning_fee", precision = 12, scale = 2)
     private BigDecimal cleaningFee;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        PropertyPricing that = (PropertyPricing) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

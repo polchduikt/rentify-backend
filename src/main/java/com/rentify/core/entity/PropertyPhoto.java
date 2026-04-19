@@ -2,6 +2,7 @@ package com.rentify.core.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 @Entity
 @Table(
@@ -27,4 +28,21 @@ public class PropertyPhoto extends CreatedAtEntity {
     @Builder.Default
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        PropertyPhoto that = (PropertyPhoto) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

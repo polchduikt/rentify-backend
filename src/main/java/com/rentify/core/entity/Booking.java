@@ -2,7 +2,9 @@ package com.rentify.core.entity;
 
 import com.rentify.core.enums.BookingStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.*;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -39,6 +41,7 @@ public class Booking extends AuditableEntity {
 
     @Builder.Default
     @Column(nullable = false)
+    @Min(1)
     private Short guests = 1;
 
     @Column(name = "total_price", precision = 12, scale = 2)
@@ -53,4 +56,21 @@ public class Booking extends AuditableEntity {
     @Version
     @Column(name = "version")
     private long version = 0L;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Booking booking = (Booking) o;
+        return id != null && id.equals(booking.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }

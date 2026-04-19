@@ -3,6 +3,7 @@ package com.rentify.core.entity;
 import com.rentify.core.enums.MessageType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 @Entity
 @Table(
@@ -41,4 +42,21 @@ public class Message extends CreatedAtEntity {
 
     @Column(name = "media_url", length = 800)
     private String mediaUrl;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
+            return false;
+        }
+        Message that = (Message) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Hibernate.getClass(this).hashCode();
+    }
 }
