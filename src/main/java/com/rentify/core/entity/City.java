@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,18 +40,26 @@ public class City {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Size(max = 120)
     @Column(nullable = false, length = 120)
     private String name;
 
+    @NotBlank
+    @Size(max = 120)
     @Column(name = "normalized_name", nullable = false, length = 120)
     private String normalizedName;
 
+    @NotBlank
+    @Size(max = 80)
     @Column(nullable = false, length = 80)
     private String country;
 
+    @Size(max = 120)
     @Column(length = 120)
     private String region;
 
+    @Size(max = 32)
     @Column(name = "kato_code", length = 32)
     private String katoCode;
 

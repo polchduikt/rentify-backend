@@ -1,6 +1,8 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.math.BigDecimal;
@@ -15,6 +17,7 @@ public class Address {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", nullable = false)
+    @NotNull
     private Location location;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -33,15 +36,19 @@ public class Address {
     @JoinColumn(name = "residential_complex_id")
     private ResidentialComplex residentialComplexRef;
 
+    @Size(max = 180)
     @Column(length = 180)
     private String street;
 
+    @Size(max = 30)
     @Column(name = "house_number", length = 30)
     private String houseNumber;
 
+    @Size(max = 30)
     @Column(length = 30)
     private String apartment;
 
+    @Size(max = 30)
     @Column(name = "postal_code", length = 30)
     private String postalCode;
 

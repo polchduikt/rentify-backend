@@ -1,6 +1,7 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Check;
 import org.hibernate.Hibernate;
@@ -23,11 +24,14 @@ public class AvailabilityBlock extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
+    @NotNull
     private Property property;
 
+    @NotNull
     @Column(name = "date_from", nullable = false)
     private LocalDate dateFrom;
 
+    @NotNull
     @Column(name = "date_to", nullable = false)
     private LocalDate dateTo;
 
@@ -36,6 +40,7 @@ public class AvailabilityBlock extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
+    @NotNull
     private User createdBy;
 
     @Override

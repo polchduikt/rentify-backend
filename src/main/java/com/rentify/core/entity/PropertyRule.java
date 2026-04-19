@@ -1,6 +1,7 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -18,18 +19,22 @@ public class PropertyRule extends AuditableEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false, unique = true)
+    @NotNull
     private Property property;
 
     @Builder.Default
     @Column(name = "pets_allowed", nullable = false)
+    @NotNull
     private Boolean petsAllowed = false;
 
     @Builder.Default
     @Column(name = "smoking_allowed", nullable = false)
+    @NotNull
     private Boolean smokingAllowed = false;
 
     @Builder.Default
     @Column(name = "parties_allowed", nullable = false)
+    @NotNull
     private Boolean partiesAllowed = false;
 
     @Column(name = "additional_rules", columnDefinition = "TEXT")

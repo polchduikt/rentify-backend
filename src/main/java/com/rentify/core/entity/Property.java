@@ -6,6 +6,11 @@ import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.RentalType;
 import com.rentify.core.converter.PropertyTypeConverter;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.math.BigDecimal;
@@ -32,8 +37,11 @@ public class Property extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id", nullable = false)
+    @NotNull
     private User host;
 
+    @NotBlank
+    @Size(max = 160)
     @Column(nullable = false, length = 160)
     private String title;
 
@@ -42,11 +50,13 @@ public class Property extends AuditableEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "rental_type", nullable = false)
+    @NotNull
     private RentalType rentalType;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @NotNull
     private PropertyStatus status = PropertyStatus.DRAFT;
 
     @Convert(converter = PropertyTypeConverter.class)
@@ -71,32 +81,44 @@ public class Property extends AuditableEntity {
 
     @Builder.Default
     @Column(name = "is_top_promoted", nullable = false, columnDefinition = "boolean default false")
+    @NotNull
     private Boolean isTopPromoted = false;
 
     @Builder.Default
     @Column(name = "view_count", nullable = false, columnDefinition = "bigint default 0")
+    @NotNull
+    @Min(0)
     private Long viewCount = 0L;
 
     @Builder.Default
     @Column(name = "review_count", nullable = false, columnDefinition = "bigint default 0")
+    @NotNull
+    @Min(0)
     private Long reviewCount = 0L;
 
     @Builder.Default
     @Column(name = "average_rating", nullable = false, precision = 3, scale = 2, columnDefinition = "numeric(3,2) default 0")
+    @NotNull
+    @DecimalMin("0.00")
     private BigDecimal averageRating = BigDecimal.ZERO;
 
     @Column(name = "top_promoted_until")
     private ZonedDateTime topPromotedUntil;
 
+    @Min(0)
     private Short rooms;
+    @Min(0)
     private Short floor;
     @Column(name = "total_floors")
+    @Min(0)
     private Short totalFloors;
 
+    @DecimalMin("0.00")
     @Column(name = "area_sqm", precision = 7, scale = 2)
     private BigDecimal areaSqm;
 
     @Column(name = "max_guests")
+    @Min(0)
     private Short maxGuests;
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)

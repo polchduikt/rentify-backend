@@ -1,6 +1,9 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -24,6 +27,7 @@ public class Review extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
+    @NotNull
     private Property property;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,8 +36,12 @@ public class Review extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
+    @NotNull
     private User author;
 
+    @NotNull
+    @Min(1)
+    @Max(5)
     @Column(nullable = false)
     private Short rating;
 

@@ -11,6 +11,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,15 +46,20 @@ public class ResidentialComplex {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "city_id", nullable = false)
+    @NotNull
     private City city;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "district_id")
     private District district;
 
+    @NotBlank
+    @Size(max = 220)
     @Column(nullable = false, length = 220)
     private String name;
 
+    @NotBlank
+    @Size(max = 220)
     @Column(name = "normalized_name", nullable = false, length = 220)
     private String normalizedName;
 

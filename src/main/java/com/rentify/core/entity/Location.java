@@ -1,6 +1,8 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -13,13 +15,18 @@ public class Location {
     private Long id;
 
     @Builder.Default
+    @NotBlank
+    @Size(max = 80)
     @Column(nullable = false, length = 80)
     private String country = "Ukraine";
 
     @Builder.Default
+    @Size(max = 120)
     @Column(length = 120)
     private String region = "";
 
+    @NotBlank
+    @Size(max = 120)
     @Column(nullable = false, length = 120)
     private String city;
 

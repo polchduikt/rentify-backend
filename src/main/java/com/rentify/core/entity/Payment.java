@@ -2,6 +2,10 @@ package com.rentify.core.entity;
 
 import com.rentify.core.enums.PaymentStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 import java.math.BigDecimal;
@@ -22,18 +26,24 @@ public class Payment extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
+    @NotNull
     private Booking booking;
 
+    @NotNull
+    @DecimalMin("0.00")
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
     @Builder.Default
+    @NotBlank
+    @Size(min = 3, max = 3)
     @Column(nullable = false, length = 3)
     private String currency = "UAH";
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @NotNull
     private PaymentStatus status = PaymentStatus.PENDING;
 
     @Column(length = 60)

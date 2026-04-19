@@ -2,6 +2,11 @@ package com.rentify.core.entity;
 
 import com.rentify.core.enums.SubscriptionPlan;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -17,6 +22,9 @@ public class User extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Email
+    @Size(max = 255)
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -35,21 +43,27 @@ public class User extends AuditableEntity {
     @Column(name = "last_name", length = 60)
     private String lastName;
 
+    @Size(max = 30)
     @Column(length = 30)
     private String phone;
 
+    @Size(max = 500)
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
     @Builder.Default
+    @NotNull
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @Builder.Default
+    @NotNull
+    @DecimalMin("0.00")
     @Column(name = "balance", nullable = false, precision = 12, scale = 2, columnDefinition = "numeric(12,2) default 0")
     private BigDecimal balance = BigDecimal.ZERO;
 
     @Builder.Default
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "subscription_plan", nullable = false, length = 30, columnDefinition = "varchar(30) default 'FREE'")
     private SubscriptionPlan subscriptionPlan = SubscriptionPlan.FREE;
