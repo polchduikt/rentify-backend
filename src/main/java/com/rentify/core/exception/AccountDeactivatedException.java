@@ -1,7 +1,10 @@
 package com.rentify.core.exception;
 
-public class AccountDeactivatedException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+import java.util.Map;
+
+public class AccountDeactivatedException extends DomainException {
     public AccountDeactivatedException(String message) {
-        super(message);
+        super(HttpStatus.FORBIDDEN, "ACCOUNT_DEACTIVATED", message, Map.of());
     }
 }

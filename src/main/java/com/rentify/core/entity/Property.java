@@ -167,4 +167,17 @@ public class Property extends AuditableEntity {
     public final int hashCode() {
         return Hibernate.getClass(this).hashCode();
     }
+
+    public BigDecimal resolveMapPrice() {
+        if (pricing == null) {
+            return null;
+        }
+        if (rentalType == RentalType.SHORT_TERM) {
+            return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
+        }
+        if (rentalType == RentalType.LONG_TERM) {
+            return pricing.getPricePerMonth() != null ? pricing.getPricePerMonth() : pricing.getPricePerNight();
+        }
+        return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
+    }
 }

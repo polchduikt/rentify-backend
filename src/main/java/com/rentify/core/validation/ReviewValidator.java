@@ -10,7 +10,7 @@ import jakarta.validation.Validator;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import java.util.Map;
 
 @Component
 public class ReviewValidator extends AbstractValidator {
@@ -20,13 +20,13 @@ public class ReviewValidator extends AbstractValidator {
     }
 
     public void validateCreateReviewRequest(ReviewRequestDto request) {
-        Set<String> errors = collectBeanErrors(request);
+        Map<String, String> errors = collectBeanErrors(request);
 
         if (request.propertyId() != null && request.propertyId() <= 0) {
-            errors.add("propertyId: must be greater than 0");
+            errors.put("propertyId", "must be greater than 0");
         }
         if (request.bookingId() != null && request.bookingId() <= 0) {
-            errors.add("bookingId: must be greater than 0");
+            errors.put("bookingId", "must be greater than 0");
         }
 
         throwIfAny(errors);

@@ -10,7 +10,7 @@ import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
 
 import java.time.temporal.ChronoUnit;
-import java.util.Set;
+import java.util.Map;
 
 @Component
 public class BookingValidator extends AbstractValidator {
@@ -20,13 +20,13 @@ public class BookingValidator extends AbstractValidator {
     }
 
     public void validateCreateBookingRequest(BookingRequestDto request) {
-        Set<String> errors = collectBeanErrors(request);
+        Map<String, String> errors = collectBeanErrors(request);
 
         if (request.propertyId() != null && request.propertyId() <= 0) {
-            errors.add("propertyId: must be greater than 0");
+            errors.put("propertyId", "must be greater than 0");
         }
         if (request.dateFrom() != null && request.dateTo() != null && !request.dateFrom().isBefore(request.dateTo())) {
-            errors.add("dateFrom: must be before dateTo");
+            errors.put("dateFrom", "must be before dateTo");
         }
 
         throwIfAny(errors);

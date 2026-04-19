@@ -1,20 +1,13 @@
 package com.rentify.core.exception;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 
-public class ApiValidationException extends RuntimeException {
+import java.util.Map;
 
-    private final Set<String> errors;
+public class ApiValidationException extends DomainException {
 
-    public ApiValidationException(Set<String> errors) {
-        super(errors.stream().collect(Collectors.joining(", ")));
-        this.errors = Collections.unmodifiableSet(new LinkedHashSet<>(errors));
+    public ApiValidationException(Map<String, String> fieldErrors) {
+        super(HttpStatus.BAD_REQUEST, "API_VALIDATION_ERROR", "Validation failed", fieldErrors);
     }
 
-    public Set<String> getErrors() {
-        return errors;
-    }
 }

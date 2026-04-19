@@ -4,7 +4,8 @@ import com.rentify.core.exception.ApiValidationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public abstract class AbstractValidator {
@@ -15,16 +16,16 @@ public abstract class AbstractValidator {
         this.validator = validator;
     }
 
-    protected <T> Set<String> collectBeanErrors(T target) {
+    protected <T> Map<String, String> collectBeanErrors(T target) {
         Set<ConstraintViolation<T>> violations = validator.validate(target);
-        Set<String> errors = new LinkedHashSet<>();
+        Map<String, String> errors = new LinkedHashMap<>();
         for (ConstraintViolation<T> violation : violations) {
-            errors.add(violation.getPropertyPath() + ": " + violation.getMessage());
+            errors.put(violation.getPropertyPath().toString(), violation.getMessage());
         }
         return errors;
     }
 
-    protected void throwIfAny(Set<String> errors) {
+    protected void throwIfAny(Map<String, String> errors) {
         if (!errors.isEmpty()) {
             throw new ApiValidationException(errors);
         }

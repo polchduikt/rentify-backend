@@ -32,7 +32,7 @@ public interface PropertyMapper {
     @Mapping(source = "address.lat", target = "lat")
     @Mapping(source = "address.lng", target = "lng")
     @Mapping(source = "pricing.currency", target = "currency")
-    @Mapping(target = "price", expression = "java(resolveMapPrice(property))")
+    @Mapping(target = "price", expression = "java(property.resolveMapPrice())")
     PropertyMapPinDto toMapPinDto(Property property);
 
     List<PropertyMapPinDto> toMapPinDtos(List<Property> properties);
@@ -101,18 +101,4 @@ public interface PropertyMapper {
     @Mapping(target = "metroStationRef", ignore = true)
     @Mapping(target = "residentialComplexRef", ignore = true)
     Address toAddressEntity(AddressDto dto);
-
-    default BigDecimal resolveMapPrice(Property property) {
-        PropertyPricing pricing = property.getPricing();
-        if (pricing == null) {
-            return null;
-        }
-        if (property.getRentalType() == RentalType.SHORT_TERM) {
-            return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
-        }
-        if (property.getRentalType() == RentalType.LONG_TERM) {
-            return pricing.getPricePerMonth() != null ? pricing.getPricePerMonth() : pricing.getPricePerNight();
-        }
-        return pricing.getPricePerNight() != null ? pricing.getPricePerNight() : pricing.getPricePerMonth();
-    }
 }
