@@ -5,11 +5,12 @@ import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.exception.DomainException;
 import jakarta.validation.Validator;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import java.util.Map;
 
 @Component
 public class ReviewValidator extends AbstractValidator {
@@ -19,13 +20,13 @@ public class ReviewValidator extends AbstractValidator {
     }
 
     public void validateCreateReviewRequest(ReviewRequestDto request) {
-        Set<String> errors = collectBeanErrors(request);
+        Map<String, String> errors = collectBeanErrors(request);
 
         if (request.propertyId() != null && request.propertyId() <= 0) {
-            errors.add("propertyId: must be greater than 0");
+            errors.put("propertyId", "must be greater than 0");
         }
         if (request.bookingId() != null && request.bookingId() <= 0) {
-            errors.add("bookingId: must be greater than 0");
+            errors.put("bookingId", "must be greater than 0");
         }
 
         throwIfAny(errors);
@@ -36,13 +37,13 @@ public class ReviewValidator extends AbstractValidator {
             throw new AccessDeniedException("You can only review bookings that belong to you");
         }
         if (!booking.getProperty().getId().equals(property.getId())) {
-            throw new IllegalArgumentException("Booking does not belong to the specified property");
+            throw DomainException.badRequest("REVIEW_BOOKING_PROPERTY_MISMATCH", "Booking does not belong to the specified property");
         }
         if (booking.getStatus() != BookingStatus.COMPLETED) {
-            throw new IllegalStateException("You can only review properties after your stay is COMPLETED");
+            throw DomainException.conflict("REVIEW_NOT_ALLOWED_YET", "You can only review properties after your stay is COMPLETED");
         }
         if (alreadyReviewed) {
-            throw new IllegalStateException("You have already reviewed this booking");
+            throw DomainException.conflict("REVIEW_ALREADY_EXISTS", "You have already reviewed this booking");
         }
     }
 }

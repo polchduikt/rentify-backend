@@ -4,8 +4,10 @@ import com.rentify.core.dto.auth.AuthenticationRequestDto;
 import com.rentify.core.dto.auth.AuthenticationResponseDto;
 import com.rentify.core.dto.auth.GoogleOAuthRequestDto;
 import com.rentify.core.dto.auth.RegisterRequestDto;
+import com.rentify.core.config.AuthCookieService;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.exception.AccountDeactivatedException;
 import com.rentify.core.exception.InvalidGoogleTokenException;
 import com.rentify.core.exception.OAuthAccountLinkedToAnotherProviderException;
@@ -13,8 +15,12 @@ import com.rentify.core.mapper.AuthenticationMapper;
 import com.rentify.core.repository.RoleRepository;
 import com.rentify.core.repository.UserRepository;
 import com.rentify.core.security.JwtService;
+import com.rentify.core.security.Roles;
 import com.rentify.core.security.SecurityUser;
+import com.rentify.core.security.TokenRevocationService;
 import com.rentify.core.service.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -51,6 +57,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Qualifier("googleJwtDecoder")
     private final JwtDecoder googleJwtDecoder;
     private final AuthenticationMapper authenticationMapper;
+    private final AuthCookieService authCookieService;
+    private final TokenRevocationService tokenRevocationService;
 
     @Value("${application.security.oauth.google.client-id:}")
     private String googleClientId;
@@ -60,7 +68,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponseDto register(RegisterRequestDto request) {
         LOGGER.info("Registering new user with email: {}", request.email());
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already taken");
+            throw DomainException.conflict("EMAIL_ALREADY_TAKEN", "Email already taken");
         }
         Role userRole = getUserRole();
         var roles = new HashSet<Role>();
@@ -87,6 +95,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new AccountDeactivatedException("Account is deactivated");
+        }
         var jwtToken = jwtService.generateToken(new SecurityUser(user));
         return authenticationMapper.toAuthenticationResponse(jwtToken);
     }
@@ -96,7 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponseDto authenticateWithGoogle(GoogleOAuthRequestDto request) {
         LOGGER.info("Authenticating via Google OAuth");
         if (googleClientId == null || googleClientId.isBlank()) {
-            throw new IllegalStateException("Google OAuth is not configured on server");
+            throw DomainException.serviceUnavailable("GOOGLE_OAUTH_NOT_CONFIGURED", "Google OAuth is not configured on server");
         }
 
         GoogleUserInfo googleUser = decodeGoogleIdToken(request.idToken());
@@ -108,6 +119,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String jwtToken = jwtService.generateToken(new SecurityUser(user));
         return authenticationMapper.toAuthenticationResponse(jwtToken);
+    }
+
+    @Override
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        String accessToken = authCookieService.resolveAccessToken(request);
+        if (accessToken != null && !accessToken.isBlank()) {
+            tokenRevocationService.revoke(accessToken);
+        } else {
+            LOGGER.warn("Logout called but no access token found in request");
+        }
+        authCookieService.clearAccessTokenCookie(response);
+        SecurityContextHolder.clearContext();
     }
 
     @Override
@@ -203,9 +226,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private Role getUserRole() {
-        return roleRepository.findByName("ROLE_USER")
+        return roleRepository.findByName(Roles.USER)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Critical configuration error: ROLE_USER not found in database"));
+                        "Critical configuration error: " + Roles.USER + " not found in database"));
     }
 
     private record GoogleUserInfo(

@@ -19,10 +19,12 @@ import com.rentify.core.service.WalletService;
 import com.rentify.core.validation.WalletValidator;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.rentify.core.exception.DomainException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -43,7 +45,7 @@ public class WalletServiceImpl implements WalletService {
     private final CurrencyResolver currencyResolver;
     private final WalletValidator walletValidator;
 
-    @org.springframework.beans.factory.annotation.Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
+    @Value("${application.wallet.top-up-options:300.00,500.00,1000.00}")
     private List<BigDecimal> walletTopUpOptions = List.of(
             new BigDecimal("300.00"),
             new BigDecimal("500.00"),
@@ -109,7 +111,7 @@ public class WalletServiceImpl implements WalletService {
     private List<BigDecimal> resolveAllowedTopUpAmounts() {
         List<BigDecimal> configured = walletTopUpOptions;
         if (configured == null || configured.isEmpty()) {
-            throw new IllegalStateException("Wallet top-up options are not configured");
+            throw DomainException.internal("WALLET_TOPUP_OPTIONS_NOT_CONFIGURED", "Wallet top-up options are not configured");
         }
         return configured.stream()
                 .filter(Objects::nonNull)
@@ -121,7 +123,7 @@ public class WalletServiceImpl implements WalletService {
 
     private BigDecimal normalizeConfiguredAmount(BigDecimal value) {
         if (value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Wallet top-up options must be positive values");
+            throw DomainException.internal("WALLET_TOPUP_OPTIONS_INVALID", "Wallet top-up options must be positive values");
         }
         return value.setScale(2, RoundingMode.HALF_UP);
     }

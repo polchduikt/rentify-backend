@@ -44,35 +44,9 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(InvalidGoogleTokenException.class)
-    public ResponseEntity<ApiErrorResponse> handleInvalidGoogleTokenException(
-            InvalidGoogleTokenException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, "INVALID_GOOGLE_TOKEN", Map.of(), ex);
-    }
-
-    @ExceptionHandler(OAuthAccountLinkedToAnotherProviderException.class)
-    public ResponseEntity<ApiErrorResponse> handleOAuthAccountLinkedToAnotherProviderException(
-            OAuthAccountLinkedToAnotherProviderException ex, HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, ex.getMessage(), request, "OAUTH_PROVIDER_CONFLICT", Map.of(), ex);
-    }
-
-    @ExceptionHandler(ApiValidationException.class)
-    public ResponseEntity<ApiErrorResponse> handleApiValidationException(
-            ApiValidationException ex, HttpServletRequest request) {
-        return build(
-                HttpStatus.BAD_REQUEST,
-                String.join(", ", ex.getErrors()),
-                request,
-                "API_VALIDATION_ERROR",
-                Map.of(),
-                ex
-        );
-    }
-
-    @ExceptionHandler(AccountDeactivatedException.class)
-    public ResponseEntity<ApiErrorResponse> handleAccountDeactivatedException(
-            AccountDeactivatedException ex, HttpServletRequest request) {
-        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, "ACCOUNT_DEACTIVATED", Map.of(), ex);
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ApiErrorResponse> handleDomainException(DomainException ex, HttpServletRequest request) {
+        return build(ex.getStatus(), ex.getMessage(), request, ex.getErrorCode(), ex.getDetails(), ex);
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -124,12 +98,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "Data integrity violation", request, "DATA_INTEGRITY_VIOLATION", Map.of(), ex);
-    }
-
-    @ExceptionHandler(FileUploadException.class)
-    public ResponseEntity<ApiErrorResponse> handleFileUploadException(
-            FileUploadException ex, HttpServletRequest request) {
-        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request, "FILE_UPLOAD_ERROR", Map.of(), ex);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

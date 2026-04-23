@@ -1,23 +1,20 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "addresses")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Address {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public class Address extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id", nullable = false)
-    private Location location;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id")
+    @JoinColumn(name = "city_id", nullable = false)
+    @NotNull
     private City cityRef;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,15 +29,19 @@ public class Address {
     @JoinColumn(name = "residential_complex_id")
     private ResidentialComplex residentialComplexRef;
 
+    @Size(max = 180)
     @Column(length = 180)
     private String street;
 
+    @Size(max = 30)
     @Column(name = "house_number", length = 30)
     private String houseNumber;
 
+    @Size(max = 30)
     @Column(length = 30)
     private String apartment;
 
+    @Size(max = 30)
     @Column(name = "postal_code", length = 30)
     private String postalCode;
 

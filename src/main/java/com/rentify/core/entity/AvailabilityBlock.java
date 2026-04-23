@@ -1,7 +1,9 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Check;
 import java.time.LocalDate;
 
@@ -14,19 +16,19 @@ import java.time.LocalDate;
         }
 )
 @Check(name = "ck_availability_blocks_date_range", constraints = "date_from <= date_to")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class AvailabilityBlock extends CreatedAtEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
+    @NotNull
     private Property property;
 
+    @NotNull
     @Column(name = "date_from", nullable = false)
     private LocalDate dateFrom;
 
+    @NotNull
     @Column(name = "date_to", nullable = false)
     private LocalDate dateTo;
 
@@ -35,5 +37,6 @@ public class AvailabilityBlock extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
+    @NotNull
     private User createdBy;
 }

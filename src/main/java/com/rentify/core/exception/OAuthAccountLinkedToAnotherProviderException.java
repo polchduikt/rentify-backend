@@ -1,7 +1,10 @@
 package com.rentify.core.exception;
 
-public class OAuthAccountLinkedToAnotherProviderException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+import java.util.Map;
+
+public class OAuthAccountLinkedToAnotherProviderException extends DomainException {
     public OAuthAccountLinkedToAnotherProviderException(String message) {
-        super(message);
+        super(HttpStatus.CONFLICT, "OAUTH_PROVIDER_CONFLICT", message, Map.of());
     }
 }

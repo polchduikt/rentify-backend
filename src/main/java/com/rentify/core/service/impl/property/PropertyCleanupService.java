@@ -5,6 +5,7 @@ import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.ConversationRepository;
 import com.rentify.core.repository.FavoriteRepository;
 import com.rentify.core.repository.ReviewRepository;
+import com.rentify.core.exception.DomainException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,13 +21,13 @@ public class PropertyCleanupService {
 
     public void cleanupBeforeDelete(Long propertyId) {
         if (bookingRepository.existsByPropertyId(propertyId)) {
-            throw new IllegalStateException("Property cannot be deleted because it has bookings");
+            throw DomainException.conflict("PROPERTY_DELETE_FORBIDDEN", "Property cannot be deleted because it has bookings");
         }
         if (reviewRepository.existsByPropertyId(propertyId)) {
-            throw new IllegalStateException("Property cannot be deleted because it has reviews");
+            throw DomainException.conflict("PROPERTY_DELETE_FORBIDDEN", "Property cannot be deleted because it has reviews");
         }
         if (conversationRepository.existsByPropertyId(propertyId)) {
-            throw new IllegalStateException("Property cannot be deleted because it has conversations");
+            throw DomainException.conflict("PROPERTY_DELETE_FORBIDDEN", "Property cannot be deleted because it has conversations");
         }
         favoriteRepository.deleteByProperty_Id(propertyId);
         availabilityBlockRepository.deleteAllByPropertyId(propertyId);

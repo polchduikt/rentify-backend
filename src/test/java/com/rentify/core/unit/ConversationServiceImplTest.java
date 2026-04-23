@@ -8,6 +8,7 @@ import com.rentify.core.entity.Message;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.MessageType;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.ChatMapper;
 import com.rentify.core.repository.ConversationRepository;
 import com.rentify.core.repository.MessageRepository;
@@ -88,7 +89,8 @@ class ConversationServiceImplTest {
             Property propertyArg = invocation.getArgument(0);
             User currentUserArg = invocation.getArgument(1);
             if (propertyArg.getHost().getId().equals(currentUserArg.getId())) {
-                throw new IllegalArgumentException("Host cannot initiate a conversation for their own property");
+                throw DomainException.badRequest("CONVERSATION_SELF_NOT_ALLOWED",
+                        "Host cannot initiate a conversation for their own property");
             }
             return null;
         }).when(conversationValidator).validateConversationInitiator(any(Property.class), any(User.class));
@@ -119,12 +121,12 @@ class ConversationServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenHostStartsConversationOnOwnProperty() {
+        void shouldThrowDomainException_whenHostStartsConversationOnOwnProperty() {
             when(authService.getCurrentUser()).thenReturn(host);
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> conversationService.createConversation(10L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Host cannot initiate a conversation for their own property");
         }
 

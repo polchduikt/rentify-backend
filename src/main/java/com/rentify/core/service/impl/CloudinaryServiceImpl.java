@@ -3,7 +3,10 @@ package com.rentify.core.service.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
+import com.rentify.core.config.CloudinaryProperties;
+import com.rentify.core.config.MediaUploadProperties;
 import com.rentify.core.dto.cloudinary.CloudinaryUploadResult;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.exception.FileUploadException;
 import com.rentify.core.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +23,11 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 public class CloudinaryServiceImpl implements CloudinaryService {
-
-    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
     private static final Pattern VERSION_SEGMENT_PATTERN = Pattern.compile("(?:^|/)v\\d+/(.+)$");
-    private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/webp"
-    );
 
     private final Cloudinary cloudinary;
+    private final MediaUploadProperties mediaUploadProperties;
+    private final CloudinaryProperties cloudinaryProperties;
 
     @Override
     public CloudinaryUploadResult uploadFileWithMetadata(MultipartFile file) {
@@ -38,8 +35,12 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         try {
             Map<String, Object> options = ObjectUtils.asMap(
                     "resource_type", "auto",
-                    "folder", "rentify/properties",
-                    "transformation", new Transformation().width(1200).height(800).crop("limit").quality("auto")
+                    "folder", cloudinaryProperties.getFolder(),
+                    "transformation", new Transformation()
+                            .width(cloudinaryProperties.getMaxWidth())
+                            .height(cloudinaryProperties.getMaxHeight())
+                            .crop("limit")
+                            .quality("auto")
             );
 
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), options);
@@ -69,7 +70,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
-        } catch (IllegalArgumentException ex) {
+        } catch (DomainException ex) {
             throw ex;
         } catch (Exception e) {
             throw new FileUploadException("Image deletion failed: " + e.getMessage(), e);
@@ -90,33 +91,33 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
     private String extractPublicIdFromUrl(String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL");
         }
         URI uri;
         try {
             uri = URI.create(imageUrl.trim());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL");
         }
 
         if (uri.getHost() == null || !uri.getHost().contains("res.cloudinary.com")) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL");
         }
 
         String path = uri.getPath();
         if (path == null) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL format");
         }
 
         String marker = "/upload/";
         int uploadIndex = path.indexOf(marker);
         if (uploadIndex < 0) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL format");
         }
 
         String afterUpload = path.substring(uploadIndex + marker.length());
         if (afterUpload.isBlank()) {
-            throw new IllegalArgumentException("Invalid Cloudinary URL format");
+            throw DomainException.badRequest("CLOUDINARY_URL_INVALID", "Invalid Cloudinary URL format");
         }
 
         String candidate = afterUpload;
@@ -134,16 +135,17 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is required");
+            throw DomainException.badRequest("FILE_REQUIRED", "File is required");
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_MIME_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("Unsupported file type. Allowed: JPEG, PNG, WEBP");
+        Set<String> allowed = mediaUploadProperties.getAllowedMimeTypes();
+        if (contentType == null || allowed == null || !allowed.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw DomainException.badRequest("FILE_TYPE_NOT_ALLOWED", "Unsupported file type. Allowed: JPEG, PNG, WEBP");
         }
 
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File size exceeds 10 MB");
+        if (file.getSize() > mediaUploadProperties.getMaxFileSizeBytes()) {
+            throw DomainException.badRequest("FILE_TOO_LARGE", "File size exceeds 10 MB");
         }
     }
 }

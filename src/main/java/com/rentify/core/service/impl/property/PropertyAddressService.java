@@ -5,7 +5,6 @@ import com.rentify.core.dto.property.PropertyCreateRequestDto;
 import com.rentify.core.entity.Address;
 import com.rentify.core.entity.City;
 import com.rentify.core.entity.District;
-import com.rentify.core.entity.Location;
 import com.rentify.core.entity.MetroStation;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.ResidentialComplex;
@@ -13,9 +12,9 @@ import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AddressRepository;
 import com.rentify.core.repository.CityRepository;
 import com.rentify.core.repository.DistrictRepository;
-import com.rentify.core.repository.LocationRepository;
 import com.rentify.core.repository.MetroStationRepository;
 import com.rentify.core.repository.ResidentialComplexRepository;
+import com.rentify.core.exception.DomainException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,6 @@ public class PropertyAddressService {
     private final DistrictRepository districtRepository;
     private final MetroStationRepository metroStationRepository;
     private final ResidentialComplexRepository residentialComplexRepository;
-    private final LocationRepository locationRepository;
     private final PropertyMapper propertyMapper;
 
     public void updateAddress(Property property, PropertyCreateRequestDto request) {
@@ -49,36 +47,20 @@ public class PropertyAddressService {
 
         cityRef = resolveCityFromReferences(cityRef, districtRef, metroStationRef, residentialComplexRef);
 
-        if (cityRef != null) {
-            if (districtRef != null && !districtRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("District does not belong to selected city");
-            }
-            if (metroStationRef != null && !metroStationRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Metro station does not belong to selected city");
-            }
-            if (residentialComplexRef != null && !residentialComplexRef.getCity().getId().equals(cityRef.getId())) {
-                throw new IllegalArgumentException("Residential complex does not belong to selected city");
-            }
+        if (cityRef == null) {
+            throw DomainException.badRequest("ADDRESS_CITY_REQUIRED", "Either cityId or city name must be provided");
         }
 
-        if (address.getLocation() == null) {
-            address.setLocation(new Location());
+        if (districtRef != null && !districtRef.getCity().getId().equals(cityRef.getId())) {
+            throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "District does not belong to selected city");
         }
-        Location location = address.getLocation();
-        if (cityRef != null) {
-            location.setCountry(cityRef.getCountry());
-            location.setRegion(cityRef.getRegion());
-            location.setCity(cityRef.getName());
-        } else if (dto.location() != null) {
-            location.setCountry(dto.location().country());
-            location.setRegion(dto.location().region());
-            location.setCity(dto.location().city());
-        } else {
-            throw new IllegalArgumentException("Either cityId or address.location must be provided");
+        if (metroStationRef != null && !metroStationRef.getCity().getId().equals(cityRef.getId())) {
+            throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "Metro station does not belong to selected city");
         }
-        Location savedLocation = resolveOrCreateLocation(location);
+        if (residentialComplexRef != null && !residentialComplexRef.getCity().getId().equals(cityRef.getId())) {
+            throw DomainException.badRequest("ADDRESS_REFERENCE_CONFLICT", "Residential complex does not belong to selected city");
+        }
 
-        address.setLocation(savedLocation);
         address.setCityRef(cityRef);
         address.setDistrictRef(districtRef);
         address.setMetroStationRef(metroStationRef);
@@ -94,44 +76,28 @@ public class PropertyAddressService {
         property.setAddress(savedAddress);
     }
 
-    private Location resolveOrCreateLocation(Location location) {
-        String country = normalizeRequiredLocationValue(location.getCountry(), "country");
-        String region = normalizeRegionValue(location.getRegion());
-        String city = normalizeRequiredLocationValue(location.getCity(), "city");
-        location.setCountry(country);
-        location.setRegion(region);
-        location.setCity(city);
-        return locationRepository.findByCityAndRegionAndCountry(city, region, country)
-                .orElseGet(() -> locationRepository.save(location));
-    }
-
-    private String normalizeRequiredLocationValue(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Location " + fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
-
-    private String normalizeRegionValue(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        return value.trim();
-    }
-
     private City resolveCityReference(AddressDto addressDto) {
         if (addressDto.cityId() != null) {
             return cityRepository.findById(addressDto.cityId())
                     .orElseThrow(() -> new EntityNotFoundException("City not found"));
         }
-        if (addressDto.location() != null
-                && addressDto.location().city() != null
-                && !addressDto.location().city().isBlank()
-                && addressDto.location().region() != null
-                && !addressDto.location().region().isBlank()) {
-            return cityRepository.findFirstByNameIgnoreCaseAndRegionIgnoreCase(
-                    addressDto.location().city(),
-                    addressDto.location().region()
+        if (addressDto.city() != null
+                && !addressDto.city().isBlank()
+                && addressDto.region() != null
+                && !addressDto.region().isBlank()) {
+            City found = cityRepository.findFirstByNameIgnoreCaseAndRegionIgnoreCase(
+                    addressDto.city(),
+                    addressDto.region()
+            ).orElse(null);
+            if (found != null) {
+                return found;
+            }
+        }
+        if (addressDto.city() != null && !addressDto.city().isBlank()
+                && addressDto.country() != null && !addressDto.country().isBlank()) {
+            return cityRepository.findFirstByNameIgnoreCaseAndCountryIgnoreCase(
+                    addressDto.city(),
+                    addressDto.country()
             ).orElse(null);
         }
         return null;

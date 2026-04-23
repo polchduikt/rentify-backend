@@ -2,6 +2,7 @@ package com.rentify.core.validation;
 
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
+import com.rentify.core.exception.DomainException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -16,14 +17,18 @@ public class WalletValidator extends AbstractValidator {
 
     public BigDecimal normalizeAmount(BigDecimal amount, List<BigDecimal> allowedAmounts) {
         if (amount == null) {
-            throw new IllegalArgumentException("Top-up amount is required");
+            throw DomainException.badRequest("WALLET_TOPUP_AMOUNT_REQUIRED", "Top-up amount is required");
         }
         BigDecimal normalizedAmount = amount.setScale(2, RoundingMode.HALF_UP);
         if (normalizedAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Top-up amount must be greater than zero");
+            throw DomainException.badRequest("WALLET_TOPUP_AMOUNT_INVALID", "Top-up amount must be greater than zero");
         }
         if (!allowedAmounts.contains(normalizedAmount)) {
-            throw new IllegalArgumentException("Top-up amount is not allowed");
+            throw DomainException.badRequest(
+                    "WALLET_TOPUP_AMOUNT_NOT_ALLOWED",
+                    "Top-up amount is not allowed",
+                    java.util.Map.of("amount", normalizedAmount.toPlainString())
+            );
         }
         return normalizedAmount;
     }

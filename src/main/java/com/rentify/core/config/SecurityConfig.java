@@ -134,7 +134,8 @@ public class SecurityConfig {
                         AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/v1/sessions/google"),
                         AntPathRequestMatcher.antMatcher("/v3/api-docs/**"),
                         AntPathRequestMatcher.antMatcher("/swagger-ui/**"),
-                        AntPathRequestMatcher.antMatcher("/swagger-ui.html")
+                        AntPathRequestMatcher.antMatcher("/swagger-ui.html"),
+                        AntPathRequestMatcher.antMatcher(HttpMethod.DELETE, "/api/v1/sessions/me")
                 )
         );
     }

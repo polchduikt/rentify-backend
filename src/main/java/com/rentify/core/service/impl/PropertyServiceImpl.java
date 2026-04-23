@@ -16,6 +16,7 @@ import com.rentify.core.enums.RentalType;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AmenityRepository;
 import com.rentify.core.repository.PropertyRepository;
+import com.rentify.core.security.UserRoleUtils;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.PropertyService;
 import com.rentify.core.service.impl.property.PropertyAddressService;
@@ -23,6 +24,7 @@ import com.rentify.core.service.impl.property.PropertyCleanupService;
 import com.rentify.core.service.impl.property.PropertyPhotoService;
 import com.rentify.core.service.impl.property.PropertySearchService;
 import com.rentify.core.validation.PropertyValidator;
+import com.rentify.core.exception.DomainException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -163,7 +165,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authenticationService.getCurrentUser();
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = isAdmin(currentUser);
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
         if (!isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to change the status of this property");
         }
@@ -222,7 +224,7 @@ public class PropertyServiceImpl implements PropertyService {
             amenities.addAll(foundBySlugs);
         }
 
-        if (!isAdmin(currentUser)) {
+        if (!UserRoleUtils.isAdmin(currentUser)) {
             Set<Amenity> currentAmenities = property.getAmenities() != null ? property.getAmenities() : Set.of();
             Set<Amenity> existingVerificationAmenities = currentAmenities.stream()
                     .filter(amenity -> amenity.getCategory() == AmenityCategory.VERIFICATION)
@@ -261,7 +263,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void applyListingFlags(Property property, PropertyCreateRequestDto request, User currentUser) {
-        if (!isAdmin(currentUser)) {
+        if (!UserRoleUtils.isAdmin(currentUser)) {
             return;
         }
         property.setIsVerifiedProperty(Boolean.TRUE.equals(request.isVerifiedProperty()));
@@ -285,33 +287,38 @@ public class PropertyServiceImpl implements PropertyService {
 
     private void assertCanManageProperty(Property property, User currentUser) {
         boolean isHost = property.getHost().getId().equals(currentUser.getId());
-        boolean isAdmin = isAdmin(currentUser);
+        boolean isAdmin = UserRoleUtils.isAdmin(currentUser);
         if (!isHost && !isAdmin) {
             throw new AccessDeniedException("You do not have permission to manage this property");
         }
     }
 
-    private boolean isAdmin(User user) {
-        return user.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
-    }
-
     private void assertRentalPricingRules(PropertyCreateRequestDto request) {
         if (request.rentalType() == RentalType.SHORT_TERM) {
             if (request.maxGuests() == null) {
-                throw new IllegalArgumentException("maxGuests is required for short-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "maxGuests is required for short-term rental",
+                        java.util.Map.of("maxGuests", "required")
+                );
             }
             if (request.pricing() == null || request.pricing().pricePerNight() == null
                     || request.pricing().pricePerNight().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException(
-                        "pricePerNight is required and must be greater than 0 for short-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "pricePerNight is required and must be greater than 0 for short-term rental",
+                        java.util.Map.of("pricePerNight", "must be greater than 0")
+                );
             }
         }
         if (request.rentalType() == RentalType.LONG_TERM) {
             if (request.pricing() == null || request.pricing().pricePerMonth() == null
                     || request.pricing().pricePerMonth().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException(
-                        "pricePerMonth is required and must be greater than 0 for long-term rental");
+                throw DomainException.badRequest(
+                        "RENTAL_PRICING_INVALID",
+                        "pricePerMonth is required and must be greater than 0 for long-term rental",
+                        java.util.Map.of("pricePerMonth", "must be greater than 0")
+                );
             }
         }
     }

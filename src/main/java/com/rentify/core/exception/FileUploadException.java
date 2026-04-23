@@ -1,12 +1,16 @@
 package com.rentify.core.exception;
 
-public class FileUploadException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+import java.util.Map;
+
+public class FileUploadException extends DomainException {
 
     public FileUploadException(String message) {
-        super(message);
+        super(HttpStatus.BAD_GATEWAY, "FILE_UPLOAD_ERROR", message, Map.of());
     }
 
     public FileUploadException(String message, Throwable cause) {
-        super(message, cause);
+        super(HttpStatus.BAD_GATEWAY, "FILE_UPLOAD_ERROR", message, Map.of());
+        this.initCause(cause);
     }
 }

@@ -1,7 +1,11 @@
 package com.rentify.core.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(
@@ -15,14 +19,12 @@ import lombok.*;
                 columnNames = {"booking_id", "author_id"}
         )
 )
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class Review extends CreatedAtEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
+    @NotNull
     private Property property;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,12 +33,15 @@ public class Review extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
+    @NotNull
     private User author;
 
+    @NotNull
+    @Min(1)
+    @Max(5)
     @Column(nullable = false)
     private Short rating;
 
     @Column(columnDefinition = "TEXT")
     private String comment;
-
 }

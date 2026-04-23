@@ -4,6 +4,7 @@ import com.rentify.core.dto.conversation.SendMessageRequestDto;
 import com.rentify.core.entity.Conversation;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
+import com.rentify.core.exception.DomainException;
 import jakarta.validation.Validator;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -17,13 +18,14 @@ public class ConversationValidator extends AbstractValidator {
 
     public void validatePropertyId(Long propertyId) {
         if (propertyId == null || propertyId <= 0) {
-            throw new IllegalArgumentException("Property id must be positive");
+            throw DomainException.badRequest("PROPERTY_ID_INVALID", "Property id must be positive");
         }
     }
 
     public void validateConversationInitiator(Property property, User currentUser) {
         if (property.getHost().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("Host cannot initiate a conversation for their own property");
+            throw DomainException.badRequest("CONVERSATION_SELF_NOT_ALLOWED",
+                    "Host cannot initiate a conversation for their own property");
         }
     }
 

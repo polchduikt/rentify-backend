@@ -41,13 +41,13 @@ public class PropertySpecifications {
                 predicates.add(cb.equal(root.get("address").get("residentialComplexRef").get("id"), criteria.residentialComplexId()));
             }
             if (criteria.country() != null && !criteria.country().isBlank()) {
-                predicates.add(cb.equal(root.get("address").get("location").get("country"), criteria.country()));
+                predicates.add(cb.equal(root.get("address").get("cityRef").get("country"), criteria.country()));
             }
             if (criteria.region() != null && !criteria.region().isBlank()) {
-                predicates.add(cb.equal(root.get("address").get("location").get("region"), criteria.region()));
+                predicates.add(cb.equal(root.get("address").get("cityRef").get("region"), criteria.region()));
             }
             if (criteria.city() != null && !criteria.city().isBlank()) {
-                predicates.add(cb.equal(root.get("address").get("location").get("city"), criteria.city()));
+                predicates.add(cb.equal(root.get("address").get("cityRef").get("name"), criteria.city()));
             }
             if (criteria.lat() != null && criteria.lng() != null && criteria.radiusKm() != null) {
                 predicates.add(cb.isNotNull(root.get("address").get("lat")));

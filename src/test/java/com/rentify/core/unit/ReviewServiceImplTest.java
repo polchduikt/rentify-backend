@@ -7,6 +7,7 @@ import com.rentify.core.entity.Property;
 import com.rentify.core.entity.Review;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.ReviewMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PropertyRepository;
@@ -93,13 +94,13 @@ class ReviewServiceImplTest {
                 throw new AccessDeniedException("You can only review bookings that belong to you");
             }
             if (!bookingArg.getProperty().getId().equals(propertyArg.getId())) {
-                throw new IllegalArgumentException("Booking does not belong to the specified property");
+                throw DomainException.badRequest("REVIEW_BOOKING_PROPERTY_MISMATCH", "Booking does not belong to the specified property");
             }
             if (bookingArg.getStatus() != BookingStatus.COMPLETED) {
-                throw new IllegalStateException("You can only review properties after your stay is COMPLETED");
+                throw DomainException.conflict("REVIEW_NOT_ALLOWED_YET", "You can only review properties after your stay is COMPLETED");
             }
             if (alreadyReviewed) {
-                throw new IllegalStateException("You have already reviewed this booking");
+                throw DomainException.conflict("REVIEW_ALREADY_EXISTS", "You have already reviewed this booking");
             }
             return null;
         }).when(reviewValidator).validateReviewEligibility(any(Booking.class), any(Property.class), any(User.class), anyBoolean());
@@ -171,7 +172,7 @@ class ReviewServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalArgument_whenBookingAndPropertyDoNotMatch() {
+        void shouldThrowDomainException_whenBookingAndPropertyDoNotMatch() {
             Property otherProperty = Property.builder().id(11L).build();
             booking.setProperty(otherProperty);
             when(authService.getCurrentUser()).thenReturn(tenant);
@@ -179,31 +180,31 @@ class ReviewServiceImplTest {
             when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> reviewService.createReview(request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("Booking does not belong to the specified property");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingIsNotCompleted() {
+        void shouldThrowDomainException_whenBookingIsNotCompleted() {
             booking.setStatus(BookingStatus.CONFIRMED);
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
             when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> reviewService.createReview(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("You can only review properties after your stay is COMPLETED");
         }
 
         @Test
-        void shouldThrowIllegalState_whenBookingIsAlreadyReviewed() {
+        void shouldThrowDomainException_whenBookingIsAlreadyReviewed() {
             when(authService.getCurrentUser()).thenReturn(tenant);
             when(bookingRepository.findById(20L)).thenReturn(Optional.of(booking));
             when(propertyRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(property));
             when(reviewRepository.existsByBookingId(20L)).thenReturn(true);
 
             assertThatThrownBy(() -> reviewService.createReview(request))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessage("You have already reviewed this booking");
         }
     }

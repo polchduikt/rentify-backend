@@ -6,6 +6,7 @@ import com.rentify.core.entity.Payment;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
 import com.rentify.core.enums.PaymentStatus;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.PaymentMapper;
 import com.rentify.core.repository.BookingRepository;
 import com.rentify.core.repository.PaymentRepository;
@@ -47,13 +48,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AccessDeniedException("You can only pay for your own bookings");
         }
         if (paymentRepository.existsByBookingIdAndStatus(bookingId, PaymentStatus.PAID)) {
-            throw new IllegalStateException("Booking is already paid");
+            throw DomainException.conflict("PAYMENT_ALREADY_PAID", "Booking is already paid");
         }
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Booking must be CONFIRMED by host before payment");
+            throw DomainException.conflict("PAYMENT_BOOKING_NOT_CONFIRMED", "Booking must be CONFIRMED by host before payment");
         }
         if (booking.getTotalPrice() == null) {
-            throw new IllegalStateException("Booking has no calculated total price");
+            throw DomainException.internal("BOOKING_CONFIGURATION_INVALID", "Booking has no calculated total price");
         }
 
         String currency = currencyResolver.resolvePropertyCurrency(booking.getProperty());

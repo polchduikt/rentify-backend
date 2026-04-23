@@ -13,6 +13,7 @@ import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.PropertyType;
 import com.rentify.core.enums.PropertyStatus;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.PropertyMapper;
 import com.rentify.core.repository.AmenityRepository;
 import com.rentify.core.repository.AvailabilityBlockRepository;
@@ -421,14 +422,14 @@ class PropertyServiceImplTest {
         }
 
         @Test
-        void shouldThrowIllegalState_whenPropertyHasBookings() {
+        void shouldThrowDomainException_whenPropertyHasBookings() {
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(authenticationService.getCurrentUser()).thenReturn(hostUser);
-            org.mockito.Mockito.doThrow(new IllegalStateException("Property cannot be deleted because it has bookings"))
+            org.mockito.Mockito.doThrow(DomainException.conflict("PROPERTY_DELETE_FORBIDDEN", "Property cannot be deleted because it has bookings"))
                     .when(propertyCleanupService).cleanupBeforeDelete(10L);
 
             assertThatThrownBy(() -> propertyService.deleteProperty(10L))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("bookings");
         }
     }

@@ -17,6 +17,13 @@ services:
       retries: 10
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: rentify-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -37,11 +44,21 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_TIMEOUT: ${REDIS_TIMEOUT:-2s}
+      JWT_REVOCATION_ENABLED: ${JWT_REVOCATION_ENABLED:-true}
+      CACHE_SHORT_MAX_AGE: ${CACHE_SHORT_MAX_AGE:-60}
+      CACHE_SHORT_SWR: ${CACHE_SHORT_SWR:-300}
+      CACHE_MEDIUM_MAX_AGE: ${CACHE_MEDIUM_MAX_AGE:-300}
+      CACHE_MEDIUM_SWR: ${CACHE_MEDIUM_SWR:-1800}
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
   frontend:

@@ -4,10 +4,13 @@ import com.rentify.core.dto.property.AvailabilityBlockDto;
 import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import com.rentify.core.dto.property.UnavailableDateRangeDto;
 import com.rentify.core.entity.AvailabilityBlock;
+import com.rentify.core.validation.DateRangeUtils;
 import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
 import com.rentify.core.enums.BookingStatus;
+import com.rentify.core.config.AvailabilityProperties;
+import com.rentify.core.exception.DomainException;
 import com.rentify.core.mapper.AvailabilityMapper;
 import com.rentify.core.repository.AvailabilityBlockRepository;
 import com.rentify.core.repository.BookingRepository;
@@ -32,20 +35,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AvailabilityServiceImpl implements AvailabilityService {
 
-    private static final int BOOKING_FETCH_PAGE_SIZE = 500;
-
     private final AvailabilityBlockRepository availabilityRepository;
     private final PropertyRepository propertyRepository;
     private final BookingRepository bookingRepository;
     private final AuthenticationService authService;
     private final AvailabilityMapper mapper;
+    private final AvailabilityProperties availabilityProperties;
 
     @Override
     @Transactional
     public AvailabilityBlockDto createBlock(Long propertyId, AvailabilityBlockRequestDto request) {
-        if (request.dateFrom().isAfter(request.dateTo())) {
-            throw new IllegalArgumentException("dateFrom must be before or equal to dateTo");
-        }
+        DateRangeUtils.assertFromBeforeOrEqualTo(request.dateFrom(), request.dateTo());
         Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authService.getCurrentUser();
@@ -56,14 +56,14 @@ public class AvailabilityServiceImpl implements AvailabilityService {
                 .findAllByPropertyIdAndDateFromLessThanEqualAndDateToGreaterThanEqual(
                         propertyId, request.dateTo(), request.dateFrom());
         if (!overlappingBlocks.isEmpty()) {
-            throw new IllegalStateException("These dates are already blocked.");
+            throw DomainException.conflict("AVAILABILITY_ALREADY_BLOCKED", "These dates are already blocked.");
         }
         boolean hasBookings = bookingRepository.hasOverlappingBookings(
                 propertyId, request.dateFrom(), request.dateTo(),
                 List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.COMPLETED)
         );
         if (hasBookings) {
-            throw new IllegalStateException("Cannot block dates because there are existing bookings for this period.");
+            throw DomainException.conflict("AVAILABILITY_HAS_BOOKINGS", "Cannot block dates because there are existing bookings for this period.");
         }
         AvailabilityBlock block = AvailabilityBlock.builder()
                 .property(property)
@@ -134,12 +134,8 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     }
 
     private void validateDateRange(LocalDate dateFrom, LocalDate dateTo) {
-        if ((dateFrom == null) != (dateTo == null)) {
-            throw new IllegalArgumentException("Both dateFrom and dateTo must be provided together.");
-        }
-        if (dateFrom != null && !dateFrom.isBefore(dateTo)) {
-            throw new IllegalArgumentException("dateFrom must be before dateTo.");
-        }
+        DateRangeUtils.assertBothOrNone(dateFrom, dateTo);
+        DateRangeUtils.assertFromStrictlyBeforeTo(dateFrom, dateTo);
     }
 
     private List<Booking> fetchAllOverlappingBookings(
@@ -157,7 +153,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
                     excludedStatuses,
                     dateFrom,
                     dateTo,
-                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+                    PageRequest.of(pageNumber, availabilityProperties.getBookingFetchPageSize(), Sort.by(Sort.Direction.ASC, "dateFrom"))
             );
             result.addAll(page.getContent());
             pageNumber++;
@@ -176,7 +172,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             page = bookingRepository.findAllByPropertyIdAndStatusNotIn(
                     propertyId,
                     excludedStatuses,
-                    PageRequest.of(pageNumber, BOOKING_FETCH_PAGE_SIZE, Sort.by(Sort.Direction.ASC, "dateFrom"))
+                    PageRequest.of(pageNumber, availabilityProperties.getBookingFetchPageSize(), Sort.by(Sort.Direction.ASC, "dateFrom"))
             );
             result.addAll(page.getContent());
             pageNumber++;

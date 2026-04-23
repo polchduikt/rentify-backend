@@ -2,6 +2,8 @@ package com.rentify.core.config;
 
 import com.rentify.core.security.JwtService;
 import com.rentify.core.security.TokenRevocationService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +18,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
+import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
@@ -37,17 +40,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        if (tokenRevocationService.isRevoked(jwt)) {
-            SecurityContextHolder.clearContext();
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         try {
-            String userEmail = jwtService.extractUsername(jwt);
+            Claims claims = jwtService.extractAllClaims(jwt);
+            String jti = claims.getId();
+            if (tokenRevocationService.isRevokedByJti(jti)) {
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
+            String userEmail = claims.getSubject();
+
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                if (userDetails.isEnabled() && jwtService.isTokenValid(jwt, userDetails)) {
+                boolean isTokenExpired = claims.getExpiration().before(new Date());
+                if (userDetails.isEnabled() && !isTokenExpired && userEmail.equals(userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -57,10 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (RuntimeException ex) {
+        } catch (JwtException | IllegalArgumentException ex) {
             SecurityContextHolder.clearContext();
         }
-
         filterChain.doFilter(request, response);
     }
 
