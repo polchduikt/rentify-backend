@@ -6,7 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.Hibernate;
+import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
 
 @Entity
@@ -15,11 +16,8 @@ import java.math.BigDecimal;
         @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", nullable = true)),
         @AttributeOverride(name = "updatedAt", column = @Column(name = "updated_at", nullable = true))
 })
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class PropertyPricing extends AuditableEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false, unique = true)
@@ -45,21 +43,4 @@ public class PropertyPricing extends AuditableEntity {
     @Column(name = "cleaning_fee", precision = 12, scale = 2)
     @DecimalMin("0.00")
     private BigDecimal cleaningFee;
-
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
-            return false;
-        }
-        PropertyPricing that = (PropertyPricing) o;
-        return id != null && id.equals(that.id);
-    }
-
-    @Override
-    public final int hashCode() {
-        return Hibernate.getClass(this).hashCode();
-    }
 }

@@ -4,24 +4,17 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.Hibernate;
+import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "addresses")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Address {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public class Address extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id", nullable = false)
+    @JoinColumn(name = "city_id", nullable = false)
     @NotNull
-    private Location location;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id")
     private City cityRef;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,21 +50,4 @@ public class Address {
 
     @Column(precision = 9, scale = 6)
     private BigDecimal lng;
-
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
-            return false;
-        }
-        Address address = (Address) o;
-        return id != null && id.equals(address.id);
-    }
-
-    @Override
-    public final int hashCode() {
-        return Hibernate.getClass(this).hashCode();
-    }
 }

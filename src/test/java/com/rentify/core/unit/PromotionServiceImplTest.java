@@ -21,6 +21,7 @@ import com.rentify.core.repository.UserRepository;
 import com.rentify.core.repository.WalletTransactionRepository;
 import com.rentify.core.service.AuthenticationService;
 import com.rentify.core.service.WalletNormalizationService;
+import com.rentify.core.service.CurrencyResolver;
 import com.rentify.core.service.impl.PromotionServiceImpl;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +55,7 @@ class PromotionServiceImplTest {
     @Mock private WalletTransactionRepository walletTransactionRepository;
     @Mock private WalletNormalizationService walletNormalizationService;
     @Mock private PromotionMapper promotionMapper;
+    @Mock private CurrencyResolver currencyResolver;
 
     @InjectMocks
     private PromotionServiceImpl promotionService;
@@ -63,6 +66,7 @@ class PromotionServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(currencyResolver.resolveDefaultCurrency()).thenReturn("UAH");
         host = User.builder()
                 .id(1L)
                 .balance(new BigDecimal("1000.00"))

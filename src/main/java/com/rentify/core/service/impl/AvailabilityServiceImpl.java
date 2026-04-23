@@ -4,6 +4,7 @@ import com.rentify.core.dto.property.AvailabilityBlockDto;
 import com.rentify.core.dto.property.AvailabilityBlockRequestDto;
 import com.rentify.core.dto.property.UnavailableDateRangeDto;
 import com.rentify.core.entity.AvailabilityBlock;
+import com.rentify.core.validation.DateRangeUtils;
 import com.rentify.core.entity.Booking;
 import com.rentify.core.entity.Property;
 import com.rentify.core.entity.User;
@@ -44,9 +45,7 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     @Override
     @Transactional
     public AvailabilityBlockDto createBlock(Long propertyId, AvailabilityBlockRequestDto request) {
-        if (request.dateFrom().isAfter(request.dateTo())) {
-            throw DomainException.badRequest("DATE_RANGE_INVALID", "dateFrom must be before or equal to dateTo");
-        }
+        DateRangeUtils.assertFromBeforeOrEqualTo(request.dateFrom(), request.dateTo());
         Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
         User currentUser = authService.getCurrentUser();
@@ -135,12 +134,8 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     }
 
     private void validateDateRange(LocalDate dateFrom, LocalDate dateTo) {
-        if ((dateFrom == null) != (dateTo == null)) {
-            throw DomainException.badRequest("DATE_RANGE_INVALID", "Both dateFrom and dateTo must be provided together.");
-        }
-        if (dateFrom != null && !dateFrom.isBefore(dateTo)) {
-            throw DomainException.badRequest("DATE_RANGE_INVALID", "dateFrom must be before dateTo.");
-        }
+        DateRangeUtils.assertBothOrNone(dateFrom, dateTo);
+        DateRangeUtils.assertFromStrictlyBeforeTo(dateFrom, dateTo);
     }
 
     private List<Booking> fetchAllOverlappingBookings(

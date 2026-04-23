@@ -5,7 +5,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.Hibernate;
+import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(
@@ -16,11 +17,8 @@ import org.hibernate.Hibernate;
                 @Index(name = "idx_messages_conversation_created_at", columnList = "conversation_id, created_at")
         }
 )
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class Message extends CreatedAtEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conversation_id", nullable = false)
@@ -49,21 +47,4 @@ public class Message extends CreatedAtEntity {
     @Size(max = 800)
     @Column(name = "media_url", length = 800)
     private String mediaUrl;
-
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
-            return false;
-        }
-        Message that = (Message) o;
-        return id != null && id.equals(that.id);
-    }
-
-    @Override
-    public final int hashCode() {
-        return Hibernate.getClass(this).hashCode();
-    }
 }

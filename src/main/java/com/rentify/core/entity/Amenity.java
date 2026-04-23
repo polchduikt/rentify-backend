@@ -5,15 +5,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.Hibernate;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "amenities")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Amenity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public class Amenity extends BaseEntity {
 
     @NotBlank
     @Size(max = 120)
@@ -31,21 +28,4 @@ public class Amenity {
     @Size(max = 120)
     @Column(name = "icon", length = 120)
     private String icon;
-
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) {
-            return false;
-        }
-        Amenity amenity = (Amenity) o;
-        return id != null && id.equals(amenity.id);
-    }
-
-    @Override
-    public final int hashCode() {
-        return Hibernate.getClass(this).hashCode();
-    }
 }

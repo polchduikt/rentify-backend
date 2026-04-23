@@ -21,4 +21,6 @@ public interface CityRepository extends JpaRepository<City, Long> {
     List<City> searchByPrefix(@Param("query") String query, Pageable pageable);
 
     Optional<City> findFirstByNameIgnoreCaseAndRegionIgnoreCase(String name, String region);
+
+    Optional<City> findFirstByNameIgnoreCaseAndCountryIgnoreCase(String name, String country);
 }

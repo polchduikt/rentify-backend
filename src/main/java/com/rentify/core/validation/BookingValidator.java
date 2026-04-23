@@ -25,9 +25,7 @@ public class BookingValidator extends AbstractValidator {
         if (request.propertyId() != null && request.propertyId() <= 0) {
             errors.put("propertyId", "must be greater than 0");
         }
-        if (request.dateFrom() != null && request.dateTo() != null && !request.dateFrom().isBefore(request.dateTo())) {
-            errors.put("dateFrom", "must be before dateTo");
-        }
+        DateRangeUtils.requireFromBeforeTo(request.dateFrom(), request.dateTo(), "dateFrom", errors);
 
         throwIfAny(errors);
     }

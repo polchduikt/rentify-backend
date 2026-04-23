@@ -1,7 +1,6 @@
 package com.rentify.core.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,9 +9,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AddressDto(
         @Schema(description = "Id", example = "42")
         Long id,
-        @Valid
-        @Schema(description = "Location", example = "Sample value")
-        LocationDto location,
+        @Schema(description = "Country", example = "Ukraine")
+        String country,
+        @Schema(description = "Region", example = "Kyivska oblast")
+        String region,
+        @Schema(description = "City name", example = "Kyiv")
+        String city,
         @Schema(description = "City id", example = "42")
         @JsonProperty("cityId") Long cityId,
         @Schema(description = "District id", example = "42")

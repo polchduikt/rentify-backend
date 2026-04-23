@@ -66,14 +66,8 @@ public class PropertyValidator extends AbstractValidator {
     }
 
     private void validateDateRange(PropertySearchCriteriaDto criteria, Map<String, String> errors) {
-        if ((criteria.dateFrom() == null) != (criteria.dateTo() == null)) {
-            errors.put("dateFrom", "both values must be provided together");
-            errors.put("dateTo", "both values must be provided together");
-        }
-        if (criteria.dateFrom() != null && criteria.dateTo() != null
-                && !criteria.dateFrom().isBefore(criteria.dateTo())) {
-            errors.put("dateFrom", "must be before dateTo");
-        }
+        DateRangeUtils.requireBothOrNone(criteria.dateFrom(), criteria.dateTo(), "dateFrom", "dateTo", errors);
+        DateRangeUtils.requireFromBeforeTo(criteria.dateFrom(), criteria.dateTo(), "dateFrom", errors);
     }
 
     private void validateGeoLocation(PropertySearchCriteriaDto criteria, Map<String, String> errors) {

@@ -12,13 +12,11 @@ import com.rentify.core.entity.Property;
 import com.rentify.core.entity.PropertyPhoto;
 import com.rentify.core.entity.PropertyPricing;
 import com.rentify.core.entity.PropertyRule;
-import com.rentify.core.enums.RentalType;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Mapper(config = MapStructCentralConfig.class)
@@ -37,7 +35,6 @@ public interface PropertyMapper {
 
     List<PropertyMapPinDto> toMapPinDtos(List<Property> properties);
 
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "host", ignore = true)
     @Mapping(target = "isTopPromoted", ignore = true)
@@ -64,7 +61,7 @@ public interface PropertyMapper {
     @Mapping(source = "checkOutTime", target = "checkOutTime")
     void updateEntity(PropertyCreateRequestDto request, @MappingTarget Property property);
 
-    @Mapping(target = "id", ignore = true)
+
     @Mapping(target = "property", ignore = true)
     PropertyPricing toPricingEntity(PropertyPricingDto dto);
 
@@ -76,7 +73,7 @@ public interface PropertyMapper {
     @Mapping(source = "cleaningFee", target = "cleaningFee")
     void updatePricing(PropertyPricingDto dto, @MappingTarget PropertyPricing pricing);
 
-    @Mapping(target = "id", ignore = true)
+
     @Mapping(target = "property", ignore = true)
     PropertyRule toRuleEntity(PropertyRuleDto dto);
 
@@ -87,6 +84,9 @@ public interface PropertyMapper {
     @Mapping(source = "additionalRules", target = "additionalRules")
     void updateRules(PropertyRuleDto dto, @MappingTarget PropertyRule rules);
 
+    @Mapping(source = "cityRef.country", target = "country")
+    @Mapping(source = "cityRef.region", target = "region")
+    @Mapping(source = "cityRef.name", target = "city")
     @Mapping(source = "cityRef.id", target = "cityId")
     @Mapping(source = "districtRef.id", target = "districtId")
     @Mapping(source = "metroStationRef.id", target = "metroStationId")
@@ -95,7 +95,7 @@ public interface PropertyMapper {
     @Mapping(source = "metroStationRef.name", target = "metroStationName")
     @Mapping(source = "residentialComplexRef.name", target = "residentialComplexName")
     AddressDto toAddressDto(Address address);
-    @Mapping(target = "id", ignore = true)
+
     @Mapping(target = "cityRef", ignore = true)
     @Mapping(target = "districtRef", ignore = true)
     @Mapping(target = "metroStationRef", ignore = true)
