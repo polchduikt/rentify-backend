@@ -4,6 +4,7 @@ import com.rentify.core.dto.user.ChangePasswordRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
+import com.rentify.core.dto.user.UserSessionDto;
 import com.rentify.core.entity.User;
 import com.rentify.core.exception.DomainException;
 import com.rentify.core.enums.SubscriptionPlan;
@@ -36,6 +37,13 @@ public class UserServiceImpl implements UserService {
     private final CloudinaryService cloudinaryService;
     private final PasswordEncoder passwordEncoder;
     private final UserValidator userValidator;
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserSessionDto getCurrentUserSession() {
+        User currentUser = authenticationService.getCurrentUser();
+        return userMapper.toSessionDto(currentUser);
+    }
 
     @Override
     @Transactional(readOnly = true)
