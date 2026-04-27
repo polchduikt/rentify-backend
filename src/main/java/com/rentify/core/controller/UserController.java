@@ -5,6 +5,7 @@ import com.rentify.core.dto.user.DeleteAccountRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
+import com.rentify.core.dto.user.UserSessionDto;
 import com.rentify.core.service.UserService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -51,6 +52,20 @@ public class UserController {
     )
     public ResponseEntity<UserResponseDto> getMyProfile() {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
+    }
+
+    @GetMapping("/me/session")
+    @Operation(
+            summary = "Get current user session",
+            description = "Returns minimal identity payload for authenticated SPA session bootstrapping."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Session payload retrieved",
+            content = @Content(schema = @Schema(implementation = UserSessionDto.class))
+    )
+    public ResponseEntity<UserSessionDto> getMySession() {
+        return ResponseEntity.ok(userService.getCurrentUserSession());
     }
 
     @GetMapping("/{userId}")

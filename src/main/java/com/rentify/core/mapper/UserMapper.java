@@ -2,6 +2,7 @@ package com.rentify.core.mapper;
 
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UserResponseDto;
+import com.rentify.core.dto.user.UserSessionDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.entity.Role;
 import com.rentify.core.entity.User;
@@ -19,6 +20,8 @@ public interface UserMapper {
 
     @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
     UserResponseDto toDto(User user);
+    @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
+    UserSessionDto toSessionDto(User user);
     PublicUserProfileDto toPublicProfileDto(User user);
     List<UserResponseDto> toDtos(List<User> users);
     List<PublicUserProfileDto> toPublicProfileDtos(List<User> users);

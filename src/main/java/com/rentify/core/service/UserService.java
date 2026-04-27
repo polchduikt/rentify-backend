@@ -4,9 +4,11 @@ import com.rentify.core.dto.user.ChangePasswordRequestDto;
 import com.rentify.core.dto.user.PublicUserProfileDto;
 import com.rentify.core.dto.user.UpdateUserRequestDto;
 import com.rentify.core.dto.user.UserResponseDto;
+import com.rentify.core.dto.user.UserSessionDto;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
+    UserSessionDto getCurrentUserSession();
     UserResponseDto getCurrentUserProfile();
     PublicUserProfileDto getPublicProfile(Long userId);
     UserResponseDto updateProfile(UpdateUserRequestDto request);
