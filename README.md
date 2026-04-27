@@ -15,24 +15,21 @@ Rentify provides the backend for a full‑featured property rental platform. It 
 
 The API is documented with OpenAPI/Swagger and is designed to be consumed by web and mobile frontends.
 
-### Technologies
-
-The backend is implemented using a robust, maintainable stack:
+## Technologies
 
 - **Language**: Java 17
 - **Framework**: Spring Boot 3 (Web, Security, Validation)
 - **Persistence**: Spring Data JPA
 - **Database**: PostgreSQL
-- **Authentication**: JWT‑based auth with optional cookie or bearer strategies, Google OAuth integration
+- **In-memory store**: Redis (token revocation / security state)
+- **Authentication**: JWT, cookie or bearer strategy, Google OAuth
 - **Object Mapping**: MapStruct
 - **Build Tool**: Maven
-- **Cloud Storage**: Cloudinary for property photos
-- **API Documentation**: springdoc‑openapi (Swagger UI)
+- **Cloud Storage**: Cloudinary
+- **API Docs**: springdoc-openapi (Swagger UI)
 - **Testing**: JUnit 5, Spring Boot Test, Testcontainers (PostgreSQL)
 
 ### Performance & Security
-
-Rentify Backend is designed with secure defaults and good runtime characteristics:
 
 - **JWT security**: Configurable expiration and secret key via environment variables
 - **OAuth 2.0**: Google sign‑in for simplified onboarding
